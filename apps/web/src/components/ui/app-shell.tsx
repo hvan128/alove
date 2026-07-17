@@ -13,8 +13,8 @@ export function AppShell({ children, className }: { children: ReactNode; classNa
             VéĐi
           </Link>
           <nav aria-label="Điều hướng chính" className="flex items-center gap-1 text-sm">
-            <Link className="rounded-full px-3 py-2 text-[var(--muted)] transition hover:bg-[var(--action-soft)] hover:text-[var(--action)]" href="/console">Web Call</Link>
-            <Link className="inline-flex items-center gap-1 rounded-full px-3 py-2 text-[var(--muted)] transition hover:bg-[var(--action-soft)] hover:text-[var(--action)]" href="/design-system"><SquaresFourIcon size={15} aria-hidden /> Hệ thống</Link>
+            <Link className="inline-flex min-h-11 items-center rounded-full px-3 py-2 text-[var(--muted)] transition hover:bg-[var(--action-soft)] hover:text-[var(--action)]" href="/console">Web Call</Link>
+            <Link className="inline-flex min-h-11 items-center gap-1 rounded-full px-3 py-2 text-[var(--muted)] transition hover:bg-[var(--action-soft)] hover:text-[var(--action)]" href="/design-system"><SquaresFourIcon size={15} aria-hidden /> Hệ thống</Link>
           </nav>
         </div>
       </header>

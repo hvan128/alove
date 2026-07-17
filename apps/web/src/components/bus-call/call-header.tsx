@@ -41,7 +41,7 @@ export function CallHeader({ status, mode, elapsedSec, onModeChange, onStart, on
               type="button"
               aria-pressed={mode === 'human'}
               onClick={() => onModeChange('human')}
-              className={cn('inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium transition active:scale-[0.98]', mode === 'human' ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm' : 'text-[var(--muted)]')}
+              className={cn('inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium transition active:scale-[0.98]', mode === 'human' ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm' : 'text-[var(--muted)]')}
             >
               <Headset size={17} aria-hidden /> Nhân viên
             </button>
@@ -49,7 +49,7 @@ export function CallHeader({ status, mode, elapsedSec, onModeChange, onStart, on
               type="button"
               aria-pressed={mode === 'auto'}
               onClick={() => onModeChange('auto')}
-              className={cn('inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium transition active:scale-[0.98]', mode === 'auto' ? 'bg-[var(--ink)] text-[var(--on-ink)] shadow-sm' : 'text-[var(--muted)]')}
+              className={cn('inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium transition active:scale-[0.98]', mode === 'auto' ? 'bg-[var(--ink)] text-[var(--on-ink)] shadow-sm' : 'text-[var(--muted)]')}
             >
               <Robot size={17} weight="duotone" aria-hidden /> Agent tự động
             </button>

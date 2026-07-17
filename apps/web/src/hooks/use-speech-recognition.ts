@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 
 export type SpeechRecognitionState = 'unsupported' | 'idle' | 'listening' | 'error'
 
@@ -35,7 +35,8 @@ type UseSpeechRecognitionOptions = {
 }
 
 export function useSpeechRecognition({ onFinal }: UseSpeechRecognitionOptions) {
-  const [state, setState] = useState<SpeechRecognitionState>(() => getRecognitionConstructor() ? 'idle' : 'unsupported')
+  const supported = useSyncExternalStore(subscribeToRecognitionAvailability, hasRecognitionSupport, () => false)
+  const [activeState, setActiveState] = useState<Exclude<SpeechRecognitionState, 'unsupported'>>('idle')
   const [interimText, setInterimText] = useState('')
   const recognitionRef = useRef<RecognitionLike | null>(null)
   const onFinalRef = useRef(onFinal)
@@ -52,7 +53,7 @@ export function useSpeechRecognition({ onFinal }: UseSpeechRecognitionOptions) {
   const start = useCallback(() => {
     const Constructor = getRecognitionConstructor()
     if (!Constructor) {
-      setState('unsupported')
+      setActiveState('idle')
       return
     }
     if (recognitionRef.current) return
@@ -61,14 +62,14 @@ export function useSpeechRecognition({ onFinal }: UseSpeechRecognitionOptions) {
     recognition.lang = 'vi-VN'
     recognition.continuous = false
     recognition.interimResults = true
-    recognition.onstart = () => setState('listening')
+    recognition.onstart = () => setActiveState('listening')
     recognition.onerror = () => {
-      setState('error')
+      setActiveState('error')
       setInterimText('')
       recognitionRef.current = null
     }
     recognition.onend = () => {
-      setState((current) => current === 'error' ? 'error' : 'idle')
+      setActiveState((current) => current === 'error' ? 'error' : 'idle')
       setInterimText('')
       recognitionRef.current = null
     }
@@ -94,11 +95,19 @@ export function useSpeechRecognition({ onFinal }: UseSpeechRecognitionOptions) {
     recognitionRef.current?.stop()
   }, [])
 
+  const state: SpeechRecognitionState = supported ? activeState : 'unsupported'
   return { state, interimText, start, stop }
+}
+
+function subscribeToRecognitionAvailability(): () => void {
+  return () => undefined
+}
+
+function hasRecognitionSupport(): boolean {
+  return Boolean(getRecognitionConstructor())
 }
 
 function getRecognitionConstructor(): RecognitionConstructor | undefined {
   if (typeof window === 'undefined') return undefined
   return window.SpeechRecognition ?? window.webkitSpeechRecognition
 }
-
