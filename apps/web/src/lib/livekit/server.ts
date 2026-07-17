@@ -30,16 +30,16 @@ export type PublicIntegrationStatus = {
   localFallback: true
 }
 
-type IntegrationEnvironment = Partial<Record<
-  | 'LIVEKIT_URL'
-  | 'LIVEKIT_API_KEY'
-  | 'LIVEKIT_API_SECRET'
-  | 'LIVEKIT_AGENT_NAME'
-  | 'VOICE_AGENT_ENABLED'
-  | 'VALSEA_API_KEY'
-  | 'DATABASE_URL',
-  string
->>
+type IntegrationEnvironment = {
+  LIVEKIT_URL?: string
+  LIVEKIT_API_KEY?: string
+  LIVEKIT_API_SECRET?: string
+  LIVEKIT_AGENT_NAME?: string
+  VOICE_AGENT_ENABLED?: string
+  VALSEA_API_KEY?: string
+  DATABASE_URL?: string
+  [key: string]: string | undefined
+}
 
 export class LiveKitConfigurationError extends Error {
   readonly code = 'LIVEKIT_NOT_CONFIGURED'
@@ -119,7 +119,8 @@ export async function createLiveKitToken(
     canPublishData: true,
   })
 
-  if (request.role === 'caller') {
+  const agentEnabled = environment.VOICE_AGENT_ENABLED?.toLocaleLowerCase('en-US') === 'true'
+  if (request.role === 'caller' && agentEnabled) {
     token.roomConfig = new RoomConfiguration({
       name: roomName,
       agents: [new RoomAgentDispatch({

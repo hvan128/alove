@@ -82,6 +82,20 @@ describe('LiveKit server boundary', () => {
     expect(claims.roomConfig?.agents ?? []).toHaveLength(0)
   })
 
+  it('does not dispatch a caller agent when the worker feature is disabled', async () => {
+    const details = await createLiveKitToken({
+      sessionCode: 'DEMO42',
+      role: 'caller',
+      displayName: 'Khách',
+    }, { ...env, VOICE_AGENT_ENABLED: 'false' }, () => 'caller-a')
+    const claims = await new TokenVerifier(
+      env.LIVEKIT_API_KEY,
+      env.LIVEKIT_API_SECRET,
+    ).verify(details.participantToken)
+
+    expect(claims.roomConfig?.agents ?? []).toHaveLength(0)
+  })
+
   it('returns boolean integration readiness without exposing secret values', () => {
     const status = getPublicIntegrationStatus(env)
     const serialized = JSON.stringify(status)

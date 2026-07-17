@@ -224,7 +224,7 @@ function TripSelect({ booking, catalog, onCommit }: { booking: BookingDraft; cat
   )
 }
 
-function EvidenceStatus({ evidence, confirmed }: { evidence?: BookingFieldEvidence; confirmed: boolean }) {
+function EvidenceStatus({ evidence, confirmed }: { evidence: BookingFieldEvidence | undefined; confirmed: boolean }) {
   if (confirmed) {
     return <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-[var(--action)]"><LockKeyIcon size={12} weight="fill" aria-hidden /> Nhân viên đã khóa</p>
   }

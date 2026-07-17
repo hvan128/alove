@@ -20,6 +20,8 @@ type Props = {
   integrationStatus: PublicIntegrationStatus
   onModeChange: (mode: CallMode) => void
   onLanguageChange: (language: TranscriptDisplayLanguage) => void
+  microphone: boolean
+  onMicrophoneChange: (enabled: boolean) => void
   onEndCall: () => void
 }
 
@@ -29,6 +31,8 @@ export function CallToolbar({
   integrationStatus,
   onModeChange,
   onLanguageChange,
+  microphone,
+  onMicrophoneChange,
   onEndCall,
 }: Props) {
   const [copied, setCopied] = useState(false)
@@ -81,8 +85,16 @@ export function CallToolbar({
               <CopyIcon size={17} aria-hidden />
               {copied ? 'Đã sao chép' : 'Sao chép link'}
             </button>
-            <button type="button" disabled={!integrationStatus.livekit} className="grid h-10 w-10 place-items-center rounded-[11px] border border-[var(--hairline)] bg-white text-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-45" aria-label="Mic nhân viên" title={integrationStatus.livekit ? 'Bật mic nhân viên' : 'Mic cần LiveKit'}>
-              <MicrophoneSlashIcon size={18} aria-hidden />
+            <button
+              type="button"
+              disabled={!integrationStatus.livekit}
+              onClick={() => onMicrophoneChange(!microphone)}
+              className="grid h-10 w-10 place-items-center rounded-[11px] border border-[var(--hairline)] bg-white text-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-45"
+              aria-label={microphone ? 'Tắt mic nhân viên' : 'Bật mic nhân viên'}
+              aria-pressed={microphone}
+              title={integrationStatus.livekit ? (microphone ? 'Tắt mic nhân viên' : 'Bật mic nhân viên') : 'Mic cần LiveKit'}
+            >
+              {microphone ? <UserSoundIcon size={18} weight="fill" aria-hidden /> : <MicrophoneSlashIcon size={18} aria-hidden />}
             </button>
             <button type="button" onClick={onEndCall} className="grid h-10 w-10 place-items-center rounded-[11px] bg-[var(--danger-soft)] text-[var(--danger)] transition hover:bg-[color-mix(in_srgb,var(--danger-soft),var(--danger)_8%)]" aria-label="Kết thúc cuộc gọi">
               <PhoneDisconnectIcon size={18} weight="fill" aria-hidden />
