@@ -1,8 +1,8 @@
 # OrderVoice MVP Release Manifest
 
-**Release source:** `dev` at `d5dbeb9` (`fix: preserve final transcript identity typing`), after merge commit `a879352` (`merge: release OrderVoice MVP`).
+**Release source:** `dev` at `da3be58` (`fix: rely on Vercel project root setting`), after merge commit `a879352` (`merge: release OrderVoice MVP`). The deployed application was built from this local source state.
 
-**Scope commits:** `974588e` (`feat: complete OrderVoice MVP`), `dfb2a29` (release manifest), and `d5dbeb9` (release type-safety fix).
+**Scope commits:** `974588e` (`feat: complete OrderVoice MVP`), `dfb2a29` (initial release manifest), `d5dbeb9` (release type-safety fix), and `da3be58` (Vercel root-directory configuration correction).
 
 **Release target:** `dev`. The local repository has no Git remote or `main` branch, so this release is integrated and deployed from verified local `dev`; no claim is made that a nonexistent `origin/main` received the code.
 
@@ -23,7 +23,7 @@
 
 ## Required verification evidence
 
-Performed on the release source before deployment:
+Re-run on the release source before closing the release:
 
 ```text
 pnpm lint                              PASS
@@ -35,7 +35,21 @@ git diff --check                       PASS
 credential-pattern scan                PASS — no key in tracked diff
 ```
 
-The browser verification loaded `/console`, found meaningful content, no Next error overlay and no captured console errors. It also exercised the ambiguity correction form to an enabled approval state.
+The browser verification loaded `/console`, found meaningful content, no Next error overlay and no captured console errors. It exercised the ambiguity correction form to an enabled approval state, and the deployed production console's normal demo through approval and ERP-draft export.
+
+## Production deployment verification
+
+| Item | Evidence |
+|---|---|
+| Vercel project | `sireals-projects/ordervoice-vn` |
+| Project routing | External Vercel project setting: root directory `apps/web`, framework `Next.js` |
+| Target | Production |
+| Deployment | `dpl_8DRQSeTwVbGX7Q3yXaaYRW4eRe57` — Ready |
+| Public alias | `https://ordervoice-vn.vercel.app` |
+| Health smoke | `vercel curl /api/health --deployment https://ordervoice-vn.vercel.app` returned `{"status":"ok"}` |
+| UI smoke | Chromium opened `/console`; browser, Zalo replay, and phone source modes rendered; the Web demo completed approve/export |
+
+The deployment used Vercel's prebuilt CLI upload from the verified local checkout. Because this repository has no Git remote, the Vercel deployment has no remote-commit metadata; `da3be58` above is the locally verified source revision for the deployed application.
 
 ## Provider and deployment caveats
 
