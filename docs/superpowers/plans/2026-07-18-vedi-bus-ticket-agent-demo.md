@@ -321,7 +321,7 @@ git commit -m "feat: pivot product surfaces to Vedi"
 - Auto scenario ends with one confirmed booking code.
 - Human scenario proves no automatic response and explicit staff send.
 
-- [ ] **Step 1: Finish Playwright flows**
+- [x] **Step 1: Finish Playwright flows**
 
 ```ts
 test('auto agent books two seats and confirms once', async ({ page }) => {
@@ -347,7 +347,7 @@ test('human staff replies without auto agent', async ({ page }) => {
 })
 ```
 
-- [ ] **Step 2: Run full local gates**
+- [x] **Step 2: Run full local gates**
 
 Run each command and require exit code 0:
 
@@ -360,15 +360,15 @@ pnpm build
 git diff --check
 ```
 
-- [ ] **Step 3: Browser verification**
+- [x] **Step 3: Browser verification**
 
 Start dev server, then use agent-browser to load `/console`, check meaningful content, no Next overlay, no console errors, auto flow, human flow, and mobile viewport.
 
-- [ ] **Step 4: Security scan**
+- [x] **Step 4: Security scan**
 
 Scan tracked files for private-key and API-key patterns. Output filenames only on a match. Do not read or print ignored environment files.
 
-- [ ] **Step 5: Commit feature release candidate**
+- [x] **Step 5: Commit feature release candidate**
 
 ```bash
 git add apps/web/e2e docs/vedi-release-manifest.md tasks/TASK-002-bus-ticket-agent-demo.md
