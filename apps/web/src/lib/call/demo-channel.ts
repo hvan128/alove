@@ -125,7 +125,7 @@ export class DemoCallChannel implements CallEventTransport {
   }
 
   private storageKey(): string {
-    return `vedi.demo.history.${this.sessionCode}`
+    return `vedi.demo.v1.history.${this.sessionCode}`
   }
 }
 
