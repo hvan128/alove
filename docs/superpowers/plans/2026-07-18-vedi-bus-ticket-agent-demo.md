@@ -38,7 +38,7 @@
 - Produces: `CallMode`, `CallStatus`, `CallRole`, `BusTrip`, `BookingDraft`, `CallMessage`, `BusDemoWorkspace`.
 - Booking status values: `collecting | trip_proposed | awaiting_confirmation | confirmed`.
 
-- [ ] **Step 1: Write failing schema tests**
+- [x] **Step 1: Write failing schema tests**
 
 Add tests that parse a valid two-seat booking workspace and reject a confirmed booking without `bookingCode` or selected trip.
 
@@ -47,12 +47,12 @@ expect(busDemoWorkspaceSchema.parse(validWorkspace).booking.status).toBe('trip_p
 expect(() => bookingDraftSchema.parse({ ...draft, status: 'confirmed', bookingCode: null })).toThrow()
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `pnpm --filter @ordervoice/contracts test`  
 Expected: FAIL because bus schemas do not exist.
 
-- [ ] **Step 3: Add schemas and types**
+- [x] **Step 3: Add schemas and types**
 
 Use Zod refinement for confirmed-booking invariants. Messages carry `id`, `role`, `text`, `createdAt`, `channel`, and `final`.
 
@@ -62,7 +62,7 @@ export const bookingStatusSchema = z.enum(['collecting', 'trip_proposed', 'await
 export type BookingDraft = z.infer<typeof bookingDraftSchema>
 ```
 
-- [ ] **Step 4: Run GREEN and typecheck**
+- [x] **Step 4: Run GREEN and typecheck**
 
 Run: `pnpm --filter @ordervoice/contracts test`  
 Expected: PASS.
@@ -70,11 +70,11 @@ Expected: PASS.
 Run: `pnpm --filter @ordervoice/contracts typecheck`  
 Expected: PASS.
 
-- [ ] **Step 5: Update product specs and ADR**
+- [x] **Step 5: Update product specs and ADR**
 
 Record the two roles, human/auto modes, deterministic demo transport, LiveKit pilot seam, and no-key constraints. Remove sales-order claims from active product specs while preserving historical release docs.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add specs adrs/0007-bus-ticket-web-call-demo.md packages/contracts
