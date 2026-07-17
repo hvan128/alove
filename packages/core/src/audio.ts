@@ -1,7 +1,7 @@
 const MU_LAW_BIAS = 0x84
 
-export function decodeMuLaw(payload: Uint8Array): Int16Array {
-  const pcm = new Int16Array(payload.length)
+export function decodeMuLaw(payload: Uint8Array): Int16Array<ArrayBuffer> {
+  const pcm: Int16Array<ArrayBuffer> = new Int16Array(payload.length)
 
   for (let index = 0; index < payload.length; index += 1) {
     const inverted = ~(payload[index] ?? 0) & 0xff
@@ -15,7 +15,11 @@ export function decodeMuLaw(payload: Uint8Array): Int16Array {
   return pcm
 }
 
-export function resamplePcm16(input: Int16Array, fromRate: number, toRate: number): Int16Array {
+export function resamplePcm16(
+  input: Int16Array<ArrayBufferLike>,
+  fromRate: number,
+  toRate: number,
+): Int16Array<ArrayBuffer> {
   if (!Number.isFinite(fromRate) || !Number.isFinite(toRate) || fromRate <= 0 || toRate <= 0) {
     throw new Error('sample rate must be a positive finite number')
   }
@@ -29,7 +33,7 @@ export function resamplePcm16(input: Int16Array, fromRate: number, toRate: numbe
   }
 
   const outputLength = Math.max(1, Math.round((input.length * toRate) / fromRate))
-  const output = new Int16Array(outputLength)
+  const output: Int16Array<ArrayBuffer> = new Int16Array(outputLength)
 
   for (let index = 0; index < outputLength; index += 1) {
     const position = (index * fromRate) / toRate
