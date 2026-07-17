@@ -294,6 +294,19 @@ git add apps/web/src/app apps/web/src/components/ui/app-shell.tsx README.md .env
 git commit -m "feat: pivot product surfaces to Vedi"
 ```
 
+### Task 5b: Add the Neon booking persistence boundary
+
+**Files:**
+
+- Modify: `db/schema.ts`
+- Create: `db/migrations/0001_vedi_bus_booking.sql`
+- Modify: `db/test/db.test.ts`
+
+- [x] **Step 1: Write a failing schema test**
+- [x] **Step 2: Run RED and prove VéĐi tables are absent**
+- [x] **Step 3: Add call, message, booking and audit tables**
+- [x] **Step 4: Run DB tests/typecheck GREEN**
+
 ### Task 6: End-to-end verification and production release
 
 **Files:**
