@@ -1,17 +1,28 @@
-# Pilot Roadmap
+# VéĐi pilot roadmap
 
-## Phase 0 — Hackathon MVP
+## P0, public demo
 
-Use seed catalog, synthetic/consented audio, VALSEA sandbox validation, operator approval, no ERP submission. Measure final transcript accuracy, order-field evidence coverage, ambiguous-SKU catch rate and time-to-review.
+- Two-sided same-browser Web Call.
+- Human/Agent mode handoff.
+- Deterministic Sài Gòn → Đà Lạt booking flow.
+- Optional browser STT and device TTS.
+- Unit, component, E2E, production smoke.
 
-## Phase 1 — Controlled sales team pilot
+## P1, two-device pilot
 
-Provision Neon production branch, SSO/roles, consent/retention policy, a small real customer catalog and ERPNext sandbox. Validate 50–100 consented calls across regional accents/noise/code-switching. Establish corrections as gold labels and review false positives weekly.
+- LiveKit Cloud room and secure token endpoint.
+- Separate customer/staff routes.
+- Agent worker with VALSEA-first STT/TTS.
+- Neon final transcript, booking and audit persistence.
+- Reconnect, duplicate event and human takeover tests.
 
-## Phase 2 — Telephony rollout
+## P2, Vietnam telephony pilot
 
-Provision approved Vietnam route/number, deploy media gateway in-region where practical, add alerting for ASR/socket/export failure, rate limits and audit export. Compare Twilio and Stringee based on raw media capability, call quality, number availability, legal/commercial fit and total cost.
+- Consent and retention policy.
+- Compare one live Twilio call with Stringee commercial media capability.
+- Route PSTN audio into the same final-message booking boundary.
+- Measure latency, recognition accuracy, cost and number provisioning.
 
-## Phase 3 — Guarded automation
+## Exit criteria
 
-Only after measured accuracy and policy approval: allow low-risk suggested replies, limited ERP draft enrichment and configurable human approval roles. Keep final commercial commitment and payment actions human-controlled.
+Không gọi một integration là “live” trước khi có production credential test, timestamp, deployment ID, latency và failure evidence. Public demo phải tiếp tục chạy không key trong mọi giai đoạn.

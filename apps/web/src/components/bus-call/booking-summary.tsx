@@ -1,6 +1,6 @@
 import type { BookingDraft } from '@ordervoice/contracts'
 import type { ReactNode } from 'react'
-import { MapPin, Receipt, Seat, Ticket } from '@phosphor-icons/react'
+import { MapPinIcon as MapPin, ReceiptIcon as Receipt, SeatIcon as Seat, TicketIcon as Ticket } from '@phosphor-icons/react/dist/ssr'
 
 const STATUS_LABEL: Record<BookingDraft['status'], string> = {
   collecting: 'Đang thu thập',
@@ -21,8 +21,8 @@ export function BookingSummary({ booking }: { booking: BookingDraft }) {
       </div>
 
       {booking.bookingCode ? (
-        <div className="mt-4 rounded-xl bg-[var(--ink)] px-4 py-3 text-white">
-          <p className="text-xs text-white/65">Mã vé</p>
+        <div className="mt-4 rounded-xl bg-[var(--ink)] px-4 py-3 text-[var(--on-ink)]">
+          <p className="text-xs opacity-65">Mã vé</p>
           <p className="mt-1 font-mono text-lg font-semibold tracking-[0.08em]">{booking.bookingCode}</p>
         </div>
       ) : null}
@@ -34,7 +34,7 @@ export function BookingSummary({ booking }: { booking: BookingDraft }) {
         <Fact icon={<Receipt size={16} aria-hidden />} label="Tổng tiền" value={booking.totalFareVnd === null ? 'Chưa tính' : formatVnd(booking.totalFareVnd)} />
       </div>
 
-      <div className="mt-4 rounded-xl border border-[var(--divider)] bg-white px-3 py-3 text-sm leading-6">
+      <div className="mt-4 rounded-xl border border-[var(--divider)] bg-[var(--surface)] px-3 py-3 text-sm leading-6">
         <p><span className="text-[var(--muted)]">Khởi hành:</span> <strong className="font-medium text-[var(--ink)]">{booking.selectedTrip ? `${booking.selectedTrip.departureTime}, ${booking.travelDateLabel}` : 'Chưa chọn chuyến'}</strong></p>
         <p><span className="text-[var(--muted)]">Người đi:</span> <strong className="font-medium text-[var(--ink)]">{booking.passengerName ?? 'Chưa có thông tin'}</strong></p>
         <p><span className="text-[var(--muted)]">Ghế:</span> <strong className="font-medium text-[var(--ink)]">{booking.seats.length ? booking.seats.join(', ') : 'Sẽ cấp khi xác nhận'}</strong></p>
@@ -45,7 +45,7 @@ export function BookingSummary({ booking }: { booking: BookingDraft }) {
 
 function Fact({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-xl bg-white p-3">
+    <div className="min-w-0 rounded-xl bg-[var(--surface)] p-3">
       <div className="flex items-center gap-1.5 text-[var(--muted)]">{icon}<span className="text-[11px] font-medium">{label}</span></div>
       <p className="mt-2 truncate text-sm font-semibold text-[var(--ink)]" title={value}>{value}</p>
     </div>

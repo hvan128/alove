@@ -1,95 +1,85 @@
-# OrderVoice
+# VéĐi
 
-Vietnamese voice-to-order copilot for sales operators. Three input paths—browser microphone, direct telephone media and Zalo-originated audio/video replay—converge on a common audio/transcript contract. The product produces an evidence-backed order draft, then deliberately stops for human review before creating an idempotent ERPNext draft.
+VéĐi là demo đặt vé nhà xe bằng hội thoại tiếng Việt. Một màn hình trình bày đồng thời phía khách hàng và phía chăm sóc khách hàng, hỗ trợ hai chế độ:
 
-## What is implemented
+- **Nhân viên:** khách gửi yêu cầu, nhân viên tự nhập và phát câu trả lời, sau đó xác nhận thủ công.
+- **Agent tự động:** engine thu thập hành trình, đề xuất chuyến, hỏi thông tin hành khách, đọc lại và chỉ chốt sau câu xác nhận rõ ràng.
 
-- VALSEA-first realtime ASR adapter for PCM16/16 kHz/mono final/partial events.
-- Browser `AudioWorklet` path: mic → linear 16 kHz resample → PCM16 20 ms frames → optional WebSocket gateway.
-- Twilio Media Streams adapter: base64 mu-law/8 kHz → PCM16/16 kHz with caller/agent tracks.
-- Truthful Zalo flow: operator-selected audio/video replay, not a claim of undocumented live Zalo audio access.
-- Evidence-backed Vietnamese/code-switching demo order; partial text never mutates the draft.
-- Deterministic catalog resolver/rules; ambiguity blocks approval.
-- Explicit human approval and idempotent ERP draft export boundary.
-- Human-clicked, labelled device-voice demo; VALSEA/OpenAI TTS server adapters are available when configured.
-- Apple-like operational UI, shared tokens/primitives and `/design-system` catalogue.
-- Neon/Drizzle schema and a lazy Neon repository; no-key mode is visibly labelled local demo state.
+Demo Web Call chạy ngay trong trình duyệt, không cần số điện thoại, LiveKit, API key hay database. Mic STT và giọng đọc tiếng Việt dùng khả năng của trình duyệt/thiết bị khi có; câu mẫu và text là fallback bảo đảm.
 
-## Architecture
+## Đã triển khai
+
+- Luồng mẫu Sài Gòn → Đà Lạt, hai vé, chuyến 22:00, thông tin hành khách và mã vé ổn định.
+- Hai phía khách hàng và nhân viên chăm sóc trong cùng workspace responsive.
+- Chuyển Human/Agent giữa cuộc gọi mà không mất transcript hoặc phiếu vé.
+- Agent đặt vé xác định, không phụ thuộc LLM nên demo không bị lỗi do quota hoặc mạng.
+- Web Speech Recognition `vi-VN` tùy chọn và device Speech Synthesis có phát lại/dừng.
+- Điều kiện xác nhận đầy đủ, giữ ghế theo số hành khách và idempotency cho mã vé.
+- Next.js App Router, design tokens Apple-like calm, light/dark mode, Playwright E2E.
+- Các adapter VALSEA, OpenAI, Twilio và Neon từ kiến trúc trước được giữ làm seam cho pilot, không bị trình bày là live khi chưa có credentials.
+
+## Kiến trúc
 
 ```text
-apps/web       Next.js 16 UI, public Vercel demo, browser capture
-apps/api       Fastify media/WebSocket gateway, Twilio hooks, orchestration
-packages/*     contracts, pure audio/order core, provider adapters
-db             Neon/Drizzle schema and migration
+apps/web                  Next.js 16, Web Call demo, browser voice, Vercel target
+packages/contracts       Zod contracts cho cuộc gọi, chuyến xe và phiếu vé
+packages/core            Booking agent xác định và quy tắc xác nhận
+apps/api + providers     Seam VALSEA/Twilio/OpenAI cho pilot có credentials
+db                       Neon/Drizzle persistence boundary
 ```
 
-The Vercel deployment hosts the web demo. A durable Node host is required for the Fastify media gateway in a real live-call deployment; set `NEXT_PUBLIC_GATEWAY_URL` only after that host is HTTPS/WSS reachable.
+Thiết kế hiện tại ưu tiên demo chắc chắn. LiveKit nhiều thiết bị là bước pilot riêng vì cần room credentials, token endpoint, media room và một Agent worker chạy lâu dài. Quyết định và đường triển khai nằm trong [`docs/livekit-bus-pilot.md`](docs/livekit-bus-pilot.md).
 
-## Local quick start
+## Chạy local
 
 ```bash
 pnpm install
-pnpm dev:api
 pnpm dev:web
 ```
 
-Open `http://localhost:3000/console`, select a source and click **Chạy demo đơn hàng**. The flow creates a final transcript, draft, evidence, human approval state, idempotent export reference and a human-clicked audible reply.
+Mở `http://localhost:3000/console`:
+
+1. Chọn **Agent tự động** rồi **Bắt đầu Web Call**.
+2. Chạy lần lượt bốn câu demo từ yêu cầu đến xác nhận.
+3. Quan sát mã vé, ghế và phản hồi phát bằng giọng thiết bị.
+4. Tải lại trang, chọn **Nhân viên** để demo manual reply và xác nhận thủ công.
+
+Kịch bản chi tiết: [`docs/vedi-demo-script.md`](docs/vedi-demo-script.md).
 
 ## Environment
 
-Copy `.env.example` to a local ignored environment file and add values only through your secret manager/environment. Never place keys in source or `NEXT_PUBLIC_*` variables.
+Bản demo mặc định không cần biến môi trường. Chỉ thêm secret qua Vercel/host secret manager khi thử pilot; không đưa key vào source hoặc biến `NEXT_PUBLIC_*`.
 
-| Variable | Purpose |
+| Biến | Mục đích |
 |---|---|
-| `VALSEA_API_KEY` | Required server-side for a real VALSEA ASR/TTS session |
-| `OPENAI_API_KEY` | Explicit development fallback only; not VALSEA challenge compliance |
-| `DATABASE_URL` | Neon Postgres connection string |
-| `TWILIO_*` | Twilio call/webhook provisioning |
-| `ERPNEXT_*` | ERPNext draft adapter credentials |
-| `PUBLIC_GATEWAY_URL` | Gateway's public WSS base for Twilio/TwiML |
-| `NEXT_PUBLIC_GATEWAY_URL` | Browser-safe gateway URL only—never a credential |
+| `DATABASE_URL` | Neon Postgres cho persistence pilot |
+| `VALSEA_API_KEY` | VALSEA ASR/TTS server-side theo yêu cầu đề bài |
+| `OPENAI_API_KEY` | Fallback phát triển, không thay thế compliance VALSEA |
+| `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | Token service và Agent worker LiveKit |
+| `NEXT_PUBLIC_LIVEKIT_URL` | URL room công khai, tuyệt đối không chứa secret |
+| `TWILIO_*` | Pilot số điện thoại và Media Streams |
 
-The API key pasted in the original task is intentionally not used or stored. Its owner should rotate it.
+Credential từng được dán vào hội thoại không được dùng, lưu hoặc deploy. Chủ key nên revoke/rotate key đó.
 
 ## Quality gates
 
 ```bash
 pnpm lint
-pnpm typecheck
+pnpm -r --if-present typecheck
 pnpm test
 pnpm test:e2e
 pnpm build
 ```
 
-`test:e2e` launches a local Next server and verifies console approval/export, design-system rendering and `/api/health`.
+## Deploy
 
-## Live VALSEA smoke after sandbox provisioning
+Web demo được deploy vào Vercel. Bản demo không cần deploy media server. Khi chuyển sang LiveKit, dùng LiveKit Cloud để pilot nhanh hoặc deploy LiveKit Server và Agent worker trên host hỗ trợ kết nối lâu dài; Vercel vẫn phục vụ Next.js và token endpoint.
 
-Use a consented signed PCM16 little-endian, mono, 16 kHz recording. The command does not fall back to OpenAI.
+## Tài liệu chính
 
-```bash
-VALSEA_API_KEY=... VALSEA_PCM16_PATH=/absolute/path/to/vi-order.pcm \
-  pnpm --filter @ordervoice/api test:live:valsea
-```
-
-The result should contain a `final` transcript JSON object. Record the outcome/date in [`docs/integration-feasibility.md`](docs/integration-feasibility.md).
-
-## Deployment
-
-1. Deploy the Next.js web project to Vercel from the monorepo root; keep workspace packages available during install/build.
-2. Provision Neon through Vercel Marketplace or an existing Neon project; set `DATABASE_URL` server-side.
-3. Deploy `apps/api` to a Node host that supports durable WebSockets, then set `PUBLIC_GATEWAY_URL` and `NEXT_PUBLIC_GATEWAY_URL`.
-4. Provision VALSEA and Twilio only in encrypted provider/Vercel environments.
-5. Verify `/api/health`, `/console`, the labelled demo, and deployment logs.
-
-The exact external-test constraints, connectivity checks and Vietnam telephony assessment are in [`docs/integration-feasibility.md`](docs/integration-feasibility.md).
-
-## Further documentation
-
-- [Product/architecture design](docs/superpowers/specs/2026-07-18-ordervoice-design.md)
-- [Implementation plan](docs/superpowers/plans/2026-07-18-ordervoice-mvp.md)
-- [API contracts](specs/api-contracts.md)
+- [Kiến trúc hiện tại](docs/architecture.md)
+- [Thiết kế sản phẩm](docs/superpowers/specs/2026-07-18-vedi-bus-ticket-voice-demo-design.md)
+- [LiveKit và project-4 review](docs/livekit-bus-pilot.md)
+- [Khả năng tích hợp third party](docs/integration-feasibility.md)
 - [Design system](docs/design-system.md)
-- [Demo script](docs/demo-script.md)
-- [Pilot roadmap](docs/pilot-roadmap.md)
+- [Demo script](docs/vedi-demo-script.md)

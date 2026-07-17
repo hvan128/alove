@@ -7,13 +7,13 @@ describe('shared UI primitives', () => {
   it('exposes a disabled-action reason and evidence quote accessibly', () => {
     render(
       <>
-        <Button disabled disabledReason="Cần duyệt đơn trước">Xuất ERP nháp</Button>
-        <FieldEvidence quote="12 thùng cà phê Arabica" confidence={0.94} />
+        <Button disabled disabledReason="Cần đủ thông tin hành khách">Xác nhận vé</Button>
+        <FieldEvidence quote="Hai vé đi Đà Lạt tối thứ Sáu" confidence={0.94} />
       </>,
     )
 
-    expect(screen.getByRole('button', { name: 'Xuất ERP nháp' })).toBeDisabled()
-    expect(screen.getByText('Cần duyệt đơn trước')).toBeVisible()
-    expect(screen.getByText(/12 thùng cà phê Arabica/u)).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Xác nhận vé' })).toBeDisabled()
+    expect(screen.getByText('Cần đủ thông tin hành khách')).toBeVisible()
+    expect(screen.getByText(/Hai vé đi Đà Lạt/u)).toBeVisible()
   })
 })

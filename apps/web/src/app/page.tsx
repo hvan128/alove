@@ -1,15 +1,105 @@
-import { ArrowRightIcon, CheckCircleIcon, HeadphonesIcon, ShieldCheckIcon, WaveformIcon } from '@phosphor-icons/react/dist/ssr'
+import type { BookingDraft } from '@ordervoice/contracts'
+import { createBusDemoCatalog, createInitialBooking } from '@ordervoice/core/bus-booking'
+import {
+  ArrowRightIcon,
+  CheckCircleIcon,
+  HeadphonesIcon,
+  ShieldCheckIcon,
+  SpeakerHighIcon,
+} from '@phosphor-icons/react/dist/ssr'
 import Link from 'next/link'
+import { BookingSummary } from '@/components/bus-call/booking-summary'
 import { AppShell } from '@/components/ui/app-shell'
-import { Button } from '@/components/ui/button'
 import { StatusPill } from '@/components/ui/status'
 
-const pillars = [
-  ['Ba nguồn, một boundary', 'Web PCM16, Twilio mu-law và Zalo replay cùng hội tụ tại transcript có provenance.', WaveformIcon],
-  ['Evidence trước automation', 'Mỗi trường đơn trích dẫn final transcript; AI không tự định giá, duyệt hoặc xuất ERP.', ShieldCheckIcon],
-  ['Demo vẫn nói được', 'Người vận hành nhấp để nghe device voice; VALSEA/OpenAI TTS nằm sau adapter server-side.', HeadphonesIcon],
+const trip = createBusDemoCatalog()[0]!
+const previewBooking = {
+  ...createInitialBooking('landing-preview'),
+  status: 'awaiting_confirmation',
+  origin: 'Sài Gòn',
+  destination: 'Đà Lạt',
+  travelDateLabel: 'Tối thứ Sáu, 24/07',
+  timeWindow: 'Buổi tối',
+  passengerCount: 2,
+  selectedTrip: trip,
+  passengerName: 'Nguyễn Minh Anh',
+  phone: '0909123456',
+  totalFareVnd: trip.priceVnd * 2,
+} satisfies BookingDraft
+
+const capabilities = [
+  ['Hai phía, một màn hình', 'Khách hàng và nhân viên chăm sóc cùng xuất hiện trong một Web Call dễ kiểm chứng.', HeadphonesIcon],
+  ['Agent có thể tiếp quản', 'Chuyển giữa nhân viên và Agent tự động mà không mất nội dung hay phiếu đặt vé.', ShieldCheckIcon],
+  ['Luôn demo được', 'Mic và giọng đọc là nâng cấp tùy chọn. Câu mẫu và text chạy ngay, không cần số điện thoại.', SpeakerHighIcon],
 ] as const
 
 export default function HomePage() {
-  return <AppShell><main><section className="mx-auto grid max-w-[1180px] gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:items-center lg:py-24"><div><StatusPill tone="demo">Vietnamese voice order · Human approved</StatusPill><h1 className="mt-6 max-w-3xl text-5xl font-semibold tracking-[-0.06em] text-[var(--ink)] sm:text-6xl">Biến cuộc gọi lộn xộn thành đơn nháp có thể tin.</h1><p className="mt-6 max-w-2xl text-lg leading-8 tracking-[-0.02em] text-[var(--muted)]">OrderVoice dùng VALSEA-first transcription cho tiếng Việt, giữ bằng chứng cho từng trường, và dừng ở người duyệt trước khi tạo ERP draft.</p><div className="mt-8 flex flex-wrap gap-3"><Link href="/console"><Button leadingIcon={<ArrowRightIcon size={18} weight="bold" />}>Mở bàn điều phối</Button></Link><Link href="/design-system"><Button variant="secondary">Xem design system</Button></Link></div><p className="mt-5 text-xs leading-5 text-[var(--muted)]">Demo cục bộ không mô phỏng thành công provider thật. Trạng thái VALSEA/Twilio/Zalo được nêu rõ trong console và docs.</p></div><div className="relative overflow-hidden rounded-[24px] bg-[var(--ink)] p-7 text-white sm:p-9"><div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-[#0066cc]/20 blur-3xl" /><p className="relative text-xs font-semibold uppercase tracking-[0.12em] text-white/55">Luồng vận hành</p><ol className="relative mt-8 space-y-6">{['Nhận audio và chỉ giữ final transcript', 'Đề xuất order patch + resolver/rules', 'Người vận hành sửa, duyệt, phát phản hồi', 'Xuất ERP draft với idempotency key'].map((label, index) => <li key={label} className="flex gap-4"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/10 font-mono text-xs text-[#2997ff]">0{index + 1}</span><div><p className="text-base font-medium">{label}</p>{index === 1 ? <p className="mt-1 text-sm leading-6 text-white/60">LLM không được chọn giá, tồn kho hay tự quyết SKU.</p> : null}</div></li>)}</ol></div></section><section className="border-y border-black/5 bg-white"><div className="mx-auto grid max-w-[1180px] gap-px px-4 sm:grid-cols-3 sm:px-6">{pillars.map(([title, body, Icon]) => <article key={title} className="py-10 sm:px-7 sm:not-first:border-l sm:border-[var(--divider)]"><Icon size={25} className="text-[var(--action)]" weight="duotone" /><h2 className="mt-4 text-lg font-semibold tracking-[-0.025em]">{title}</h2><p className="mt-2 text-sm leading-6 text-[var(--muted)]">{body}</p></article>)}</div></section><section className="mx-auto max-w-[1180px] px-4 py-14 sm:px-6"><div className="flex flex-wrap items-center gap-3 rounded-[18px] border border-[var(--hairline)] bg-[var(--pearl)] p-5 text-sm text-[var(--muted)]"><CheckCircleIcon size={20} className="text-[var(--success)]" weight="fill" /><span>Yêu cầu VALSEA, input Vietnam/code-switching, human-in-the-loop và workflow-ready output đều có đường triển khai cụ thể.</span></div></section></main></AppShell>
+  return (
+    <AppShell>
+      <main>
+        <section className="mx-auto grid max-w-[1180px] gap-12 px-4 py-14 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:py-24">
+          <div>
+            <StatusPill tone="success">Demo Web Call · Không cần số điện thoại</StatusPill>
+            <h1 className="mt-6 max-w-3xl text-5xl font-semibold tracking-[-0.06em] text-[var(--ink)] sm:text-6xl">
+              Đặt vé nhà xe bằng cuộc gọi, có người kiểm soát khi cần.
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 tracking-[-0.02em] text-[var(--muted)]">
+              VéĐi cho khách nói nhu cầu tự nhiên, để nhân viên trả lời trực tiếp hoặc bật Agent tự động thu thập hành trình, chọn chuyến và đọc lại xác nhận.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--action)] px-5 py-2 text-sm font-medium text-[var(--on-action)] transition hover:bg-[var(--action-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action-focus)] active:scale-[0.98]" href="/console">
+                Mở demo Web Call <ArrowRightIcon size={18} weight="bold" aria-hidden />
+              </Link>
+              <Link className="inline-flex min-h-11 items-center rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-5 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--pearl)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action-focus)]" href="/design-system">
+                Xem design system
+              </Link>
+            </div>
+            <p className="mt-5 max-w-xl text-xs leading-5 text-[var(--muted)]">
+              Demo dùng engine đặt vé xác định và giọng đọc của thiết bị. LiveKit, VALSEA và điện thoại thật được tách thành pilot có điều kiện rõ ràng.
+            </p>
+          </div>
+
+          <div className="rounded-[28px] border border-[var(--hairline)] bg-[var(--surface)] p-3 shadow-[0_28px_90px_color-mix(in_srgb,var(--ink)_10%,transparent)] sm:p-5">
+            <div className="flex items-center justify-between gap-4 border-b border-[var(--divider)] px-1 pb-4">
+              <div>
+                <p className="text-xs font-medium text-[var(--muted)]">Web Call đang kết nối</p>
+                <p className="mt-1 font-semibold tracking-[-0.025em]">Sài Gòn → Đà Lạt</p>
+              </div>
+              <StatusPill tone="success">Agent đang trực</StatusPill>
+            </div>
+            <div className="grid gap-3 py-4 sm:grid-cols-2">
+              <div className="rounded-2xl bg-[var(--action-soft)] p-4">
+                <p className="text-xs font-semibold text-[var(--action)]">Khách hàng</p>
+                <p className="mt-2 text-sm leading-6">Tôi cần hai vé đi Đà Lạt tối thứ Sáu.</p>
+              </div>
+              <div className="rounded-2xl bg-[var(--surface-tint)] p-4">
+                <p className="text-xs font-semibold text-[var(--success)]">Agent VéĐi</p>
+                <p className="mt-2 text-sm leading-6">Em đề xuất chuyến giường nằm lúc 22:00, giá 320.000 ₫ mỗi vé.</p>
+              </div>
+            </div>
+            <BookingSummary booking={previewBooking} />
+          </div>
+        </section>
+
+        <section className="border-y border-[var(--divider)] bg-[var(--surface)]">
+          <div className="mx-auto grid max-w-[1180px] px-4 sm:grid-cols-3 sm:px-6">
+            {capabilities.map(([title, body, Icon], index) => (
+              <article key={title} className={`py-10 sm:px-7 ${index > 0 ? 'sm:border-l sm:border-[var(--divider)]' : ''}`}>
+                <Icon size={25} className="text-[var(--action)]" weight="duotone" aria-hidden />
+                <h2 className="mt-4 text-lg font-semibold tracking-[-0.025em]">{title}</h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{body}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-[1180px] px-4 py-14 sm:px-6">
+          <div className="flex items-start gap-3 rounded-[18px] border border-[var(--hairline)] bg-[var(--pearl)] p-5 text-sm leading-6 text-[var(--muted)]">
+            <CheckCircleIcon size={20} className="mt-0.5 shrink-0 text-[var(--success)]" weight="fill" aria-hidden />
+            <span>Luồng demo hoàn tất từ yêu cầu, chọn chuyến, thông tin hành khách đến mã vé ổn định. Nhân viên có thể tiếp quản và xác nhận thủ công.</span>
+          </div>
+        </section>
+      </main>
+    </AppShell>
+  )
 }

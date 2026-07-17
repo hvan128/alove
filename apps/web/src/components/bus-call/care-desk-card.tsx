@@ -25,10 +25,10 @@ export function CareDeskCard({ mode, status, messages, booking, reply, onReplyCh
   const confirmReady = connected && booking.status !== 'confirmed' && canConfirmBooking(booking)
 
   return (
-    <section className="flex min-h-[650px] flex-col rounded-2xl border border-[var(--hairline)] bg-white p-4 shadow-[0_18px_60px_color-mix(in_srgb,var(--ink)_6%,transparent)] sm:p-5" aria-labelledby="care-side-title">
+    <section className="flex min-h-[650px] flex-col rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] p-4 shadow-[0_18px_60px_color-mix(in_srgb,var(--ink)_6%,transparent)] sm:p-5" aria-labelledby="care-side-title">
       <div className="flex items-center justify-between gap-3 border-b border-[var(--divider)] pb-4">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--success)_12%,white)] text-[var(--success)]">
+          <span className="flex size-10 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--success)_12%,var(--surface))] text-[var(--success)]">
             {mode === 'auto' ? <Robot size={23} weight="duotone" aria-hidden /> : <Headset size={23} weight="duotone" aria-hidden />}
           </span>
           <div>

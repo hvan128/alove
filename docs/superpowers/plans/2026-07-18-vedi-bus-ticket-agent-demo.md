@@ -274,20 +274,20 @@ git commit -m "feat: add browser voice controls"
 - Demo script documents human and auto flows.
 - LiveKit doc includes exact credential/deployment prerequisites and no unsupported live claim.
 
-- [ ] **Step 1: Add failing E2E expectations for new product copy**
+- [x] **Step 1: Add failing E2E expectations for new product copy**
 
 Update Playwright to expect `VéĐi`, two role headings, and mode controls.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `pnpm test:e2e`  
 Expected: FAIL on old OrderVoice copy.
 
-- [ ] **Step 3: Update landing, metadata, shell, design route, docs**
+- [x] **Step 3: Update landing, metadata, shell, design route, docs**
 
 Use warm travel accents while retaining Apple-like spacing, typography, hairlines, focus states, and reduced-motion handling. Remove active sales-order/ERP claims from current surfaces.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/web/src/app apps/web/src/components/ui/app-shell.tsx README.md .env.example docs

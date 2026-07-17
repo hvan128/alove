@@ -36,7 +36,7 @@ export function CustomerCallCard({ status, messages, booking, value, onValueChan
   }
 
   return (
-    <section className="flex min-h-[650px] flex-col rounded-2xl border border-[var(--hairline)] bg-white p-4 shadow-[0_18px_60px_color-mix(in_srgb,var(--ink)_6%,transparent)] sm:p-5" aria-labelledby="customer-side-title">
+    <section className="flex min-h-[650px] flex-col rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] p-4 shadow-[0_18px_60px_color-mix(in_srgb,var(--ink)_6%,transparent)] sm:p-5" aria-labelledby="customer-side-title">
       <div className="flex items-center justify-between gap-3 border-b border-[var(--divider)] pb-4">
         <div className="flex items-center gap-3">
           <span className="flex size-10 items-center justify-center rounded-full bg-[var(--action-soft)] text-[var(--action)]"><UserCircle size={24} weight="duotone" aria-hidden /></span>

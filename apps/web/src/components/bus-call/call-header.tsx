@@ -15,10 +15,10 @@ type CallHeaderProps = {
 export function CallHeader({ status, mode, elapsedSec, onModeChange, onStart, onEnd }: CallHeaderProps) {
   const connected = status === 'connected'
   return (
-    <header className="rounded-2xl border border-[var(--hairline)] bg-white/90 p-4 shadow-[0_18px_50px_color-mix(in_srgb,var(--ink)_7%,transparent)] backdrop-blur-xl sm:p-5">
+    <header className="rounded-2xl border border-[var(--hairline)] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] p-4 shadow-[0_18px_50px_color-mix(in_srgb,var(--ink)_7%,transparent)] backdrop-blur-xl sm:p-5">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--ink)] text-white">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--ink)] text-[var(--on-ink)]">
             <Bus size={23} weight="fill" aria-hidden />
           </span>
           <div className="min-w-0">
@@ -26,7 +26,7 @@ export function CallHeader({ status, mode, elapsedSec, onModeChange, onStart, on
               <h1 className="text-xl font-semibold tracking-[-0.035em] text-[var(--ink)]">VéĐi Web Call</h1>
               <span className={cn(
                 'rounded-full px-2.5 py-1 text-xs font-semibold',
-                connected ? 'bg-[color-mix(in_srgb,var(--success)_12%,white)] text-[var(--success)]' : 'bg-[var(--pearl)] text-[var(--muted)]',
+                connected ? 'bg-[color-mix(in_srgb,var(--success)_12%,var(--surface))] text-[var(--success)]' : 'bg-[var(--pearl)] text-[var(--muted)]',
               )}>
                 {connected ? 'Đang kết nối' : status === 'ended' ? 'Đã kết thúc' : 'Sẵn sàng'}
               </span>
@@ -41,7 +41,7 @@ export function CallHeader({ status, mode, elapsedSec, onModeChange, onStart, on
               type="button"
               aria-pressed={mode === 'human'}
               onClick={() => onModeChange('human')}
-              className={cn('inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium transition active:scale-[0.98]', mode === 'human' ? 'bg-white text-[var(--ink)] shadow-sm' : 'text-[var(--muted)]')}
+              className={cn('inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium transition active:scale-[0.98]', mode === 'human' ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm' : 'text-[var(--muted)]')}
             >
               <Headset size={17} aria-hidden /> Nhân viên
             </button>
@@ -49,7 +49,7 @@ export function CallHeader({ status, mode, elapsedSec, onModeChange, onStart, on
               type="button"
               aria-pressed={mode === 'auto'}
               onClick={() => onModeChange('auto')}
-              className={cn('inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium transition active:scale-[0.98]', mode === 'auto' ? 'bg-[var(--ink)] text-white shadow-sm' : 'text-[var(--muted)]')}
+              className={cn('inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium transition active:scale-[0.98]', mode === 'auto' ? 'bg-[var(--ink)] text-[var(--on-ink)] shadow-sm' : 'text-[var(--muted)]')}
             >
               <Robot size={17} weight="duotone" aria-hidden /> Agent tự động
             </button>
@@ -72,4 +72,3 @@ function formatTimer(seconds: number): string {
   const rest = String(seconds % 60).padStart(2, '0')
   return `${minutes}:${rest}`
 }
-
