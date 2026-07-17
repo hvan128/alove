@@ -7,8 +7,10 @@ project-4/
 .env*
 !.env.example
 .next/
+.vercel/
 node_modules/
 coverage/
 playwright-report/
 test-results/
+tmp/
 *.tsbuildinfo

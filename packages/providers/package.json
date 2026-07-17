@@ -1,0 +1,24 @@
+{
+  "name": "@ordervoice/providers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ordervoice/contracts": "workspace:*",
+    "@ordervoice/core": "workspace:*",
+    "openai": "^6.29.0",
+    "twilio": "^5.12.0",
+    "ws": "^8.18.3",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.13"
+  }
+}
