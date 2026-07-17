@@ -1,7 +1,7 @@
 # TASK-002 — VéĐi two-sided bus-ticket voice demo
 
 **Owner:** Codex + product owner  
-**Status:** In progress  
+**Status:** Done  
 **Source:** `feature/TASK-002-bus-ticket-agent`
 
 ## Goal
@@ -18,8 +18,8 @@ Replace the sales-order demo with a deployable Vietnamese bus-ticket Web Call de
 - [x] Optional browser speech recognition degrades to guaranteed preset/text controls.
 - [x] Confirmation is blocked until required booking fields exist and is idempotent.
 - [x] LiveKit/project-4 research and the no-LiveKit demo decision are documented honestly.
-- [ ] Unit, component, E2E, lint, typecheck, build, browser smoke, credential scan, and production smoke pass.
-- [ ] Vercel production alias serves the improved demo.
+- [x] Unit, component, E2E, lint, typecheck, build, browser smoke, credential scan, and production smoke pass.
+- [x] Vercel production alias serves the improved demo.
 
 ## Definition of done
 

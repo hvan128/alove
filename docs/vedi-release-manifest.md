@@ -1,8 +1,8 @@
 # VéĐi release manifest
 
-**Release candidate source:** `feature/TASK-002-bus-ticket-agent@66c0b51`  
+**Release source:** `dev@05b81ab`, chứa feature head `0303483`  
 **Verified:** 2026-07-18, Asia/Ho_Chi_Minh  
-**Production:** Pending integration and Vercel deploy
+**Production:** [https://ordervoice-vn.vercel.app/console](https://ordervoice-vn.vercel.app/console)
 
 ## Scope commits
 
@@ -62,4 +62,22 @@ tracked credential-pattern scan        PASS, no filename match
 
 ## Production evidence
 
-To be filled only after local `dev` integration, Vercel Ready state and production browser smoke.
+| Mục | Evidence |
+|---|---|
+| Vercel project | `sireals-projects/ordervoice-vn` |
+| CLI | Vercel CLI `56.3.1` |
+| Source | Local verified `dev@05b81ab`; repo không có Git remote |
+| Deployment | `dpl_D9hEjNcn7XLeRJZdMd6cFweZYw7W` |
+| Unique URL | `https://ordervoice-nbd8rnm7a-sireals-projects.vercel.app` |
+| Public alias | `https://ordervoice-vn.vercel.app` |
+| Target/state | `production` / `Ready` |
+| Build region | `iad1`, prebuilt artifact |
+| Health | `/api/health` trả `{"status":"ok"}` qua `vercel curl` |
+| Landing/design | VéĐi copy và design route render trên production |
+| Auto smoke | Mã `VD-240718-3677`, ghế `A05, A06`, 4 Agent messages, không overlay |
+| Human smoke | Manual staff reply + confirm, 0 Agent messages, không overlay |
+| Error scan | `vercel logs --level error --since 1h`: không có error log |
+
+Một alias `vedi-nhaxe.vercel.app` đã được thử nhưng Vercel áp Deployment Protection. Alias đó được gỡ thay vì tắt protection; URL public chính ở trên đã được browser-verify đầy đủ.
+
+Commit manifest cuối chỉ thay đổi tài liệu ngoài Vercel project root `apps/web`; production web artifact vẫn khớp source `05b81ab`.

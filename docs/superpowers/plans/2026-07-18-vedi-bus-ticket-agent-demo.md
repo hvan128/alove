@@ -375,14 +375,14 @@ git add apps/web/e2e docs/vedi-release-manifest.md tasks/TASK-002-bus-ticket-age
 git commit -m "test: verify Vedi bus ticket demo"
 ```
 
-- [ ] **Step 6: Sync and integrate**
+- [x] **Step 6: Sync and integrate**
 
 No `origin` exists. Verify `dev` has not moved, merge the verified feature into local `dev` under the user's explicit auto-approval, then re-run all gates on final `dev`.
 
-- [ ] **Step 7: Deploy with current Vercel CLI**
+- [x] **Step 7: Deploy with current Vercel CLI**
 
 Use `pnpm dlx vercel@latest` because installed CLI `56.2.1` is older than `56.3.1`. Build production from the verified local source, deploy to the existing Vercel project, keep the old alias, and add a VéĐi alias if available.
 
-- [ ] **Step 8: Production smoke and close task**
+- [x] **Step 8: Production smoke and close task**
 
 Verify deployment target `production`, state `Ready`, `/api/health`, `/console`, auto booking flow, and no browser error overlay. Record deployment ID, URL, source SHA, gate counts, and external LiveKit caveat. Mark TASK-002 Done only after this evidence exists.

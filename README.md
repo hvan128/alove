@@ -75,6 +75,8 @@ pnpm build
 
 Web demo được deploy vào Vercel. Bản demo không cần deploy media server. Khi chuyển sang LiveKit, dùng LiveKit Cloud để pilot nhanh hoặc deploy LiveKit Server và Agent worker trên host hỗ trợ kết nối lâu dài; Vercel vẫn phục vụ Next.js và token endpoint.
 
+Demo production: [https://ordervoice-vn.vercel.app/console](https://ordervoice-vn.vercel.app/console)
+
 ## Tài liệu chính
 
 - [Kiến trúc hiện tại](docs/architecture.md)
