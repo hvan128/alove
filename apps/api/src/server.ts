@@ -5,7 +5,7 @@ import Fastify, { type FastifyInstance } from 'fastify'
 import { mediaControlSchema, persistentTranscriptSegmentSchema } from '@ordervoice/contracts'
 import { createTwilioStreamTwiml } from '@ordervoice/providers'
 import { z } from 'zod'
-import { createMemoryRepository, type ConversationRepository } from './repository.js'
+import { createRepositoryFromEnvironment, type ConversationRepository } from './repository.js'
 
 type ServerOptions = {
   repository?: ConversationRepository
@@ -18,7 +18,7 @@ const exportSchema = z.object({ idempotencyKey: z.string().trim().min(1) })
 
 export async function createServer(options: ServerOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: false })
-  const repository = options.repository ?? createMemoryRepository()
+  const repository = options.repository ?? createRepositoryFromEnvironment()
 
   await app.register(cors, { origin: true })
   await app.register(formbody)
@@ -51,7 +51,7 @@ export async function createServer(options: ServerOptions = {}): Promise<Fastify
     }
 
     try {
-      return repository.approveOrder((request.params as { id: string }).id, parsed.data.actor)
+      return await repository.approveOrder((request.params as { id: string }).id, parsed.data.actor)
     } catch (error) {
       return reply.code(409).send({ error: messageFrom(error) })
     }
@@ -64,7 +64,7 @@ export async function createServer(options: ServerOptions = {}): Promise<Fastify
     }
 
     try {
-      return repository.exportOrder((request.params as { id: string }).id, parsed.data.idempotencyKey)
+      return await repository.exportOrder((request.params as { id: string }).id, parsed.data.idempotencyKey)
     } catch (error) {
       return reply.code(409).send({ error: messageFrom(error) })
     }
