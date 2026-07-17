@@ -2,6 +2,7 @@
 
 # Reference project supplied for architecture research; maintained as its own Git repository.
 project-4/
+.worktrees/
 
 # Local credentials and build output.
 .env*
