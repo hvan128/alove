@@ -1,6 +1,8 @@
 # OrderVoice MVP Release Manifest
 
-**Candidate source:** `feature/TASK-001-ordervoice-mvp` at `974588e` (`feat: complete OrderVoice MVP`)
+**Release source:** `dev` at `d5dbeb9` (`fix: preserve final transcript identity typing`), after merge commit `a879352` (`merge: release OrderVoice MVP`).
+
+**Scope commits:** `974588e` (`feat: complete OrderVoice MVP`), `dfb2a29` (release manifest), and `d5dbeb9` (release type-safety fix).
 
 **Release target:** `dev`. The local repository has no Git remote or `main` branch, so this release is integrated and deployed from verified local `dev`; no claim is made that a nonexistent `origin/main` received the code.
 
@@ -21,7 +23,7 @@
 
 ## Required verification evidence
 
-Performed on the candidate source before integration:
+Performed on the release source before deployment:
 
 ```text
 pnpm lint                              PASS
