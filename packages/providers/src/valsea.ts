@@ -52,6 +52,8 @@ export function mapValseaTranscriptEvent(raw: unknown, context: ValseaEventConte
 }
 
 export function createValseaSession(options: ValseaSessionOptions): ValseaSession {
+  const pendingFrames: NormalizedAudioFrame[] = []
+  let pendingCommit = false
   const socket = new WebSocket('wss://api.valsea.ai/v1/realtime', {
     headers: { Authorization: `Bearer ${options.apiKey}` },
   })
@@ -62,6 +64,14 @@ export function createValseaSession(options: ValseaSessionOptions): ValseaSessio
       type: 'session.start',
       audio: { encoding: 'pcm_s16le', sample_rate: 16000, channels: 1 },
     }))
+    while (pendingFrames.length > 0) {
+      const frame = pendingFrames.shift()
+      if (frame) sendPcmFrame(socket, frame)
+    }
+    if (pendingCommit) {
+      socket.send(JSON.stringify({ type: 'input_audio_buffer.commit' }))
+      pendingCommit = false
+    }
     options.onStatus('live')
   })
   socket.on('message', (payload) => {
@@ -79,22 +89,31 @@ export function createValseaSession(options: ValseaSessionOptions): ValseaSessio
   return {
     sendFrame(frame) {
       if (socket.readyState !== WebSocket.OPEN) {
+        if (pendingFrames.length < 250) pendingFrames.push(frame)
         return
       }
-      socket.send(Buffer.from(frame.pcm.buffer, frame.pcm.byteOffset, frame.pcm.byteLength))
+      sendPcmFrame(socket, frame)
     },
     endUtterance() {
       if (socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: 'input_audio_buffer.commit' }))
+      } else {
+        pendingCommit = true
       }
     },
     stop() {
+      pendingFrames.length = 0
+      pendingCommit = false
       if (socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: 'session.stop' }))
       }
       socket.close()
     },
   }
+}
+
+function sendPcmFrame(socket: WebSocket, frame: NormalizedAudioFrame): void {
+  socket.send(Buffer.from(frame.pcm.buffer, frame.pcm.byteOffset, frame.pcm.byteLength))
 }
 
 function isRecord(value: unknown): value is UnknownRecord {

@@ -45,4 +45,58 @@ describe('operator gateway API', () => {
     expect(one.statusCode).toBe(200)
     expect(one.json().externalReference).toBe(two.json().externalReference)
   })
+
+  it('clears an ambiguous line only after an explicit operator correction', async () => {
+    const app = await createServer()
+    apps.push(app)
+    const workspace = (await app.inject({ method: 'GET', url: '/v1/demo' })).json()
+    const segment = {
+      id: 'segment-house-1',
+      conversationId: workspace.conversationId,
+      kind: 'final',
+      speaker: 'caller',
+      text: 'Lấy 2 thùng cà phê house.',
+      startedAtMs: 0,
+      endedAtMs: 1800,
+      confidence: 0.94,
+      source: 'browser',
+    }
+    await app.inject({ method: 'POST', url: `/v1/conversations/${workspace.conversationId}/segments`, payload: segment })
+    const withException = (await app.inject({ method: 'GET', url: '/v1/demo' })).json()
+    const line = withException.draft.lines[0]
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/v1/orders/${withException.draft.id}/lines/${line.id}/correct`,
+      payload: { sku: 'CF-HOUSE-BLEND', productLabel: 'House Blend', quantity: 4, unit: 'thùng' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toMatchObject({ status: 'ready_for_approval', exceptions: [] })
+  })
+
+  it('applies a duplicated final transcript only once', async () => {
+    const app = await createServer()
+    apps.push(app)
+    const workspace = (await app.inject({ method: 'GET', url: '/v1/demo' })).json()
+    const segment = {
+      id: 'segment-duplicate-1',
+      conversationId: workspace.conversationId,
+      kind: 'final',
+      speaker: 'caller',
+      text: 'Lấy 2 thùng cà phê Arabica.',
+      startedAtMs: 0,
+      endedAtMs: 1600,
+      confidence: 0.95,
+      source: 'browser',
+      providerEventId: 'provider-final-duplicate-1',
+    }
+
+    await app.inject({ method: 'POST', url: `/v1/conversations/${workspace.conversationId}/segments`, payload: segment })
+    await app.inject({ method: 'POST', url: `/v1/conversations/${workspace.conversationId}/segments`, payload: segment })
+    const result = (await app.inject({ method: 'GET', url: '/v1/demo' })).json()
+
+    expect(result.transcript).toHaveLength(1)
+    expect(result.draft.lines).toHaveLength(1)
+  })
 })

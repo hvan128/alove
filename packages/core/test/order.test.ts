@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { TranscriptSegment } from '@ordervoice/contracts'
 import {
+  applyHumanLineCorrection,
   applyFinalSegment,
   approveDraft,
   createDemoCatalog,
@@ -55,6 +56,28 @@ describe('evidence-backed order draft', () => {
 
     expect(draft.exceptions).toContainEqual(expect.objectContaining({ code: 'SKU_AMBIGUOUS', blocking: true }))
     expect(draft.status).toBe('review_required')
+  })
+
+  it('requires an explicit operator correction to clear a blocking SKU exception', () => {
+    const ambiguous = applyFinalSegment(
+      createInitialDraft('conversation-1'),
+      segment('final', 'Lấy 2 thùng cà phê house.'),
+      catalog,
+    )
+    const originalEvidence = ambiguous.lines[0]?.evidence
+
+    const corrected = applyHumanLineCorrection(ambiguous, {
+      lineId: ambiguous.lines[0]!.id,
+      sku: 'CF-HOUSE-BLEND',
+      productLabel: 'House Blend',
+      quantity: 4,
+      unit: 'thùng',
+    })
+
+    expect(corrected.status).toBe('ready_for_approval')
+    expect(corrected.exceptions).toEqual([])
+    expect(corrected.lines[0]).toMatchObject({ sku: 'CF-HOUSE-BLEND', productLabel: 'House Blend', quantity: 4, resolution: 'resolved' })
+    expect(corrected.lines[0]?.evidence).toEqual(originalEvidence)
   })
 
   it('requires human approval and reuses the same export reference on retry', () => {

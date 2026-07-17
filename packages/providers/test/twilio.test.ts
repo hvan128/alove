@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseTwilioMedia } from '../src/twilio.js'
+import { isValidTwilioWebhook, parseTwilioMedia } from '../src/twilio.js'
 
 describe('Twilio Media Streams adapter', () => {
   it('normalizes an inbound mu-law packet into caller PCM16 at 16kHz', () => {
@@ -26,5 +26,14 @@ describe('Twilio Media Streams adapter', () => {
       capturedAtMs: 160,
     })
     expect(frame.pcm).toHaveLength(4)
+  })
+
+  it('does not accept a webhook when its signing configuration is absent', () => {
+    expect(isValidTwilioWebhook({
+      authToken: undefined,
+      signature: undefined,
+      url: 'https://gateway.example.com/v1/webhooks/twilio/voice',
+      params: {},
+    })).toBe(false)
   })
 })

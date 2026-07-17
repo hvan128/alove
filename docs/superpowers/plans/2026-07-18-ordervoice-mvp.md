@@ -8,6 +8,10 @@
 
 **Tech Stack:** Next.js 16.1.6+, React 19.2.4+, TypeScript, Tailwind CSS v4, Fastify, `@fastify/websocket`, Zod, Drizzle/Neon, OpenAI SDK, Twilio SDK, Vitest, Playwright, pnpm.
 
+## Execution status — 2026-07-18
+
+All implementation tasks below are complete. The delivered web demo keeps its deterministic fixture state client-side so it remains usable on public Vercel without credentials; the same production correction, approval and idempotency rules are enforced by the Fastify repository/API and tested there. The planned Next `/api/demo` placeholder was intentionally not created: `/v1/demo` belongs to the gateway, while the Next deployment exposes only `/api/health` and the no-key operator demo. Final release verification records exact sources and test evidence in `docs/release-manifest.md`.
+
 ## Global Constraints
 
 - VALSEA is the production/challenge ASR path; OpenAI is explicit server-only development fallback only.
@@ -42,7 +46,7 @@ apps/web/e2e/console.spec.ts         Playwright full-story smoke
 ### Task 1: Scaffold workspace and contract boundary
 
 **Files:**
-- Create: `package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`, `vitest.workspace.ts`, `.env.example`
+- Create: `package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`, package-local Vitest configs, `.env.example`
 - Create: `packages/contracts/src/index.ts`, `packages/contracts/test/contracts.test.ts`
 
 **Interfaces:**
@@ -89,7 +93,7 @@ Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
-Run: `git add package.json pnpm-workspace.yaml tsconfig.base.json vitest.workspace.ts .env.example packages/contracts && git commit -m "feat: add OrderVoice workspace contracts"`
+Run: `git add package.json pnpm-workspace.yaml tsconfig.base.json .env.example packages/contracts && git commit -m "feat: add OrderVoice workspace contracts"`
 
 ### Task 2: Implement audio, transcript and order core test-first
 

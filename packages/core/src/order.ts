@@ -23,6 +23,14 @@ export type DemoCatalog = {
   customers: CatalogCustomer[]
 }
 
+export type HumanLineCorrection = {
+  lineId: string
+  sku: string
+  productLabel: string
+  quantity: number
+  unit: string
+}
+
 export function createDemoCatalog(): DemoCatalog {
   return {
     customers: [
@@ -82,6 +90,41 @@ export function applyFinalSegment(draft: OrderDraft, segment: TranscriptSegment,
     approvedBy: null,
     approvedAt: null,
     status: blocking ? 'review_required' : 'ready_for_approval',
+  }
+}
+
+export function applyHumanLineCorrection(draft: OrderDraft, correction: HumanLineCorrection): OrderDraft {
+  if (draft.status === 'exported') {
+    throw new Error('an exported draft cannot be corrected')
+  }
+  if (!Number.isFinite(correction.quantity) || correction.quantity <= 0) {
+    throw new Error('corrected quantity must be greater than zero')
+  }
+  if (!correction.sku.trim() || !correction.productLabel.trim() || !correction.unit.trim()) {
+    throw new Error('corrected SKU, product label and unit are required')
+  }
+  if (!draft.lines.some((line) => line.id === correction.lineId)) {
+    throw new Error('order line was not found')
+  }
+
+  const lines = draft.lines.map((line) => line.id === correction.lineId ? {
+    ...line,
+    sku: correction.sku.trim(),
+    productLabel: correction.productLabel.trim(),
+    quantity: correction.quantity,
+    unit: correction.unit.trim(),
+    resolution: 'resolved' as const,
+  } : line)
+  const exceptions = draft.exceptions.filter((exception) => exception.lineId !== correction.lineId)
+  const blocking = exceptions.some((exception) => exception.blocking)
+
+  return {
+    ...draft,
+    lines,
+    exceptions,
+    status: blocking ? 'review_required' : 'ready_for_approval',
+    approvedBy: null,
+    approvedAt: null,
   }
 }
 

@@ -1,5 +1,6 @@
 import type { NormalizedAudioFrame } from '@ordervoice/contracts'
 import { decodeMuLaw, resamplePcm16 } from '@ordervoice/core'
+import twilio from 'twilio'
 
 export type TwilioMediaEvent = {
   event: 'media'
@@ -36,6 +37,21 @@ export function createTwilioStreamTwiml(streamUrl: string, conversationId: strin
   const safeUrl = escapeXml(streamUrl)
   const safeConversationId = escapeXml(conversationId)
   return `<?xml version="1.0" encoding="UTF-8"?><Response><Connect><Stream url="${safeUrl}"><Parameter name="conversationId" value="${safeConversationId}" /></Stream></Connect></Response>`
+}
+
+export function isValidTwilioWebhook({
+  authToken,
+  signature,
+  url,
+  params,
+}: {
+  authToken: string | undefined
+  signature: string | undefined
+  url: string
+  params: Record<string, string>
+}): boolean {
+  if (!authToken || !signature) return false
+  return twilio.validateRequest(authToken, signature, url, params)
 }
 
 function escapeXml(value: string): string {

@@ -10,12 +10,14 @@ import {
   type PersistentTranscriptSegment,
 } from '@ordervoice/contracts'
 import {
+  applyHumanLineCorrection,
   applyFinalSegment,
   approveDraft,
   createDemoCatalog,
   createInitialDraft,
   exportDraft,
   type DemoCatalog,
+  type HumanLineCorrection,
 } from '@ordervoice/core'
 import {
   conversations,
@@ -35,6 +37,7 @@ export type ConversationRepository = {
   getDemo: () => Promise<DemoWorkspace>
   advanceDemo: (step: number) => Promise<DemoWorkspace>
   appendFinalSegment: (segment: PersistentTranscriptSegment) => Promise<DemoWorkspace>
+  correctOrderLine: (orderId: string, correction: HumanLineCorrection) => Promise<OrderDraft>
   approveOrder: (orderId: string, actor: string) => Promise<OrderDraft>
   exportOrder: (orderId: string, idempotencyKey: string) => Promise<{ draft: OrderDraft; externalReference: string }>
 }
@@ -78,6 +81,9 @@ export function createMemoryRepository(
       return workspace
     },
     async appendFinalSegment(segment) {
+      if (hasFinalSegment(workspace, segment)) {
+        return workspace
+      }
       const draft = applyFinalSegment(workspace.draft, segment, catalog)
       workspace = {
         ...workspace,
@@ -85,6 +91,10 @@ export function createMemoryRepository(
         draft,
       }
       return workspace
+    },
+    async correctOrderLine(orderId, correction) {
+      assertDraftId(workspace.draft, orderId)
+      return setDraft(applyHumanLineCorrection(workspace.draft, correction)).draft
     },
     async approveOrder(orderId, actor) {
       assertDraftId(workspace.draft, orderId)
@@ -131,6 +141,12 @@ export function createNeonRepository(catalog: DemoCatalog = createDemoCatalog())
       const workspace = await memory.appendFinalSegment(segment)
       await persistWorkspace(workspace)
       return workspace
+    },
+    async correctOrderLine(orderId, correction) {
+      await ensureReady()
+      const draft = await memory.correctOrderLine(orderId, correction)
+      await persistWorkspace(await memory.getDemo())
+      return draft
     },
     async approveOrder(orderId, actor) {
       await ensureReady()
@@ -370,4 +386,16 @@ function assertDraftId(draft: OrderDraft, orderId: string): void {
   if (draft.id !== orderId) {
     throw new Error('order was not found')
   }
+}
+
+function hasFinalSegment(workspace: DemoWorkspace, incoming: PersistentTranscriptSegment): boolean {
+  const key = finalSegmentKey(incoming)
+  return workspace.transcript.some((segment) => segment.kind === 'final' && finalSegmentKey(segment) === key)
+}
+
+function finalSegmentKey(segment: PersistentTranscriptSegment): string {
+  if (segment.providerEventId) {
+    return `provider:${segment.providerEventId}`
+  }
+  return `${segment.source}:${segment.speaker}:${segment.startedAtMs}:${segment.endedAtMs}:${segment.text}`
 }
