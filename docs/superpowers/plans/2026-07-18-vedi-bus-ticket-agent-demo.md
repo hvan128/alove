@@ -102,7 +102,7 @@ export function confirmBooking(draft: BookingDraft, actor: 'customer' | 'staff')
 export function canConfirmBooking(draft: BookingDraft): boolean
 ```
 
-- [ ] **Step 1: Write failing state-machine tests**
+- [x] **Step 1: Write failing state-machine tests**
 
 Cover: route/date/seats extraction; trip proposal; passenger details; missing-field clarification; explicit confirmation; duplicate confirmation code reuse.
 
@@ -112,21 +112,21 @@ expect(first.draft).toMatchObject({ origin: 'Sài Gòn', destination: 'Đà Lạ
 expect(first.reply).toContain('22:00')
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `pnpm --filter @ordervoice/core test -- bus-booking.test.ts`  
 Expected: FAIL because module does not exist.
 
-- [ ] **Step 3: Implement minimal catalog, parser, state machine**
+- [x] **Step 3: Implement minimal catalog, parser, state machine**
 
 Normalize Vietnamese diacritics for intent matching but preserve display values. Parse only supported demo route, 1–6 seats, demo date phrases, trip time, passenger name/phone, and explicit confirmation. Return one concise Vietnamese reply per turn.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 Run: `pnpm --filter @ordervoice/core test -- bus-booking.test.ts`  
 Expected: PASS.
 
-- [ ] **Step 5: Add direct package subpath export**
+- [x] **Step 5: Add direct package subpath export**
 
 Expose `@ordervoice/core/bus-booking` directly to its TypeScript source so Next.js does not traverse legacy `.js` re-exports.
 
@@ -137,7 +137,7 @@ Expose `@ordervoice/core/bus-booking` directly to its TypeScript source so Next.
 }
 ```
 
-- [ ] **Step 6: Run full core tests and commit**
+- [x] **Step 6: Run full core tests and commit**
 
 Run: `pnpm --filter @ordervoice/core test`  
 Expected: all legacy order tests plus booking tests PASS.
