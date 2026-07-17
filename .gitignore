@@ -1,0 +1,14 @@
+.DS_Store
+
+# Reference project supplied for architecture research; maintained as its own Git repository.
+project-4/
+
+# Local credentials and build output.
+.env*
+!.env.example
+.next/
+node_modules/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
