@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { getTableColumns, getTableName } from 'drizzle-orm'
 import { getDb, resetDbForTests } from '../index.js'
-import { bookingAuditEvents, busBookings, busCallMessages, busCalls } from '../schema.js'
+import {
+  bookingAuditEvents,
+  busBookings,
+  busCallEvents,
+  busCallMessages,
+  busCalls,
+} from '../schema.js'
 
 const originalDatabaseUrl = process.env.DATABASE_URL
 
@@ -22,8 +28,9 @@ describe('Neon database initialization', () => {
   })
 
   it('exports the VéĐi call, message, booking and audit schema', () => {
-    expect([busCalls, busCallMessages, busBookings, bookingAuditEvents].map(getTableName)).toEqual([
+    expect([busCalls, busCallEvents, busCallMessages, busBookings, bookingAuditEvents].map(getTableName)).toEqual([
       'bus_calls',
+      'bus_call_events',
       'bus_call_messages',
       'bus_bookings',
       'booking_audit_events',
@@ -39,6 +46,26 @@ describe('Neon database initialization', () => {
       'seats',
       'totalFareVnd',
       'bookingCode',
+      'pickupPoint',
+      'dropoffPoint',
+      'fieldEvidence',
+      'confirmedFields',
+      'reviewItems',
+      'revision',
+    ]))
+    expect(Object.keys(getTableColumns(busCalls))).toEqual(expect.arrayContaining([
+      'transcriptLanguage',
+      'transport',
+      'agentState',
+      'valseaState',
+      'revision',
+    ]))
+    expect(Object.keys(getTableColumns(busCallMessages))).toEqual(expect.arrayContaining([
+      'language',
+      'translations',
+      'confidence',
+      'startedAtMs',
+      'endedAtMs',
     ]))
   })
 })

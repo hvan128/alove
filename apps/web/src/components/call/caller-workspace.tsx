@@ -54,6 +54,7 @@ export function CallerWorkspace({ sessionCode, integrationStatus, transportFacto
     sessionCode,
     role: 'caller',
     transport: integrationStatus.livekit ? 'livekit' : 'local',
+    persistence: integrationStatus.persistence,
     ...(effectiveFactory ? { transportFactory: effectiveFactory } : {}),
   })
   const recognition = useSpeechRecognition({

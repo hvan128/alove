@@ -40,6 +40,7 @@ export function StaffWorkspace({ sessionCode, integrationStatus, transportFactor
     sessionCode,
     role: 'staff',
     transport: integrationStatus.livekit ? 'livekit' : 'local',
+    persistence: integrationStatus.persistence,
     ...(effectiveFactory ? { transportFactory: effectiveFactory } : {}),
   })
   const handledCaller = useRef<string | null>(null)

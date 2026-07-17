@@ -69,4 +69,34 @@ describe('useCallSession local transport', () => {
     expect(await screen.findByText('Đà Lạt')).toBeInTheDocument()
     channel.close()
   })
+
+  it('publishes an evidence-bearing booking snapshot after a staff edit', async () => {
+    const user = userEvent.setup()
+    const events: Array<{ type: string; revision?: number }> = []
+    const channel = new DemoCallChannel('EDIT42', { forceMemory: true })
+    const observer = new DemoCallChannel('EDIT42', { forceMemory: true })
+    const transportFactory = () => channel
+    observer.subscribe((event) => events.push(event))
+
+    function StaffEditHarness() {
+      const session = useCallSession({
+        sessionCode: 'EDIT42',
+        role: 'staff',
+        transportFactory,
+      })
+      return (
+        <button type="button" onClick={() => session.editField('origin', 'Sài Gòn')}>
+          Sửa điểm đi
+        </button>
+      )
+    }
+
+    render(<StaffEditHarness />)
+    await user.click(screen.getByRole('button', { name: 'Sửa điểm đi' }))
+
+    expect(events).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'booking.snapshot', revision: 1 }),
+    ]))
+    observer.close()
+  })
 })

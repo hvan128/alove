@@ -34,6 +34,7 @@ export type UseCallSessionOptions = {
   role: Role
   transport?: 'local' | 'livekit'
   transportFactory?: (sessionCode: string) => CallEventTransport
+  persistence?: boolean
 }
 
 export type CallSessionController = {
@@ -54,6 +55,8 @@ export function useCallSession(options: UseCallSessionOptions): CallSessionContr
   const sessionCode = useMemo(() => normalizeCode(options.sessionCode), [options.sessionCode])
   const role = options.role
   const transportKind = options.transport ?? 'local'
+  const transportFactory = options.transportFactory
+  const persistence = options.persistence ?? false
   const reducer = useCallback((state: CallSessionState, action: SessionAction): CallSessionState => {
     if (action.kind === 'event') return reduceCallSession(state, action.event)
     if (action.kind === 'confirm') return confirmCallSession(state)
@@ -71,30 +74,64 @@ export function useCallSession(options: UseCallSessionOptions): CallSessionContr
   )
   const transportRef = useRef<CallEventTransport | null>(null)
 
+  const persistEvent = useCallback((event: RoomEvent) => {
+    if (!persistence || event.type === 'transcript.partial') return
+    void fetch(`/api/sessions/${sessionCode}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(event),
+      keepalive: true,
+    }).catch(() => undefined)
+  }, [persistence, sessionCode])
+
   useEffect(() => {
-    const transport = options.transportFactory?.(sessionCode) ?? new DemoCallChannel(sessionCode)
+    const transport = transportFactory?.(sessionCode) ?? new DemoCallChannel(sessionCode)
     transportRef.current = transport
     for (const event of transport.readHistory()) dispatch({ kind: 'event', event })
-    const unsubscribe = transport.subscribe((event) => dispatch({ kind: 'event', event }))
+    const unsubscribe = transport.subscribe((event) => {
+      dispatch({ kind: 'event', event })
+      persistEvent(event)
+    })
     return () => {
       unsubscribe()
       transport.close()
       if (transportRef.current === transport) transportRef.current = null
     }
-  }, [options.transportFactory, sessionCode])
+  }, [persistEvent, transportFactory, sessionCode])
+
+  useEffect(() => {
+    if (!persistence) return
+    const controller = new AbortController()
+    void fetch(`/api/sessions/${sessionCode}`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    }).then(async (response) => {
+      if (!response.ok) return
+      const body = await response.json() as { events?: unknown[] }
+      for (const candidate of body.events ?? []) {
+        const parsed = roomEventSchema.safeParse(candidate)
+        if (parsed.success && parsed.data.sessionCode === sessionCode) {
+          dispatch({ kind: 'event', event: parsed.data })
+        }
+      }
+    }).catch(() => undefined)
+    return () => controller.abort()
+  }, [persistence, sessionCode])
 
   const sendEvent = useCallback((event: RoomEvent) => {
     const parsed = roomEventSchema.parse(event)
     dispatch({ kind: 'event', event: parsed })
     transportRef.current?.publish(parsed)
-  }, [])
+    persistEvent(parsed)
+  }, [persistEvent])
 
   const receiveEvent = useCallback((event: unknown) => {
     const parsed = roomEventSchema.safeParse(event)
     if (parsed.success && parsed.data.sessionCode === sessionCode) {
       dispatch({ kind: 'event', event: parsed.data })
+      persistEvent(parsed.data)
     }
-  }, [sessionCode])
+  }, [persistEvent, sessionCode])
 
   const sendCallerText = useCallback((text: string, channel: CallMessageChannel = 'text') => {
     if (role !== 'caller' || !text.trim()) return
@@ -197,18 +234,42 @@ export function useCallSession(options: UseCallSessionOptions): CallSessionContr
 
   const editField = useCallback(<K extends BookingFieldKey>(field: K, value: BookingDraft[K]) => {
     if (role !== 'staff') return
+    const occurredAt = new Date().toISOString()
+    const messageId = `staff-edit-${nextId(field)}`
+    const next = applyStaffEditToSession(state, field, value, { messageId, occurredAt })
     dispatch({
       kind: 'staff_edit',
       field,
       value,
-      messageId: `staff-edit-${nextId(field)}`,
-      occurredAt: new Date().toISOString(),
+      messageId,
+      occurredAt,
     })
-  }, [role])
+    sendEvent({
+      version: 1,
+      eventId: `event-${nextId('snapshot')}`,
+      sessionCode,
+      occurredAt,
+      type: 'booking.snapshot',
+      revision: next.revision,
+      booking: next.booking,
+    })
+  }, [role, sendEvent, sessionCode, state])
 
   const confirmCurrentBooking = useCallback(() => {
-    if (role === 'staff') dispatch({ kind: 'confirm' })
-  }, [role])
+    if (role !== 'staff') return
+    const next = confirmCallSession(state)
+    const occurredAt = new Date().toISOString()
+    dispatch({ kind: 'confirm' })
+    sendEvent({
+      version: 1,
+      eventId: `event-${nextId('confirmed')}`,
+      sessionCode,
+      occurredAt,
+      type: 'booking.snapshot',
+      revision: next.revision,
+      booking: next.booking,
+    })
+  }, [role, sendEvent, sessionCode, state])
 
   return {
     state,

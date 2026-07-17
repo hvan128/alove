@@ -104,12 +104,18 @@ importers:
       '@ordervoice/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@ordervoice/db':
+        specifier: workspace:*
+        version: link:../../db
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@neondatabase/serverless@1.1.0)
       livekit-client:
         specifier: 2.20.1
         version: 2.20.1(@types/dom-mediacapture-record@1.0.22)
