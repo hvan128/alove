@@ -6,21 +6,51 @@
 }
 
 :root {
-  --canvas: #f5f5f7;
-  --pearl: #fafafc;
-  --ink: #1d1d1f;
-  --muted: #6e6e73;
-  --hairline: #dedee3;
-  --divider: #ececf0;
-  --action: #0066cc;
-  --action-hover: #0057ae;
-  --action-focus: #0071e3;
-  --action-soft: #e7f1ff;
-  --success: #248a3d;
-  --warning: #b35c00;
-  --danger: #d70015;
-  --violet: #6e5bd3;
+  --canvas: #f3f7f4;
+  --surface: #ffffff;
+  --surface-tint: #edf6f1;
+  --pearl: #f8faf9;
+  --ink: #18221d;
+  --muted: #68726c;
+  --hairline: #dbe3de;
+  --divider: #e9eeeb;
+  --action: #147a55;
+  --action-hover: #0f6244;
+  --action-focus: #0d8a5e;
+  --action-soft: #e6f5ee;
+  --on-action: #ffffff;
+  --on-ink: #ffffff;
+  --on-danger: #ffffff;
+  --success: #18794e;
+  --warning: #a14d00;
+  --danger: #c92a3a;
+  --violet: #6750a4;
   color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #0d1410;
+    --surface: #151e19;
+    --surface-tint: #183326;
+    --pearl: #111814;
+    --ink: #f1f5f2;
+    --muted: #a6b0aa;
+    --hairline: #34423a;
+    --divider: #27342e;
+    --action: #72d8aa;
+    --action-hover: #8ae2bb;
+    --action-focus: #83e5b8;
+    --action-soft: #173a2b;
+    --on-action: #082117;
+    --on-ink: #0d1410;
+    --on-danger: #0d1410;
+    --success: #71d5a2;
+    --warning: #ffb86c;
+    --danger: #ff7a86;
+    --violet: #c2adff;
+    color-scheme: dark;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -40,8 +70,13 @@ body {
 
 button, input, select { font: inherit; }
 
-::selection { background: color-mix(in srgb, var(--action) 20%, white); }
+::selection { background: color-mix(in srgb, var(--action) 24%, transparent); }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

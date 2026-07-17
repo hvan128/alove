@@ -1,7 +1,7 @@
 import { AppShell } from '@/components/ui/app-shell'
-import { ConsoleWorkspace } from '@/components/console/console-workspace'
-import { createInitialDemoWorkspace } from '@/lib/demo'
+import { BusCallWorkspace } from '@/components/bus-call/bus-call-workspace'
+import { createInitialBusDemoWorkspace } from '@/lib/bus-demo'
 
 export default function ConsolePage() {
-  return <AppShell><ConsoleWorkspace initialWorkspace={createInitialDemoWorkspace()} /></AppShell>
+  return <AppShell><BusCallWorkspace initialWorkspace={createInitialBusDemoWorkspace()} /></AppShell>
 }

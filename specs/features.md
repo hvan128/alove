@@ -1,37 +1,42 @@
-# Feature Specification
+# Feature Specification — VéĐi
 
-## F-01: Unified source selection
+## F-01: Two-sided Web Call
 
-The operator selects Browser call, Zalo replay, or Phone. Each mode displays its actual readiness: `ready`, `connecting`, `live`, `unavailable`, `demo`. The selected source is carried into transcript provenance.
+`/console` shows `Phía khách hàng` and `Nhân viên chăm sóc` together. Start/end state and elapsed time are shared. Copy explicitly states that the demo runs in one browser.
 
-## F-02: Browser voice capture
+## F-02: Human and automatic modes
 
-The browser requests microphone permission, captures PCM16 frames via `AudioWorklet`, and sends `20–100 ms` mono/16 kHz frames through a WebSocket. The UI renders partial text as provisional and persists final text only.
+The mode selector offers `Nhân viên` and `Agent tự động`. Human mode never sends an automatic reply. Auto mode responds after each final customer message. Switching to human stops later automation and keeps current state.
 
-## F-03: Zalo replay
+## F-03: Guaranteed customer input
 
-The operator selects an audio/video attachment and starts synchronized replay. The media element time is reflected in transcript timestamps. The app calls this “Zalo replay”; it does not represent it as a direct live Zalo call.
+Customer text and four ordered demo presets always work. Browser speech recognition may provide Vietnamese interim/final text when supported. Unsupported or denied recognition never blocks the demo.
 
-## F-04: Direct telephone call
+## F-04: Deterministic booking agent
 
-An incoming Twilio webhook creates a conversation. Media Stream packets are decoded from base64 mu-law 8 kHz, resampled to PCM16 16 kHz and sent to ASR. Caller and agent tracks remain distinct where Twilio supplies them. The demo includes a deterministic telephony fixture but does not claim an actual PSTN call without credentials and a reachable WSS URL.
+The agent supports Sài Gòn → Đà Lạt, 1–6 passengers, evening travel, static trip proposals, passenger name/phone and explicit confirmation. Unknown input produces one safe clarification. Replies remain compact enough for speech.
 
-## F-05: VALSEA transcription
+## F-05: Human customer care
 
-When configured, the gateway opens a VALSEA realtime session and maps provider partial/final events. Final events preserve Vietnamese diacritics and original wording. VALSEA is the production/challenge provider. A development provider can only activate through an explicit environment switch.
+Staff can send a text reply, speak it through device TTS, use a suggested response and take over from auto mode. Staff sees the same transcript and current booking facts.
 
-## F-06: Evidence-backed draft order
+## F-06: Evidence-backed draft
 
-A final segment may yield an `OrderPatch`. Each field cites `segmentId`, quoted source span and confidence. A deterministic resolver matches customers and SKUs against seeded aliases. Ambiguity, missing unit, invalid quantity and price mismatch become exceptions.
+Origin, destination, date, passenger count, selected trip and passenger data retain customer-message IDs. Missing required values keep the draft in `collecting` or `awaiting_confirmation`.
 
-## F-07: Human-in-the-loop approval and ERP draft
+## F-07: Confirmation invariant
 
-The operator can correct a draft. Approval has a named human actor and timestamp. Export remains disabled before approval. Export sends an idempotency key to ERPNext and records a single external draft reference.
+Booking confirmation requires selected trip, passenger count, passenger name, valid Vietnamese mobile number, enough seats and explicit customer/staff action. Repeated confirmation reuses one booking code.
 
-## F-08: Reply and speech
+## F-08: Audible reply
 
-The assistant proposes a Vietnamese confirmation/review reply. The operator must click `Nói phản hồi` to produce audio. In demo mode this uses the device speech API and labels the output; in configured environments VALSEA/OpenAI server-side TTS can be used.
+Agent/staff replies can use `speechSynthesis` with `vi-VN`. Audio follows a user-triggered flow, has visible replay/stop controls, and degrades to readable text.
 
-## F-09: Design system
+## F-09: LiveKit pilot seam
 
-`/design-system` demonstrates semantic colour, type, buttons, inputs, status, panel, transcript and field-evidence primitives. The console composes these primitives rather than defining ad hoc styles.
+This release does not use or claim LiveKit. Pilot architecture uses a server-only token endpoint, LiveKit room transport and a named agent worker after credentials exist. Booking intelligence remains transport-independent.
+
+## F-10: Design system
+
+`/design-system` documents VéĐi semantic colors, type, buttons, inputs, mode/status controls, conversation bubbles and booking facts. Console remains responsive and reduced-motion safe.
+

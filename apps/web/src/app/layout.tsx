@@ -6,8 +6,8 @@ const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'OrderVoice — Voice-to-order copilot',
-  description: 'Vietnamese voice-to-order console with evidence and human approval.',
+  title: 'VéĐi | Trợ lý đặt vé qua cuộc gọi',
+  description: 'Demo Web Call đặt vé nhà xe với nhân viên chăm sóc và Agent tự động nói tiếng Việt.',
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

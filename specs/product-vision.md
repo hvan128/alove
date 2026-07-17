@@ -1,35 +1,38 @@
-# Product Vision — OrderVoice
+# Product Vision — VéĐi
 
 ## Purpose
 
-OrderVoice is a Vietnamese voice-order copilot for B2B sales operators. It turns an imperfect order conversation into a reviewable sales-order draft, with proof for every AI-derived field. The product is built for the Vietnam AI Innovation Challenge: VALSEA ASR is the required speech-recognition integration, Vietnamese and Vietnamese/English code-switching are first-class input, and workflow-ready output matters more than a raw transcript.
+VéĐi is a Vietnamese voice-assisted bus-ticket workspace. It lets a passenger ask for a trip naturally while customer-care staff watch the same conversation, take over when needed, and confirm a reviewable booking. The hackathon demo prioritizes a complete, repeatable Web Call over unavailable phone or LiveKit credentials.
 
 ## Users
 
 | User | Need | Product outcome |
 |---|---|---|
-| Sales operator | Capture a rushed, noisy order without retyping it | Final transcript, structured draft, exception list and reply suggestion |
-| Sales supervisor | Trust and correct the AI before a business system changes | Evidence, confidence, source timestamps and explicit approval |
-| Integration owner | Deliver one safe ERP draft per approved order | Idempotent export with an auditable external reference |
+| Passenger | Book a suitable trip without navigating a long form | Conversational route search, clear fare, seats and confirmation code |
+| Customer-care employee | See what the passenger asked and intervene safely | Shared transcript, extracted booking, human mode and explicit confirmation |
+| Bus operator | Demonstrate automation without losing operational control | Auto-agent mode, staff takeover, evidence and deterministic booking rules |
 
 ## Principles
 
-1. Human approval is a product boundary, not a UI decoration.
-2. The final source-language transcript is canonical; translation is never used to resolve a SKU or mutate an order.
-3. AI proposes; deterministic rules validate; a human decides.
-4. Audio provenance survives every channel and every derived field.
-5. A working demo may simulate unavailable providers only when it is visibly labelled. It must never simulate success as if it were a live provider call.
+1. Two sides remain visible: passenger experience and customer-care control.
+2. Agent automation is a mode, not an irreversible handoff; staff can take over without losing state.
+3. A final customer message may update the draft; provisional speech may not.
+4. Explicit confirmation is required before a booking code is issued.
+5. Provider readiness is truthful. The zero-key demo never claims a real phone or LiveKit connection.
+6. Preset and text controls always work; browser speech is progressive enhancement.
 
-## Success measures for the MVP
+## MVP success measures
 
-- Operator can demonstrate a full conversation-to-draft path in under three minutes.
-- Every generated draft field has at least one final transcript evidence reference.
-- The demo covers noisy/casual Vietnamese and a Vietnamese/English SKU phrase.
-- Duplicate export never creates a second ERP draft.
-- Browser UI works at desktop and phone widths; at least one human-clicked reply is audible.
+- Complete Sài Gòn → Đà Lạt booking for two passengers in under two minutes.
+- Demonstrate both `Nhân viên` and `Agent tự động` modes.
+- Auto agent proposes a trip, collects passenger details, reads a summary and confirms once.
+- Human mode sends no automatic reply and permits explicit staff response.
+- Every extracted value links to at least one customer message.
+- Demo works on deployed Vercel without provider credentials and at desktop/mobile widths.
 
 ## Scope
 
-Included: browser microphone calls, synchronized uploaded-file replay for Zalo-originated audio/video, PSTN media adapter, VALSEA realtime ASR adapter, OpenAI development fallback, TTS preview, order extraction/rules/evidence, Neon persistence, ERPNext draft adapter, Apple-like operator console, design-system route and deployment-ready web application.
+Included: two-sided Web Call workspace, deterministic bus catalog and agent, text/preset input, optional browser speech recognition, device TTS, staff takeover, evidence-backed booking draft, idempotent demo confirmation, Apple-like shared UI, tests and production deployment.
 
-Excluded: autonomous agent purchasing, production account provisioning, payment, stock reservation, customer authentication and direct undocumented Zalo live-call capture.
+Excluded: payment, real seat inventory lock, SMS/Zalo delivery, PSTN/SIP, remote two-device audio, production LiveKit deployment without project credentials, and autonomous purchase without explicit confirmation.
+

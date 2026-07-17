@@ -1,69 +1,67 @@
 import { expect, test } from '@playwright/test'
 
-test('operator can run the final-only demo, approve, export and access speech control', async ({ page }) => {
-  await page.goto('/console')
-  await expect(page.getByRole('heading', { name: 'Một cuộc gọi. Một đơn nháp có bằng chứng.' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Xuất ERP nháp' })).toBeDisabled()
-
-  await page.getByRole('button', { name: 'Chạy demo đơn hàng' }).click()
-  await expect(page.getByText('Arabica Premium')).toBeVisible()
-  await expect(page.getByText('Tạm thời')).toBeVisible()
-  await expect(page.getByText('Đã chốt')).toBeVisible()
-
-  await page.getByRole('button', { name: 'Duyệt đơn nháp' }).click()
-  await expect(page.getByRole('button', { name: 'Xuất ERP nháp' })).toBeEnabled()
-  await page.getByRole('button', { name: 'Xuất ERP nháp' }).click()
-  await expect(page.getByText('ERP-DRAFT-0001')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Nói phản hồi' })).toBeVisible()
-})
-
-test('Zalo replay waits for an operator click before playing a selected file', async ({ page }) => {
-  await page.goto('/console')
-  await page.getByRole('tab', { name: /Zalo replay/i }).click()
-  await page.getByLabel('Tải tệp Zalo audio hoặc video').setInputFiles({
-    name: 'zalo-call.wav',
-    mimeType: 'audio/wav',
-    buffer: silentWav(3),
+test('VéĐi exposes a two-sided Web Call with human and agent modes', async ({ page }) => {
+  const hydrationErrors: string[] = []
+  page.on('console', (message) => {
+    if (message.type() === 'error' && /hydrat|server rendered text/iu.test(message.text())) hydrationErrors.push(message.text())
   })
-
-  const media = page.getByTestId('zalo-replay-media')
-  await expect(media).toBeVisible()
-  await expect(media).toHaveJSProperty('paused', true)
-  await page.getByRole('button', { name: 'Phát & chuyển transcript' }).click()
-  await expect(page.getByRole('button', { name: 'Dừng replay' })).toBeVisible()
-  await expect(page.getByText(/Zalo replay đang phát cục bộ/i)).toBeVisible()
-})
-
-test('operator must resolve an ambiguous SKU before approving a draft', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'webkitSpeechRecognition', {
+      configurable: true,
+      value: class BrowserSpeechRecognition {},
+    })
+  })
   await page.goto('/console')
-  await page.getByRole('button', { name: 'Chạy demo ngoại lệ' }).click()
-  await expect(page.getByText('SKU_AMBIGUOUS')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Duyệt đơn nháp' })).toBeDisabled()
-  await page.getByRole('button', { name: 'Sửa cà phê house' }).click()
-  await page.getByLabel('SKU cho cà phê house').selectOption('CF-HOUSE-BLEND')
-  await page.getByLabel('Số lượng cho cà phê house').fill('4')
-  await page.getByRole('button', { name: 'Lưu chỉnh sửa' }).click()
+  await page.waitForLoadState('networkidle')
 
-  await expect(page.getByText('House Blend')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Duyệt đơn nháp' })).toBeEnabled()
+  await expect(page.getByRole('heading', { name: 'VéĐi Web Call' })).toBeVisible()
+  await expect.poll(() => page.evaluate(() => typeof window.webkitSpeechRecognition)).toBe('function')
+  await expect(page.getByText('Phía khách hàng')).toBeVisible()
+  await expect(page.getByText('Nhân viên chăm sóc')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Nhân viên' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Agent tự động' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Bắt đầu Web Call' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Open issues overlay' })).toHaveCount(0)
+  await expect(page.getByRole('dialog', { name: 'Recoverable Error' })).toHaveCount(0)
+  expect(hydrationErrors).toEqual([])
 })
 
-function silentWav(seconds: number): Buffer {
-  const sampleRate = 16000
-  const bytesPerSample = 2
-  const dataLength = sampleRate * bytesPerSample * seconds
-  const wav = Buffer.alloc(44 + dataLength)
-  wav.write('RIFF', 0)
-  wav.writeUInt32LE(36 + dataLength, 4)
-  wav.write('WAVEfmt ', 8)
-  wav.writeUInt32LE(16, 16)
-  wav.writeUInt16LE(1, 20)
-  wav.writeUInt16LE(1, 22)
-  wav.writeUInt32LE(sampleRate, 24)
-  wav.writeUInt32LE(sampleRate * bytesPerSample, 28)
-  wav.writeUInt16LE(bytesPerSample, 32)
-  wav.writeUInt16LE(16, 34)
-  wav.write('data', 36)
-  wav.writeUInt32LE(dataLength, 40)
-  return wav
-}
+test('auto agent books two seats and confirms once', async ({ page }) => {
+  await page.goto('/console')
+  await page.getByRole('button', { name: 'Agent tự động' }).click()
+  await page.getByRole('button', { name: 'Bắt đầu Web Call' }).click()
+
+  await page.getByRole('button', { name: 'Gửi yêu cầu mẫu' }).click()
+  await expect(page.getByTestId('message-agent').filter({ hasText: /chuyến giường nằm 34 chỗ 22:00/i })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Chọn chuyến 22:00' }).click()
+  await page.getByRole('button', { name: 'Gửi thông tin hành khách' }).click()
+  await expect(page.getByText('Chờ xác nhận')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Xác nhận đặt vé' }).click()
+  await expect(page.getByText('Đã giữ vé')).toBeVisible()
+  await expect(page.getByText('A05, A06', { exact: true })).toBeVisible()
+  await expect(page.getByText(/^VD-240718-\d{4}$/u)).toHaveCount(1)
+  await expect(page.getByRole('button', { name: 'Xác nhận đặt vé' })).toBeDisabled()
+})
+
+test('human staff replies without an automatic agent and confirms manually', async ({ page }) => {
+  await page.goto('/console')
+  await page.getByRole('button', { name: 'Nhân viên' }).click()
+  await page.getByRole('button', { name: 'Bắt đầu Web Call' }).click()
+  await page.getByRole('button', { name: 'Gửi yêu cầu mẫu' }).click()
+
+  await expect(page.getByTestId('message-agent')).toHaveCount(0)
+  await page.getByLabel('Phản hồi của nhân viên').fill('Dạ em kiểm tra chuyến phù hợp ngay ạ.')
+  await page.getByRole('button', { name: 'Gửi & nói' }).click()
+  await expect(page.getByTestId('message-staff').filter({ hasText: 'Dạ em kiểm tra chuyến phù hợp ngay ạ.' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Chọn chuyến 22:00' }).click()
+  await page.getByRole('button', { name: 'Gửi thông tin hành khách' }).click()
+  await expect(page.getByRole('button', { name: 'Xác nhận thủ công' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Xác nhận thủ công' }).click()
+
+  await expect(page.getByText('Đã giữ vé')).toBeVisible()
+  await expect(page.getByText(/^VD-240718-\d{4}$/u)).toHaveCount(1)
+  await expect(page.getByTestId('message-agent')).toHaveCount(0)
+})
