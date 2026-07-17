@@ -8,6 +8,7 @@ import {
   type DemoWorkspace,
   type OrderDraft,
   type PersistentTranscriptSegment,
+  type TranscriptSegment,
 } from '@ordervoice/contracts'
 import {
   applyHumanLineCorrection,
@@ -393,7 +394,7 @@ function hasFinalSegment(workspace: DemoWorkspace, incoming: PersistentTranscrip
   return workspace.transcript.some((segment) => segment.kind === 'final' && finalSegmentKey(segment) === key)
 }
 
-function finalSegmentKey(segment: PersistentTranscriptSegment): string {
+function finalSegmentKey(segment: Pick<TranscriptSegment, 'providerEventId' | 'source' | 'speaker' | 'startedAtMs' | 'endedAtMs' | 'text'>): string {
   if (segment.providerEventId) {
     return `provider:${segment.providerEventId}`
   }
