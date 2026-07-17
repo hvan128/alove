@@ -226,24 +226,24 @@ export type SpeechRecognitionState = 'unsupported' | 'idle' | 'listening' | 'err
 export function speakVietnamese(text: string): 'speaking' | 'unsupported'
 ```
 
-- [ ] **Step 1: Write failing browser-adapter tests**
+- [x] **Step 1: Write failing browser-adapter tests**
 
 Test unsupported fallback, final recognition callback, and that no speech occurs before a customer/staff click causes a reply.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `pnpm --filter @ordervoice/web test -- use-speech-recognition.test.tsx bus-call-workspace.test.tsx`  
 Expected: FAIL because voice adapters do not exist.
 
-- [ ] **Step 3: Implement optional SpeechRecognition**
+- [x] **Step 3: Implement optional SpeechRecognition**
 
 Support `window.SpeechRecognition` and `window.webkitSpeechRecognition`, `lang = 'vi-VN'`, `interimResults = true`, one active recognizer, clear stop/error state. Final transcript enters the same customer-message path as text/presets.
 
-- [ ] **Step 4: Implement device TTS**
+- [x] **Step 4: Implement device TTS**
 
 Cancel existing speech, create `SpeechSynthesisUtterance`, set `lang = 'vi-VN'`, and speak only from explicit user-triggered flows. Keep visible replay and stop controls.
 
-- [ ] **Step 5: Run GREEN and commit**
+- [x] **Step 5: Run GREEN and commit**
 
 Run: `pnpm --filter @ordervoice/web test`  
 Expected: all web tests PASS.

@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BusDemoWorkspace, CallMessage, CallMessageChannel, CallMode, CallRole } from '@ordervoice/contracts'
 import { advanceBookingAgent, confirmBooking } from '@ordervoice/core/bus-booking'
+import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
+import { speakVietnamese, stopVietnameseSpeech } from '@/lib/device-speech'
 import { CallHeader } from './call-header'
 import { CustomerCallCard } from './customer-call-card'
 import { CareDeskCard } from './care-desk-card'
@@ -12,6 +14,8 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
   const [customerText, setCustomerText] = useState('')
   const [staffReply, setStaffReply] = useState('')
   const [elapsedSec, setElapsedSec] = useState(0)
+  const [speechStatus, setSpeechStatus] = useState<string | null>(null)
+  const [lastSpoken, setLastSpoken] = useState('')
   const sequence = useRef(0)
 
   useEffect(() => {
@@ -56,7 +60,10 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
     const customer = createMessage('customer', text, channel)
     const turn = advanceBookingAgent(workspace.booking, customer)
     const messages = [...workspace.messages, customer]
-    if (workspace.mode === 'auto') messages.push(createMessage('agent', turn.reply, 'text'))
+    if (workspace.mode === 'auto') {
+      messages.push(createMessage('agent', turn.reply, 'text'))
+      speakReply(turn.reply)
+    }
     setWorkspace({ ...workspace, messages, booking: turn.draft })
   }
 
@@ -65,22 +72,47 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
     if (!text) return
     if (workspace.callStatus !== 'connected') return
     setWorkspace({ ...workspace, messages: [...workspace.messages, createMessage('staff', text, 'text')] })
+    speakReply(text)
     setStaffReply('')
   }
 
   const confirmByStaff = () => {
     if (workspace.callStatus !== 'connected' || workspace.booking.status === 'confirmed') return
     const booking = confirmBooking(workspace.booking, 'staff')
-    const message = createMessage('staff', `Em đã xác nhận vé. Mã vé ${booking.bookingCode}, ghế ${booking.seats.join(', ')}.`, 'text')
+    const reply = `Em đã xác nhận vé. Mã vé ${booking.bookingCode}, ghế ${booking.seats.join(', ')}.`
+    const message = createMessage('staff', reply, 'text')
     setWorkspace({ ...workspace, booking, messages: [...workspace.messages, message] })
+    speakReply(reply)
+  }
+
+  const recognition = useSpeechRecognition({
+    onFinal: (text) => {
+      setCustomerText(text)
+      submitCustomer(text, 'voice')
+    },
+  })
+
+  function speakReply(text: string) {
+    setLastSpoken(text)
+    const result = speakVietnamese(text)
+    setSpeechStatus(result === 'speaking' ? 'Đang phát giọng tiếng Việt của thiết bị.' : 'Thiết bị không hỗ trợ giọng đọc. Nội dung text vẫn đầy đủ.')
+  }
+
+  const replayLast = () => {
+    if (lastSpoken) speakReply(lastSpoken)
+  }
+
+  const stopSpeech = () => {
+    stopVietnameseSpeech()
+    setSpeechStatus('Đã dừng giọng đọc.')
   }
 
   return (
     <div className="mx-auto min-h-[100dvh] max-w-[1460px] px-4 py-5 sm:px-6 lg:py-7">
       <CallHeader status={workspace.callStatus} mode={workspace.mode} elapsedSec={elapsedSec} onModeChange={changeMode} onStart={startCall} onEnd={endCall} />
       <main className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.08fr)_minmax(380px,0.92fr)]">
-        <CustomerCallCard status={workspace.callStatus} messages={workspace.messages} booking={workspace.booking} value={customerText} onValueChange={setCustomerText} onSubmit={submitCustomer} />
-        <CareDeskCard mode={workspace.mode} status={workspace.callStatus} messages={workspace.messages} booking={workspace.booking} reply={staffReply} onReplyChange={setStaffReply} onSendReply={sendStaffReply} onConfirm={confirmByStaff} />
+        <CustomerCallCard status={workspace.callStatus} messages={workspace.messages} booking={workspace.booking} value={customerText} onValueChange={setCustomerText} onSubmit={submitCustomer} recognitionState={recognition.state} interimText={recognition.interimText} onStartMic={recognition.start} onStopMic={recognition.stop} />
+        <CareDeskCard mode={workspace.mode} status={workspace.callStatus} messages={workspace.messages} booking={workspace.booking} reply={staffReply} onReplyChange={setStaffReply} onSendReply={sendStaffReply} onConfirm={confirmByStaff} speechStatus={speechStatus} onReplay={replayLast} onStopSpeech={stopSpeech} />
       </main>
     </div>
   )

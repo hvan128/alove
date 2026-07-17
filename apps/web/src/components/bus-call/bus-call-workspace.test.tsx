@@ -1,12 +1,14 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createInitialBusDemoWorkspace } from '@/lib/bus-demo'
 import { BusCallWorkspace } from './bus-call-workspace'
 
 function renderWorkspace() {
   return render(<BusCallWorkspace initialWorkspace={createInitialBusDemoWorkspace()} />)
 }
+
+afterEach(() => vi.unstubAllGlobals())
 
 async function startCall(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: 'Bắt đầu Web Call' }))
@@ -25,15 +27,24 @@ describe('two-sided bus ticket Web Call', () => {
   })
 
   it('lets automatic mode advance the booking and reply', async () => {
+    const speak = vi.fn()
+    vi.stubGlobal('speechSynthesis', { cancel: vi.fn(), speak })
+    vi.stubGlobal('SpeechSynthesisUtterance', class {
+      lang = ''
+      constructor(public text: string) {}
+    })
     const user = userEvent.setup()
     renderWorkspace()
+    expect(speak).not.toHaveBeenCalled()
     await startCall(user)
+    expect(speak).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: 'Agent tự động' }))
     await user.click(screen.getByRole('button', { name: 'Gửi yêu cầu mẫu' }))
 
     const agentMessage = screen.getByTestId('message-agent')
     expect(within(agentMessage).getByText(/đề xuất chuyến giường nằm 34 chỗ 22:00/i)).toBeVisible()
     expect(screen.getByText('2 hành khách')).toBeVisible()
+    expect(speak).toHaveBeenCalledOnce()
   })
 
   it('preserves transcript and booking when staff takes over', async () => {

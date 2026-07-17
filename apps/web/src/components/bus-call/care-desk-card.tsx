@@ -1,5 +1,5 @@
 import type { BookingDraft, CallMessage, CallMode, CallStatus } from '@ordervoice/contracts'
-import { CheckCircle, Headset, PaperPlaneTilt, Robot, Sparkle } from '@phosphor-icons/react'
+import { CheckCircle, Headset, PaperPlaneTilt, Robot, SpeakerHigh, SpeakerSlash, Sparkle } from '@phosphor-icons/react'
 import { canConfirmBooking } from '@ordervoice/core/bus-booking'
 import { Button } from '@/components/ui/button'
 import { TextInput } from '@/components/ui/input'
@@ -14,9 +14,12 @@ type CareDeskCardProps = {
   onReplyChange: (value: string) => void
   onSendReply: () => void
   onConfirm: () => void
+  speechStatus: string | null
+  onReplay: () => void
+  onStopSpeech: () => void
 }
 
-export function CareDeskCard({ mode, status, messages, booking, reply, onReplyChange, onSendReply, onConfirm }: CareDeskCardProps) {
+export function CareDeskCard({ mode, status, messages, booking, reply, onReplyChange, onSendReply, onConfirm, speechStatus, onReplay, onStopSpeech }: CareDeskCardProps) {
   const connected = status === 'connected'
   const latestReply = [...messages].reverse().find((message) => message.role === 'agent' || message.role === 'staff')
   const confirmReady = connected && booking.status !== 'confirmed' && canConfirmBooking(booking)
@@ -43,6 +46,11 @@ export function CareDeskCard({ mode, status, messages, booking, reply, onReplyCh
       <div className="mt-4 rounded-2xl border border-[var(--divider)] p-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"><Sparkle size={17} weight="fill" className="text-[var(--success)]" aria-hidden /> Phản hồi gần nhất</div>
         <p className="mt-2 min-h-12 text-sm leading-6 text-[var(--muted)]">{latestReply?.text ?? (mode === 'auto' ? 'Agent sẽ trả lời sau câu đầu tiên của khách.' : 'Nhân viên nhập phản hồi bên dưới.')}</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button variant="quiet" onClick={onReplay} disabled={!latestReply}><SpeakerHigh size={17} aria-hidden /> Phát lại phản hồi</Button>
+          <Button variant="quiet" onClick={onStopSpeech}><SpeakerSlash size={17} aria-hidden /> Dừng giọng</Button>
+        </div>
+        {speechStatus ? <p className="mt-2 text-xs text-[var(--muted)]" role="status">{speechStatus}</p> : null}
       </div>
 
       <div className="mt-auto border-t border-[var(--divider)] pt-4">

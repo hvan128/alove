@@ -1,5 +1,6 @@
 import type { BookingDraft, CallMessage, CallMessageChannel, CallStatus } from '@ordervoice/contracts'
 import { Microphone, PaperPlaneTilt, UserCircle } from '@phosphor-icons/react'
+import type { SpeechRecognitionState } from '@/hooks/use-speech-recognition'
 import { Button } from '@/components/ui/button'
 import { TextInput } from '@/components/ui/input'
 import { MessageTimeline } from './message-timeline'
@@ -18,9 +19,13 @@ type CustomerCallCardProps = {
   value: string
   onValueChange: (value: string) => void
   onSubmit: (text: string, channel: CallMessageChannel) => void
+  recognitionState: SpeechRecognitionState
+  interimText: string
+  onStartMic: () => void
+  onStopMic: () => void
 }
 
-export function CustomerCallCard({ status, messages, booking, value, onValueChange, onSubmit }: CustomerCallCardProps) {
+export function CustomerCallCard({ status, messages, booking, value, onValueChange, onSubmit, recognitionState, interimText, onStartMic, onStopMic }: CustomerCallCardProps) {
   const connected = status === 'connected'
   const confirmed = booking.status === 'confirmed'
   const submitText = () => {
@@ -65,8 +70,26 @@ export function CustomerCallCard({ status, messages, booking, value, onValueChan
         <form className="flex items-end gap-2" onSubmit={(event) => { event.preventDefault(); submitText() }}>
           <div className="min-w-0 flex-1"><TextInput label="Lời khách hàng" id="customer-message" value={value} onChange={(event) => onValueChange(event.target.value)} disabled={!connected || confirmed} placeholder="Nhập yêu cầu đặt vé..." /></div>
           <Button type="submit" aria-label="Gửi lời khách" disabled={!connected || confirmed || !value.trim()}><PaperPlaneTilt size={18} weight="fill" aria-hidden /></Button>
-          <Button type="button" variant="secondary" aria-label="Bật mic khách hàng" disabled title="Mic được thêm ở bước voice"><Microphone size={18} aria-hidden /></Button>
+          <Button
+            type="button"
+            variant="secondary"
+            aria-label={recognitionState === 'listening' ? 'Dừng mic khách hàng' : 'Bật mic khách hàng'}
+            disabled={!connected || confirmed || recognitionState === 'unsupported'}
+            onClick={recognitionState === 'listening' ? onStopMic : onStartMic}
+            title={recognitionState === 'unsupported' ? 'Trình duyệt không hỗ trợ SpeechRecognition' : undefined}
+          >
+            <Microphone size={18} weight={recognitionState === 'listening' ? 'fill' : 'regular'} aria-hidden />
+          </Button>
         </form>
+        <p className="mt-2 text-xs leading-5 text-[var(--muted)]" role="status">
+          {recognitionState === 'unsupported'
+            ? 'Mic STT không có trên trình duyệt này. Câu demo và nhập text vẫn hoạt động.'
+            : recognitionState === 'listening'
+              ? interimText || 'Đang nghe tiếng Việt...'
+              : recognitionState === 'error'
+                ? 'Không thể mở mic. Kiểm tra quyền trình duyệt hoặc dùng câu demo.'
+                : 'Mic tiếng Việt là tùy chọn. Câu demo luôn sẵn sàng.'}
+        </p>
       </div>
     </section>
   )
