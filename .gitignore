@@ -15,3 +15,11 @@ playwright-report/
 test-results/
 tmp/
 *.tsbuildinfo
+
+# Python voice worker.
+agent/.venv/
+agent/.pytest_cache/
+agent/.ruff_cache/
+agent/__pycache__/
+agent/livekit.toml
+agent/*.egg-info/
