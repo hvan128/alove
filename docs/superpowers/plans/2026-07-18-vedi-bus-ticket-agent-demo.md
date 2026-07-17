@@ -167,7 +167,7 @@ git commit -m "feat: add deterministic bus booking agent"
 - Consumes: `advanceBookingAgent`, `confirmBooking`, typed initial workspace.
 - Produces: customer message submission, human reply, auto reply, takeover, call lifecycle, booking display.
 
-- [ ] **Step 1: Write failing component tests**
+- [x] **Step 1: Write failing component tests**
 
 Test these behaviors independently:
 
@@ -182,25 +182,25 @@ expect(screen.getByText(/chuyến giường nằm 22:00/i)).toBeVisible()
 expect(screen.getByText('2 hành khách')).toBeVisible()
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run: `pnpm --filter @ordervoice/web test -- bus-call-workspace.test.tsx`  
 Expected: FAIL because workspace does not exist.
 
-- [ ] **Step 3: Implement initial state and component shell**
+- [x] **Step 3: Implement initial state and component shell**
 
 Use `useState` only in workspace. Child cards receive typed props and callbacks. Keep each component under 300 lines. Use native buttons, inputs, labels, status regions, and existing token variables.
 
-- [ ] **Step 4: Implement human and auto transitions**
+- [x] **Step 4: Implement human and auto transitions**
 
 Customer final messages always update booking evidence. Only auto mode calls `advanceBookingAgent` and sends its reply. Human mode exposes reply suggestions and `Gửi & nói` without an automatic send.
 
-- [ ] **Step 5: Run GREEN**
+- [x] **Step 5: Run GREEN**
 
 Run: `pnpm --filter @ordervoice/web test -- bus-call-workspace.test.tsx`  
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/web/package.json pnpm-lock.yaml apps/web/src/lib/bus-demo.ts apps/web/src/components/bus-call apps/web/src/app/console/page.tsx
