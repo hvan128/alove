@@ -482,8 +482,11 @@ export async function cancelBooking(input: {
   const authorizedBooking = hasCode
     ? sql`b.code = ${input.code!} AND b.phone = ${input.phone!}`
     : sql`b.call_id = ${input.callId}`
+  const releaseCurrentHolds = hasCode ? sql`FALSE` : sql`TRUE`
 
-  // Cancellation and inventory release succeed or roll back together. Re-keying
+  // Cancellation and inventory release succeed or roll back together. A caller
+  // can also change their mind after hold but before confirm; current-call holds
+  // must be released immediately instead of lingering until their TTL. Re-keying
   // a cancelled row lets a genuinely new hold in this call be confirmed later.
   const result = await db.execute(sql`
     WITH call_lock AS (
@@ -510,15 +513,37 @@ export async function cancelBooking(input: {
       FROM cancelled c
       WHERE s.booking_id = c.id
       RETURNING s.id
+    ), held_released AS (
+      UPDATE ${seats} AS s
+      SET status = 'available', booking_id = NULL,
+          held_by_call_id = NULL, hold_expires_at = NULL
+      FROM call_lock
+      WHERE ${releaseCurrentHolds}
+        AND s.held_by_call_id = ${input.callId}
+        AND s.status = 'held'
+      RETURNING s.code
+    ), outcomes AS (
+      SELECT 0 AS priority, c.code, c.seat_codes AS "seatCodes"
+      FROM cancelled c
+      UNION ALL
+      SELECT 1 AS priority, NULL::text AS code,
+             jsonb_agg(h.code ORDER BY h.code) AS "seatCodes"
+      FROM held_released h
+      HAVING count(*) > 0
     )
-    SELECT c.code, c.seat_codes AS "seatCodes",
-           (SELECT count(*) FROM released) AS "releasedCount"
-    FROM cancelled c
+    SELECT o.code, o."seatCodes"
+    FROM outcomes o
+    ORDER BY o.priority
+    LIMIT 1
   `)
 
-  const [row] = result.rows as unknown as Array<{ code: string; seatCodes: string[] }>
+  const [row] = result.rows as unknown as Array<{ code: string | null; seatCodes: string[] }>
   if (!row) return { cancelled: false }
-  return { cancelled: true, code: row.code, seatCodes: row.seatCodes }
+  return {
+    cancelled: true,
+    ...(row.code ? { code: row.code } : {}),
+    seatCodes: row.seatCodes,
+  }
 }
 
 function normalizeConfirmationText(value: string): string {

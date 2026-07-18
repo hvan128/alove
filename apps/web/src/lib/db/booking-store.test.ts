@@ -258,7 +258,26 @@ describe('booking-store invariants', () => {
     expect(statement).toContain('b.code = $2 and b.phone = $3')
     expect(statement).toContain('update "bookings" as b')
     expect(statement).toContain('update "seats" as s')
+    expect(statement).toContain('held_released as ( update "seats" as s')
+    expect(statement).toContain('where false and s.held_by_call_id =')
     expect(compiled.params).toContain('MA-260725-0001')
     expect(compiled.params).toContain('0909123456')
+  })
+
+  it('releases current-call holds even when no booking exists yet', async () => {
+    fakeDb.execute.mockResolvedValue({
+      rows: [{ code: null, seatCodes: ['A02'] }],
+    })
+
+    await expect(cancelBooking({ callId: 'call-with-hold' })).resolves.toEqual({
+      cancelled: true,
+      seatCodes: ['A02'],
+    })
+
+    const statement = sqlText(fakeDb.execute.mock.calls[0]![0] as SQL)
+    expect(statement).toContain('held_released as ( update "seats" as s')
+    expect(statement).toContain('where true and s.held_by_call_id =')
+    expect(statement).toContain("and s.status = 'held'")
+    expect(statement).toContain('jsonb_agg(h.code order by h.code)')
   })
 })
