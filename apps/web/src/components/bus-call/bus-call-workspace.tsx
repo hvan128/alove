@@ -8,6 +8,7 @@ import {
   type BookingSnapshot,
   type CallWorkspace,
   type SemanticAnnotation,
+  type TurnLatency,
 } from '@/lib/call-contract'
 import { cn } from '@/lib/cn'
 import { CallStage } from './call-stage'
@@ -42,6 +43,7 @@ export type CallWorkspaceAction =
   | ({ type: 'transcript.upsert'; createdAt: string } & LiveTranscriptUpdate)
   | { type: 'booking.update'; booking: BookingSnapshot }
   | { type: 'semantic.annotation'; callId: string; annotation: SemanticAnnotation }
+  | { type: 'latency.update'; callId: string; latency: TurnLatency }
   | { type: 'call.end'; callId: string | null; endedAt: string }
 
 export function callWorkspaceReducer(state: CallWorkspace, action: CallWorkspaceAction): CallWorkspace {
@@ -63,6 +65,7 @@ export function callWorkspaceReducer(state: CallWorkspace, action: CallWorkspace
       booking: createEmptyBooking(action.conversationId),
       messages: [],
       semanticAnnotations: [],
+      latestTurnLatency: null,
     }
   }
 
@@ -111,6 +114,16 @@ export function callWorkspaceReducer(state: CallWorkspace, action: CallWorkspace
       ...state,
       semanticAnnotations: [...state.semanticAnnotations, action.annotation],
     }
+  }
+
+  if (action.type === 'latency.update') {
+    if (state.callStatus !== 'connected' || action.callId !== state.conversationId) return state
+    if (state.latestTurnLatency?.speechId === action.latency.speechId) return state
+    if (
+      state.latestTurnLatency
+      && Date.parse(action.latency.measuredAt) <= Date.parse(state.latestTurnLatency.measuredAt)
+    ) return state
+    return { ...state, latestTurnLatency: action.latency }
   }
 
   if (state.callStatus === 'ended') return state
@@ -194,6 +207,11 @@ export function BusCallWorkspace({ variant = 'page', controlRef, onEnded }: BusC
     dispatch({ type: 'semantic.annotation', callId, annotation })
   }, [])
 
+  const handleLatency = useCallback((callId: string, latency: TurnLatency) => {
+    if (callId !== activeCallIdRef.current || endedRef.current) return
+    dispatch({ type: 'latency.update', callId, latency })
+  }, [])
+
   const handleAgentState = useCallback((callId: string, state: LiveKitAgentState) => {
     if (callId !== activeCallIdRef.current || endedRef.current) return
     setLiveAgentState(state)
@@ -225,6 +243,7 @@ export function BusCallWorkspace({ variant = 'page', controlRef, onEnded }: BusC
             elapsedSec={elapsedSec}
             messages={workspace.messages}
             semanticAnnotations={workspace.semanticAnnotations}
+            turnLatency={workspace.latestTurnLatency}
             booking={workspace.booking}
             agentSpeaking={liveAgentState === 'speaking'}
             agentThinking={liveAgentState === 'thinking'}
@@ -241,6 +260,7 @@ export function BusCallWorkspace({ variant = 'page', controlRef, onEnded }: BusC
                   onTranscript={handleTranscript}
                   onBooking={handleBooking}
                   onSemanticAnnotation={handleSemanticAnnotation}
+                  onLatency={handleLatency}
                   onAgentState={handleAgentState}
                   onRetry={startCall}
                   onEnded={(callId) => finishCall(callId)}

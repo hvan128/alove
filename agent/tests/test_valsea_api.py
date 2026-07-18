@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import unittest
@@ -400,6 +401,96 @@ class SemanticAnnotationIntegrationTest(unittest.IsolatedAsyncioTestCase):
 
 
 class RealtimePublishIntegrationTest(unittest.IsolatedAsyncioTestCase):
+    async def test_background_scheduler_retains_publish_task_until_completion(self) -> None:
+        release = asyncio.Event()
+
+        async def pending_publish() -> None:
+            await release.wait()
+
+        before = set(worker._background_tasks)
+        worker.schedule_background(pending_publish())
+        await asyncio.sleep(0)
+        created = set(worker._background_tasks) - before
+        self.assertEqual(len(created), 1)
+        task = created.pop()
+        self.assertFalse(task.done())
+
+        release.set()
+        await task
+        await asyncio.sleep(0)
+        self.assertNotIn(task, worker._background_tasks)
+
+    async def test_direct_tool_result_links_child_tts_to_parent_turn(self) -> None:
+        class _Handle:
+            def __init__(self, speech_id: str) -> None:
+                self.id = speech_id
+
+            async def wait_for_playout(self) -> None:
+                return None
+
+            def __await__(self):
+                return self.wait_for_playout().__await__()
+
+        aggregator = worker.TurnLatencyAggregator(wall_clock=lambda: 1_784_376_000.0)
+        parent = _Handle("speech-parent")
+        child = _Handle("speech-say-child")
+        context = SimpleNamespace(
+            speech_handle=parent,
+            session=SimpleNamespace(say=Mock(return_value=child)),
+        )
+        fake_agent = SimpleNamespace(_latency_aggregator=aggregator)
+
+        with self.assertRaises(worker.StopResponse):
+            await worker.BusBookingAgent._say_result(fake_agent, context, "Đã giữ ghế")
+
+        aggregator.observe(SimpleNamespace(
+            type="eou_metrics",
+            speech_id=parent.id,
+            timestamp=1_784_376_000.0,
+            end_of_utterance_delay=0.5,
+            transcription_delay=0.3,
+        ))
+        aggregator.observe(SimpleNamespace(
+            type="llm_metrics",
+            speech_id=parent.id,
+            cancelled=False,
+            ttft=0.7,
+        ))
+        result = aggregator.observe(SimpleNamespace(
+            type="tts_metrics",
+            speech_id=child.id,
+            cancelled=False,
+            ttfb=0.2,
+        ))
+        self.assertIsNotNone(result)
+        self.assertEqual(result.speech_id, parent.id)
+
+    async def test_latency_publish_failure_is_best_effort(self) -> None:
+        publish_data = AsyncMock(side_effect=RuntimeError("room closed"))
+        fake_agent = SimpleNamespace(
+            _room=SimpleNamespace(
+                local_participant=SimpleNamespace(publish_data=publish_data)
+            ),
+            _conversation_id="call-latency",
+            _next_event_sequence=lambda: 10,
+        )
+        payload = {
+            "type": "latency.turn",
+            "latency": {
+                "speechId": "speech-1",
+                "measuredAt": "2026-07-18T12:00:00Z",
+                "slowestStageSeconds": 0.7,
+                "endOfUtteranceSeconds": 0.5,
+                "transcriptionSeconds": 0.3,
+                "llmTtftSeconds": 0.7,
+                "ttsTtfbSeconds": 0.2,
+            },
+        }
+
+        await worker.BusBookingAgent._publish(fake_agent, payload)
+
+        publish_data.assert_awaited_once()
+
     async def test_booking_audit_is_scheduled_when_event_encoding_is_oversized(self) -> None:
         secret_marker = "SECRET-MUST-NOT-LOG"
         booking = {"private": secret_marker, "padding": "\x00" * 11_000}

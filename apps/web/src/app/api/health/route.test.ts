@@ -12,6 +12,10 @@ vi.mock('@/lib/livekit/token', () => ({
   probeLiveKit: vi.fn(async () => undefined),
 }))
 
+vi.mock('@/lib/booking-verification-security', () => ({
+  isBookingVerificationConfigured: vi.fn(() => true),
+}))
+
 import { isDbConfigured } from '@/lib/db/client'
 import { isLiveKitConfigured, probeLiveKit } from '@/lib/livekit/token'
 import { GET } from './route'
@@ -28,6 +32,8 @@ describe('GET /api/health', () => {
         auditSchemaReady: true,
         snapshotSchemaReady: true,
         bookingSchemaReady: true,
+        verificationSchemaReady: true,
+        webhookOutboxSchemaReady: true,
       }],
     })
     process.env.AGENT_WEBHOOK_SECRET = 'test-agent-secret-at-least-32-bytes'
@@ -38,7 +44,12 @@ describe('GET /api/health', () => {
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({
       status: 'ready',
-      services: { database: 'ready', livekit: 'ready', agentWebhook: 'ready' },
+      services: {
+        database: 'ready',
+        livekit: 'ready',
+        agentWebhook: 'ready',
+        bookingVerification: 'ready',
+      },
     })
     expect(probeLiveKit).toHaveBeenCalledOnce()
   })
@@ -58,6 +69,8 @@ describe('GET /api/health', () => {
         auditSchemaReady: true,
         snapshotSchemaReady: true,
         bookingSchemaReady: true,
+        verificationSchemaReady: true,
+        webhookOutboxSchemaReady: true,
       }],
     })
     const response = await GET()

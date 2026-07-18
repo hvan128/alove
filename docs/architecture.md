@@ -17,8 +17,11 @@ Web browser                         SIP caller
                          |
                      Next.js
                   /api/booking/*
-                         |
-                       Neon
+                    /api/call/*
+                    /verify
+                    /evidence
+                    /     \
+                 Neon    HTTPS webhook (optional)
 ```
 
 ## Thành phần
@@ -28,10 +31,14 @@ Web browser                         SIP caller
 - `/`: trang bán vé, đọc lịch chạy công khai từ inventory thật.
 - `/console`: màn cuộc gọi LiveKit độc lập.
 - `/dashboard`: lịch sử cuộc gọi, transcript và booking projection.
+- `/verify?code=…`: trang xác minh vé, chỉ trả snapshot tối thiểu sau khi code và
+  phone cùng khớp.
+- `/evidence`: kết quả benchmark synthetic/no-PII đã commit; không nhận provider key.
 - `/api/livekit/token`: tạo call ID, identity và token customer ở server.
 - `/api/livekit/observer-token`: chỉ dashboard được cấp token nghe giám sát.
 - `/api/livekit/redispatch`: chỉ chấp nhận signed call-session capability.
-- `/api/booking/*`: search, hold, confirm, lookup và cancel.
+- `/api/booking/*`: search, hold, confirm, lookup, cancel và public verify.
+- `/api/booking/webhook/drain`: cron-authenticated drainer cho durable outbox.
 - `/api/call/events`: nhận audit event có bearer auth từ Python agent.
 - `src/lib/db/schema.ts` và `drizzle/`: schema/migration duy nhất.
 
@@ -40,6 +47,11 @@ Web browser                         SIP caller
 LiveKit Python worker sở hữu STT, turn handling, LLM tool selection và TTS. Agent
 không sở hữu giá, lịch, ghế hoặc mã vé. Mọi fact vận hành phải đến từ response của
 booking API.
+
+Cascade mặc định dùng VALSEA realtime STT và fail startup nếu provider/credential
+đang chọn không hợp lệ. Sau final customer transcript, `agent/valsea_api.py` có
+thể gọi annotation HTTP bất đồng bộ; response chỉ tạo evidence advisory và không
+tham gia tool selection hay booking lifecycle.
 
 `scripts/probe-valsea-endpoints.ts` nằm ngoài runtime và chỉ dùng để maintainer
 xác minh API provider bằng fixture synthetic. Nó không tạo web upload endpoint;
@@ -58,8 +70,10 @@ Neon sở hữu:
 
 - operators, routes, trips và seats;
 - seat holds có thời hạn;
-- bookings và payments;
+- bookings, immutable verification snapshots và payments;
 - calls, final call turns và booking snapshots cho audit.
+- public rate-limit buckets dùng HMAC digest, không lưu raw IP/code/phone;
+- booking webhook outbox, lease, attempt count và lịch retry.
 
 ## Trust boundaries
 
@@ -69,7 +83,11 @@ Neon sở hữu:
 4. Booking/call-event endpoints yêu cầu `AGENT_WEBHOOK_SECRET`.
 5. Confirm/cancel là thao tác atomic tại database; retry phải idempotent.
 6. Booking cũ chỉ được tra cứu hoặc hủy khi mã vé và số điện thoại cùng khớp.
-7. Không lưu raw audio. Transcript audit chỉ nhận lượt final.
+7. Public verify dùng cùng predicate code+phone, response tối thiểu, `no-store` và
+   rate limit phân tán; HMAC key tách khỏi các secret khác.
+8. Webhook chỉ được gửi tới HTTPS host allowlist sau DNS/IP validation, ký HMAC và
+   không follow redirect.
+9. Không lưu raw audio. Transcript audit chỉ nhận lượt final.
 
 ## Booking lifecycle
 
@@ -77,7 +95,8 @@ Neon sở hữu:
 collecting
     -> trip_proposed          hold ghế còn hiệu lực
     -> awaiting_confirmation  đã đọc lại thông tin
-    -> confirmed              transaction tạo booking + chuyển ghế sang booked
+    -> confirmed              transaction tạo booking + immutable verify snapshot
+                              + chuyển ghế sang booked + enqueue webhook nếu bật
 ```
 
 Hold hết hạn được coi như available khi search và không thể confirm. Đổi chuyến
@@ -87,14 +106,21 @@ hoặc đổi số lượng phải trả lại hold thừa của call trước k
 
 Agent phát hai loại dữ liệu:
 
-- Realtime event qua LiveKit: `agent.state`, `booking.update`, `call.end`.
+- Realtime event qua LiveKit: `agent.state`, `booking.update`,
+  `semantic.annotation`, `latency.turn`, `call.end`.
 - Persisted event qua `/api/call/events`: `call.started`, `transcript.final`,
   `booking.updated`, `call.ended`.
 
 Event có `eventId` để retry không tạo bản ghi trùng; worker retry có giới hạn khi
 gửi lỗi. Dashboard đọc persisted projection; nếu data channel bị mất, booking
-trong database vẫn không thay đổi. Hệ thống hiện chưa có external durable queue,
-vì vậy lỗi mạng kéo dài vẫn phải được phát hiện qua log/monitoring.
+trong database vẫn không thay đổi. Call-audit delivery chưa có durable queue nên
+lỗi mạng kéo dài phải được phát hiện qua log/monitoring. Riêng webhook xác nhận vé
+có durable outbox trong Neon và retry tối đa ba attempt đã persist.
+
+`semantic.annotation` là evidence tham khảo, không sửa transcript/entity/booking.
+`latency.turn` ghép metric theo speech ID và hiển thị chặng lâu nhất bằng `max` vì
+các chặng preemptive có thể chồng lấn; nó không phải tổng end-to-end và không được
+persist vào dashboard.
 
 ## Chế độ lỗi
 
@@ -103,9 +129,11 @@ vì vậy lỗi mạng kéo dài vẫn phải được phát hiện qua log/moni
 - Agent không vào room: browser thử redispatch tối đa theo signed session rồi đưa
   ra trạng thái kết thúc có thể thử lại.
 - Booking API lỗi: agent xin khách chờ hoặc thử lại; không tạo fact thay thế.
+- Annotation lỗi/timeout: bỏ evidence của lượt đó; cuộc gọi và booking tiếp tục.
+- Webhook lỗi: booking vẫn confirmed; durable outbox retry theo policy đã persist.
 - Realtime event sai sender/schema/call/sequence: browser bỏ event.
 
 ## Ngoài phạm vi runtime
 
-OrderVoice, Fastify gateway, ERP export, deterministic browser booking, `/engine`,
-Web Speech/device TTS và Human/Agent two-sided demo đã bị loại khỏi repository.
+Gateway cũ, ERP export, deterministic browser booking, browser speech fallback và
+human/agent two-sided demo không thuộc runtime hiện hành.

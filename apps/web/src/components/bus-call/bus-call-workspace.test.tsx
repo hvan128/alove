@@ -6,6 +6,7 @@ import {
   createInitialCallWorkspace,
   type BookingSnapshot,
   type SemanticAnnotation,
+  type TurnLatency,
 } from '@/lib/call-contract'
 import { BusCallWorkspace, callWorkspaceReducer } from './bus-call-workspace'
 
@@ -23,6 +24,7 @@ type MockLiveKitProps = {
   }) => void
   onBooking: (booking: BookingSnapshot) => void
   onSemanticAnnotation: (callId: string, annotation: SemanticAnnotation) => void
+  onLatency: (callId: string, latency: TurnLatency) => void
   onRetry: () => void
   onEnded: (callId: string) => void
 }
@@ -73,6 +75,8 @@ vi.mock('./livekit-call', () => ({
         Nhận semantic rỗng
       </button>
       <button type="button" onClick={() => props.onBooking(confirmedBooking())}>Nhận vé</button>
+      <button type="button" onClick={() => props.onLatency(CALL_ID, turnLatency())}>Nhận latency</button>
+      <button type="button" onClick={() => props.onLatency(CALL_ID, zeroTurnLatency())}>Nhận latency thiếu dữ liệu</button>
       <button type="button" onClick={() => props.onEnded(CALL_ID)}>Agent cúp</button>
       <button type="button" onClick={props.onRetry}>Thử phiên mới</button>
     </div>
@@ -181,6 +185,42 @@ describe('LiveKit-only call workspace reducer', () => {
       annotation,
     })).toBe(updated)
   })
+
+  it('stores only current-call latency and clears it for a fresh call', () => {
+    let state = callWorkspaceReducer(createInitialCallWorkspace(), {
+      type: 'call.start',
+      startedAt: '2026-07-18T00:00:00.000Z',
+    })
+    state = callWorkspaceReducer(state, { type: 'session.ready', conversationId: CALL_ID })
+
+    expect(callWorkspaceReducer(state, {
+      type: 'latency.update',
+      callId: 'another-call',
+      latency: turnLatency(),
+    })).toBe(state)
+
+    state = callWorkspaceReducer(state, {
+      type: 'latency.update',
+      callId: CALL_ID,
+      latency: turnLatency(),
+    })
+    expect(state.latestTurnLatency?.speechId).toBe('speech-1')
+    expect(callWorkspaceReducer(state, {
+      type: 'latency.update',
+      callId: CALL_ID,
+      latency: {
+        ...turnLatency(),
+        speechId: 'speech-old-completed-late',
+        measuredAt: '2026-07-18T11:59:00.000Z',
+      },
+    })).toBe(state)
+
+    state = callWorkspaceReducer(state, {
+      type: 'call.start',
+      startedAt: '2026-07-18T00:01:00.000Z',
+    })
+    expect(state.latestTurnLatency).toBeNull()
+  })
 })
 
 describe('LiveKit-only web call console', () => {
@@ -235,6 +275,33 @@ describe('LiveKit-only web call console', () => {
       .toHaveTextContent('Không có semantic tag')
   })
 
+  it('hides latency until a complete event arrives and labels the non-additive summary honestly', async () => {
+    const user = userEvent.setup()
+    render(<BusCallWorkspace />)
+
+    expect(screen.queryByLabelText('Độ trễ lượt gần nhất')).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Bắt đầu Web Call' }))
+    await user.click(screen.getByRole('button', { name: 'Kết nối phiên' }))
+    expect(screen.queryByLabelText('Độ trễ lượt gần nhất')).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Nhận latency' }))
+    const latency = screen.getByLabelText('Độ trễ lượt gần nhất')
+    expect(latency).toHaveAttribute('role', 'status')
+    expect(latency).toHaveAttribute('aria-live', 'polite')
+    expect(latency).toHaveTextContent('Chặng lâu nhất 740 ms')
+    expect(latency).toHaveTextContent('EOU 520 ms · STT 310 ms · LLM 740 ms · TTS 180 ms')
+    expect(latency).not.toHaveTextContent('Tổng')
+
+    await user.click(screen.getByRole('button', { name: 'Nhận latency thiếu dữ liệu' }))
+    const missing = screen.getByLabelText('Độ trễ lượt gần nhất')
+    expect(missing).toHaveTextContent('EOU — · STT —')
+    expect(missing).not.toHaveTextContent('EOU 0 ms')
+    expect(missing).not.toHaveTextContent('STT 0 ms')
+
+    await user.click(screen.getByRole('button', { name: 'Thử phiên mới' }))
+    expect(screen.queryByLabelText('Độ trễ lượt gần nhất')).toBeNull()
+  })
+
   it('closes an unconfirmed overlay and creates a fresh transport attempt on retry', async () => {
     const onEnded = vi.fn()
     const user = userEvent.setup()
@@ -277,5 +344,27 @@ function confirmedBooking(): BookingSnapshot {
     phone: '0909123456',
     totalFareVnd: 250_000,
     bookingCode: 'MA-260718-0001',
+  }
+}
+
+function turnLatency(): TurnLatency {
+  return {
+    speechId: 'speech-1',
+    measuredAt: '2026-07-18T12:00:00.000Z',
+    slowestStageSeconds: 0.74,
+    endOfUtteranceSeconds: 0.52,
+    transcriptionSeconds: 0.31,
+    llmTtftSeconds: 0.74,
+    ttsTtfbSeconds: 0.18,
+  }
+}
+
+function zeroTurnLatency(): TurnLatency {
+  return {
+    ...turnLatency(),
+    speechId: 'speech-2',
+    measuredAt: '2026-07-18T12:00:01.000Z',
+    endOfUtteranceSeconds: 0,
+    transcriptionSeconds: 0,
   }
 }

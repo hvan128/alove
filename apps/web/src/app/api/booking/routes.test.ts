@@ -9,6 +9,8 @@ const stores = vi.hoisted(() => ({
   next: vi.fn(),
   search: vi.fn(),
   suggest: vi.fn(),
+  webhook: vi.fn(),
+  webhookConfig: vi.fn(),
 }))
 
 vi.mock('@/lib/db/client', () => ({
@@ -24,6 +26,11 @@ vi.mock('@/lib/db/booking-store', () => ({
   nextDeparturesOnRoute: stores.next,
   searchTrips: stores.search,
   suggestRoutes: stores.suggest,
+}))
+
+vi.mock('@/lib/booking-webhook', () => ({
+  bookingWebhookConfigurationStatus: stores.webhookConfig,
+  deliverBookingWebhook: stores.webhook,
 }))
 
 import { isDbConfigured } from '@/lib/db/client'
@@ -54,6 +61,8 @@ describe('active booking routes', () => {
     stores.confirm.mockResolvedValue(null)
     stores.find.mockResolvedValue([])
     stores.hold.mockResolvedValue(null)
+    stores.webhook.mockResolvedValue({ status: 'disabled', attempts: 0 })
+    stores.webhookConfig.mockReturnValue('disabled')
     process.env.AGENT_WEBHOOK_SECRET = SECRET
   })
 
@@ -76,6 +85,65 @@ describe('active booking routes', () => {
       passengerName: 'Nguyễn An',
       phone: '0909123456',
       confirmationText: 'Tôi xác nhận đặt vé.',
+      enqueueWebhook: false,
+    })
+  })
+
+  it('delivers the confirmed ticket webhook once and exposes its bounded status', async () => {
+    stores.webhookConfig.mockReturnValue('enabled')
+    stores.confirm.mockResolvedValue({
+      code: 'MA-260718-0001',
+      seatCodes: ['A01'],
+      totalVnd: 300_000,
+      departureLabel: '18/07 20:00',
+      pickupPoint: 'Bến xe Nước Ngầm',
+      webhookEventId: 'booking.confirmed.v1:MA-260718-0001',
+    })
+    stores.webhook.mockResolvedValue({ status: 'delivered', attempts: 2 })
+
+    const response = await confirm(request('confirm', {
+      conversationId: 'call-1',
+      tripId: 'trip-1',
+      passengerName: 'Nguyễn An',
+      phone: '0909123456',
+      confirmationText: 'Tôi xác nhận đặt vé.',
+    }))
+
+    expect(stores.webhook).toHaveBeenCalledTimes(1)
+    expect(stores.confirm).toHaveBeenCalledWith(expect.objectContaining({ enqueueWebhook: true }))
+    expect(stores.webhook).toHaveBeenCalledWith('booking.confirmed.v1:MA-260718-0001')
+    await expect(response.json()).resolves.toMatchObject({
+      confirmed: true,
+      code: 'MA-260718-0001',
+      webhook: { status: 'delivered', attempts: 2 },
+    })
+  })
+
+  it('keeps an authoritative confirmation successful when delivery infrastructure rejects', async () => {
+    stores.webhookConfig.mockReturnValue('enabled')
+    stores.confirm.mockResolvedValue({
+      code: 'MA-260718-0001',
+      seatCodes: ['A01'],
+      totalVnd: 300_000,
+      departureLabel: '18/07 20:00',
+      pickupPoint: 'Bến xe Nước Ngầm',
+      webhookEventId: 'booking.confirmed.v1:MA-260718-0001',
+    })
+    stores.webhook.mockRejectedValue(new Error('outbox temporarily unavailable'))
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+    const response = await confirm(request('confirm', {
+      conversationId: 'call-1',
+      tripId: 'trip-1',
+      passengerName: 'Nguyễn An',
+      phone: '0909123456',
+      confirmationText: 'Tôi xác nhận đặt vé.',
+    }))
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({
+      confirmed: true,
+      webhook: { status: 'pending', attempts: 0 },
     })
   })
 

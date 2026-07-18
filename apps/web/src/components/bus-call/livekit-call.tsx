@@ -21,6 +21,7 @@ import {
   type BookingSnapshot,
   type CallRole,
   type SemanticAnnotation,
+  type TurnLatency,
 } from '@/lib/call-contract'
 import { useRingback } from '@/hooks/use-ringback'
 import { CallControlDock } from './call-control-dock'
@@ -64,6 +65,7 @@ type LiveKitCallProps = {
   onTranscript: (update: LiveTranscriptUpdate) => void
   onBooking: (booking: BookingSnapshot) => void
   onSemanticAnnotation: (callId: string, annotation: SemanticAnnotation) => void
+  onLatency?: (callId: string, latency: TurnLatency) => void
   onAgentState?: (callId: string, state: LiveKitAgentState) => void
   onRetry?: () => void
   onEnded: (callId: string) => void
@@ -85,6 +87,7 @@ export function LiveKitCall({
   onTranscript,
   onBooking,
   onSemanticAnnotation,
+  onLatency,
   onAgentState,
   onRetry,
   onEnded,
@@ -170,6 +173,7 @@ export function LiveKitCall({
         onTranscript={onTranscript}
         onBooking={onBooking}
         onSemanticAnnotation={onSemanticAnnotation}
+        {...(onLatency ? { onLatency } : {})}
         {...(onAgentState ? { onAgentState } : {})}
         {...(onRetry ? { onRetry } : {})}
         onEnded={onEnded}
@@ -184,6 +188,7 @@ function RoomBridge({
   onTranscript,
   onBooking,
   onSemanticAnnotation,
+  onLatency,
   onAgentState,
   onRetry,
   onEnded,
@@ -307,8 +312,12 @@ function RoomBridge({
       })
       return
     }
+    if (event.type === 'latency.turn') {
+      onLatency?.(conversationId, event.latency)
+      return
+    }
     onEnded(conversationId)
-  }, [conversationId, onAgentState, onBooking, onEnded, onSemanticAnnotation])
+  }, [conversationId, onAgentState, onBooking, onEnded, onLatency, onSemanticAnnotation])
 
   useDataChannel(EVENTS_TOPIC, handleAgentEvent)
 

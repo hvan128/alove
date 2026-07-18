@@ -80,7 +80,7 @@ test.describe('trên điện thoại', () => {
     await ticketViewport.hover()
     await page.mouse.wheel(0, 500)
     await expect.poll(() => ticketViewport.evaluate((node) => node.scrollTop)).toBeGreaterThan(0)
-    await expect(ticketViewport.getByRole('button', { name: 'Lưu vé về máy' })).toBeDisabled()
+    await expect(ticketViewport.getByRole('button', { name: 'Lưu vé PNG' })).toBeDisabled()
   })
 
   test('gọi từ thanh sticky mở màn Web Call', async ({ page }) => {

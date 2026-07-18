@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 
 import { isAgentWebhookConfigured } from '@/lib/agent-auth'
+import { isBookingVerificationConfigured } from '@/lib/booking-verification-security'
 import { isDbConfigured, requireDb } from '@/lib/db/client'
 import { isLiveKitConfigured, probeLiveKit } from '@/lib/livekit/token'
 
@@ -35,8 +36,14 @@ export async function GET(): Promise<Response> {
             AS "auditSchemaReady",
           (SELECT count(*) FROM booking_snapshots WHERE sequence IS NULL OR event_id IS NULL) = 0
             AS "snapshotSchemaReady",
-          (SELECT count(*) FROM bookings WHERE confirmation_text IS NULL) = 0
-            AS "bookingSchemaReady"
+          (SELECT count(*) FROM bookings
+            WHERE confirmation_text IS NULL OR verification_snapshot IS NULL) = 0
+            AS "bookingSchemaReady",
+          (SELECT count(*) FROM public_rate_limits WHERE key IS NULL) = 0
+            AS "verificationSchemaReady",
+          (SELECT count(*) FROM booking_webhook_outbox
+            WHERE event_id IS NULL OR next_attempt_at IS NULL OR attempts > 3) = 0
+            AS "webhookOutboxSchemaReady"
       `)
       const [row] = result.rows as unknown as Array<{
         hasOperator: boolean
@@ -44,6 +51,8 @@ export async function GET(): Promise<Response> {
         auditSchemaReady: boolean
         snapshotSchemaReady: boolean
         bookingSchemaReady: boolean
+        verificationSchemaReady: boolean
+        webhookOutboxSchemaReady: boolean
       }>
       if (!row || !Object.values(row).every(Boolean)) database = 'not_ready'
     } catch {
@@ -64,6 +73,7 @@ export async function GET(): Promise<Response> {
     database,
     livekit,
     agentWebhook: isAgentWebhookConfigured() ? 'ready' : 'not_configured',
+    bookingVerification: isBookingVerificationConfigured() ? 'ready' : 'not_configured',
   } as const
   const ready = Object.values(services).every((state) => state === 'ready')
 

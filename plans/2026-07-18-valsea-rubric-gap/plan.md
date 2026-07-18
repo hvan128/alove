@@ -6,12 +6,12 @@ effort: high
 branch: feat/livekit-agent
 tags: [valsea, rubric, hackathon]
 created: 2026-07-18
-progress: 3/7 phases
+progress: 6/7 phases
 ---
 
 # Đóng lỗ hổng rubric VALSEA — Vietnam AI Innovation Challenge
 
-**Status:** In progress — Phase 00–02 hoàn tất; Phase 03–06 theo current Alove
+**Status:** In progress — Phase 00–03 và 05–06 hoàn tất; Phase 04 còn bằng chứng deploy/manual
 **Ngày lập:** 2026-07-18
 **Vertical đã chốt:** Tổng đài nhà xe (Mai Anh) → phiếu đặt vé có thể thực thi
 
@@ -55,10 +55,10 @@ key về muộn. Đây là lý do xếp chúng tách khỏi nhánh VALSEA.
 - [x] Phase 00 — probe sandbox, report live, security review và clean-install verification
 - [x] Phase 01 — VALSEA-first provider config + maintainer batch evidence
 - [x] Phase 02 — advisory semantic annotation trên live call
-- [ ] Phase 03 — synthetic hard-case harness + trang `/evidence` mới
+- [x] Phase 03 — synthetic hard-case harness + trang `/evidence` mới
 - [ ] Phase 04 — workflow output
-- [ ] Phase 05 — latency surface
-- [ ] Phase 06 — cleanup, docs và rubric checklist
+- [x] Phase 05 — latency surface
+- [x] Phase 06 — cleanup, docs và rubric checklist
 
 ## Phụ thuộc ngoài
 
@@ -75,18 +75,18 @@ key về muộn. Đây là lý do xếp chúng tách khỏi nhánh VALSEA.
 
 Plan coi là xong khi tất cả đúng:
 
-- [ ] Ít nhất **2 endpoint VALSEA** khác nhau được gọi thật trong đường live/evidence,
+- [x] Ít nhất **2 endpoint VALSEA** khác nhau được gọi thật trong đường live/evidence,
       có log/timestamp chứng minh (không phải mock).
-- [ ] `/evidence` chạy được **3 clip synthetic hard-case** commit trong repo, hiện diff
+- [x] `/evidence` chạy được **3 clip synthetic hard-case** commit trong repo, hiện diff
       Alove↔baseline và số WER cho từng clip.
-- [ ] Baseline Whisper chạy **có** `language: "vi"` — thắng một đối chứng đã được
+- [x] Baseline Whisper chạy **có** `language: "vi"` — thắng một đối chứng đã được
       ưu ái, không phải đối chứng bị làm yếu.
 - [ ] Phiếu xác nhận sinh QR tới flow verification có code + phone, tải JSON đúng
       `bookingSnapshotSchema`, và webhook server-side có idempotency khi được cấu hình.
-- [ ] Latency mỗi lượt (eou/ttft/ttfb) hiện trên `/console`, không chỉ trong log.
-- [ ] `agent/agent.py` mặc định `STT_PROVIDER=valsea` — thiếu `.env` không làm
+- [x] Latency mỗi lượt (eou/ttft/ttfb) hiện trên `/console`, không chỉ trong log.
+- [x] `agent/agent.py` mặc định `STT_PROVIDER=valsea` — thiếu `.env` không làm
       demo âm thầm chạy sai engine.
-- [ ] `docs/rubric-checklist.md` map từng tiêu chí ↔ bằng chứng ↔ file:line và
+- [x] `docs/rubric-checklist.md` map từng tiêu chí ↔ bằng chứng ↔ file:line và
       không đánh ✅ cho bằng chứng giọng vùng miền chưa có.
 
 ## Điều kiện dừng (giữ nguyên từ pilot roadmap)

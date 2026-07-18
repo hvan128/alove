@@ -162,6 +162,39 @@ describe('agent event validation', () => {
     })).toBeNull()
   })
 
+  it('accepts complete latency from the current call and rejects stale or inconsistent values', () => {
+    const event = {
+      type: 'latency.turn',
+      callId: CALL_ID,
+      eventId: 'event-latency-1',
+      sequence: 6,
+      latency: turnLatency(),
+    }
+
+    expect(parseAgentEventMessage({
+      payload: encode(event),
+      senderKind: ParticipantKind.AGENT,
+      expectedCallId: CALL_ID,
+      lastSequence: 5,
+    })).toEqual(event)
+    expect(parseAgentEventMessage({
+      payload: encode({ ...event, sequence: 5 }),
+      senderKind: ParticipantKind.AGENT,
+      expectedCallId: CALL_ID,
+      lastSequence: 5,
+    })).toBeNull()
+    expect(parseAgentEventMessage({
+      payload: encode({
+        ...event,
+        sequence: 7,
+        latency: { ...event.latency, slowestStageSeconds: 9 },
+      }),
+      senderKind: ParticipantKind.AGENT,
+      expectedCallId: CALL_ID,
+      lastSequence: 6,
+    })).toBeNull()
+  })
+
   it('rejects a raw event above the transport budget before JSON decoding', () => {
     const event = {
       type: 'agent.state',
@@ -205,6 +238,18 @@ function renderCall(overrides: Partial<Parameters<typeof LiveKitCall>[0]> = {}) 
 
 function encode(value: unknown): Uint8Array {
   return new TextEncoder().encode(JSON.stringify(value))
+}
+
+function turnLatency() {
+  return {
+    speechId: 'speech-1',
+    measuredAt: '2026-07-18T12:00:00.000Z',
+    slowestStageSeconds: 0.74,
+    endOfUtteranceSeconds: 0.52,
+    transcriptionSeconds: 0.31,
+    llmTtftSeconds: 0.74,
+    ttsTtfbSeconds: 0.18,
+  }
 }
 
 function confirmedBooking(): BookingSnapshot {

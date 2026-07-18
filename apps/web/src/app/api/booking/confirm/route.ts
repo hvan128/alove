@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { requireAgent } from '@/lib/agent-auth'
+import { bookingWebhookConfigurationStatus, deliverBookingWebhook } from '@/lib/booking-webhook'
 import { vietnamesePhoneSchema } from '@/lib/call-contract'
 import { confirmBooking, isExplicitBookingConfirmation } from '@/lib/db/booking-store'
 import { isDbConfigured } from '@/lib/db/client'
@@ -30,10 +31,36 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const { conversationId, ...rest } = parsed.data
-  const ticket = await confirmBooking({ callId: conversationId, ...rest })
+  const webhookConfiguration = bookingWebhookConfigurationStatus()
+  const ticket = await confirmBooking({
+    callId: conversationId,
+    ...rest,
+    enqueueWebhook: webhookConfiguration === 'enabled',
+  })
   if (!ticket) {
     // No live hold for this call — seats expired or were never taken.
     return Response.json({ confirmed: false, reason: 'no_held_seats' })
   }
-  return Response.json({ confirmed: true, ...ticket })
+  let webhook: Awaited<ReturnType<typeof deliverBookingWebhook>> = {
+    status: webhookConfiguration === 'enabled' ? 'pending' : webhookConfiguration,
+    attempts: 0,
+  }
+  if (webhookConfiguration === 'enabled') {
+    try {
+      webhook = await deliverBookingWebhook(ticket.webhookEventId ?? null)
+    } catch {
+      // Booking is already authoritative and the durable event remains queued.
+      // Delivery infrastructure must never turn that success into an HTTP 500.
+      console.warn('[alove] booking webhook deferred', { reason: 'delivery_infrastructure_error' })
+    }
+  }
+  return Response.json({
+    confirmed: true,
+    code: ticket.code,
+    seatCodes: ticket.seatCodes,
+    totalVnd: ticket.totalVnd,
+    departureLabel: ticket.departureLabel,
+    pickupPoint: ticket.pickupPoint,
+    webhook,
+  })
 }

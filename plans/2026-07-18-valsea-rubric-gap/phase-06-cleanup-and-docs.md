@@ -1,6 +1,6 @@
 ---
 title: Phase 06 — Canonical docs and rubric evidence
-status: pending
+status: completed
 priority: P1
 effort: small
 plan: 2026-07-18-valsea-rubric-gap
@@ -23,13 +23,13 @@ canonical documentation and challenge evidence with what actually shipped.
 
 ## Checklist
 
-- [ ] Map every rubric criterion to status, timestamp, evidence and file:line.
-- [ ] Mark only live/manual verified claims ✅; use partial/blocked otherwise.
-- [ ] Record Phase 00 endpoint evidence and Phase 01–05 shipped behavior.
-- [ ] Keep regional-accent proof open if only synthetic audio exists.
-- [ ] Remove stale `/v1/understand`, `/engine`, old identity/branch and deleted-doc claims from HTML.
-- [ ] Update canonical docs/specs for new contracts/envs/routes only.
-- [ ] Run agent tests plus root lint/typecheck/test/e2e/build.
+- [x] Map every rubric criterion to status, timestamp, evidence and file:line.
+- [x] Mark only live/manual verified claims ✅; use partial/blocked otherwise.
+- [x] Record Phase 00 endpoint evidence and Phase 01–05 shipped behavior.
+- [x] Keep regional-accent proof open if only synthetic audio exists.
+- [x] Remove stale `/v1/understand`, `/engine`, old identity/branch and deleted-doc claims from HTML.
+- [x] Update canonical docs/specs for new contracts/envs/routes only.
+- [x] Run agent tests plus root lint/typecheck/test/e2e/build.
 
 ## Acceptance
 

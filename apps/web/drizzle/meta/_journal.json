@@ -29,6 +29,20 @@
       "when": 1784389035246,
       "tag": "0003_integrity_constraints",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784396449504,
+      "tag": "0004_workflow_output",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784397555151,
+      "tag": "0005_durable_workflow_output",
+      "breakpoints": true
     }
   ]
 }

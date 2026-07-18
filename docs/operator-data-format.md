@@ -96,3 +96,15 @@ và bước reconcile cuối sẽ hoàn tất catalog canonical.
   `HH:MM`, duration là số phút dương.
 - CSV có giá trị chứa dấu phẩy phải đặt trong dấu nháy kép.
 - Seed vào database staging trước, kiểm tra landing/search/hold rồi mới chạy production.
+
+## Vé đã xác nhận và thay đổi catalog
+
+Mỗi booking confirmed giữ một `verification_snapshot` bất biến gồm đúng dữ liệu
+được phát hành trên vé. Seed hoặc chỉnh route/trip/vehicle/price sau đó không được
+viết lại snapshot này. Trang verify và JSON tải xuống đọc contract của vé đã phát
+hành, không dựng lại lịch sử từ catalog hiện tại.
+
+Migration expand có thể tạm để cột nullable trong rolling release. Trước khi
+promote và trước contract migration `NOT NULL`, operator phải chạy null check theo
+`docs/deployment.md`; chỉ phục hồi từ confirmed booking snapshot đã lưu, không suy
+diễn từ giá hoặc lịch hiện tại.

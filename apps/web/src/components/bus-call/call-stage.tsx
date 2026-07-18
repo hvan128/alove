@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { MessagesSquare, PhoneCall, PhoneOff, RotateCcw, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { BookingSnapshot, CallMessage, CallStatus, SemanticAnnotation } from '@/lib/call-contract'
+import type { BookingSnapshot, CallMessage, CallStatus, SemanticAnnotation, TurnLatency } from '@/lib/call-contract'
 import { cn } from '@/lib/cn'
 
 type CallStageProps = {
@@ -11,6 +11,7 @@ type CallStageProps = {
   elapsedSec: number
   messages: CallMessage[]
   semanticAnnotations: SemanticAnnotation[]
+  turnLatency?: TurnLatency | null
   booking: BookingSnapshot
   agentSpeaking: boolean
   /** LiveKit worker is processing the turn — shown as "Đang xử lý…". */
@@ -34,6 +35,7 @@ export function CallStage({
   elapsedSec,
   messages,
   semanticAnnotations,
+  turnLatency = null,
   booking,
   agentSpeaking,
   agentThinking = false,
@@ -95,6 +97,7 @@ export function CallStage({
                       ? 'Đã kết nối tổng đài'
                       : 'Đang kết nối tổng đài…'}
           </p>
+          {turnLatency ? <TurnLatencySummary latency={turnLatency} /> : null}
         </div>
         <div className="flex items-center gap-3">
           {conversation.length > 0 ? (
@@ -241,6 +244,24 @@ export function CallStage({
   )
 }
 
+function TurnLatencySummary({ latency }: { latency: TurnLatency }) {
+  return (
+    <div
+      aria-label="Độ trễ lượt gần nhất"
+      aria-live="polite"
+      role="status"
+      className="mt-2 w-fit rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-[10px] tabular-nums text-white/55"
+    >
+      <p className="font-medium text-white/75">
+        Chặng lâu nhất {formatLatency(latency.slowestStageSeconds)}
+      </p>
+      <p className="mt-0.5">
+        EOU {formatLatency(latency.endOfUtteranceSeconds)} · STT {formatLatency(latency.transcriptionSeconds)} · LLM {formatLatency(latency.llmTtftSeconds)} · TTS {formatLatency(latency.ttsTtfbSeconds)}
+      </p>
+    </div>
+  )
+}
+
 function SemanticEvidencePanel({ annotation }: { annotation: SemanticAnnotation }) {
   return (
     <aside
@@ -322,6 +343,11 @@ function formatTimer(seconds: number): string {
   const minutes = String(Math.floor(seconds / 60)).padStart(2, '0')
   const rest = String(seconds % 60).padStart(2, '0')
   return `${minutes}:${rest}`
+}
+
+function formatLatency(seconds: number): string {
+  if (seconds === 0) return '—'
+  return `${Math.round(seconds * 1000).toLocaleString('vi-VN')} ms`
 }
 
 /** Equalizer 3 thanh cạnh tên khi agent đang nói. */

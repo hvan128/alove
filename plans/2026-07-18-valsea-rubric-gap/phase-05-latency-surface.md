@@ -1,6 +1,6 @@
 ---
 title: Phase 05 — Turn latency surface
-status: pending
+status: completed
 priority: P1
 effort: small
 plan: 2026-07-18-valsea-rubric-gap
@@ -20,8 +20,9 @@ that contract and remain ephemeral in this phase.
   only complete/expired bounded records.
 - `agent.py` publishes `latency.turn` best-effort through `_publish`.
 - `AgentEvent` adds a validated latency variant with non-negative seconds.
-- `LiveKitCall` forwards it; workspace stores latest turn; `CallStage` shows total
-  plus stage detail.
+- `LiveKitCall` forwards it; workspace stores latest turn; `CallStage` shows the
+  slowest measured stage plus stage detail. Cascade preemptive generation makes
+  the stages overlap, so this is deliberately not labelled as an end-to-end total.
 - No DB migration or dashboard persistence in this phase.
 
 ## Current touchpoints
@@ -33,12 +34,12 @@ that contract and remain ephemeral in this phase.
 
 ## Checklist
 
-- [ ] Aggregate stages by speech ID with bounded cleanup.
-- [ ] Publish ordered `latency.turn` without blocking metrics callback.
-- [ ] Validate event and ignore malformed/stale/cross-call payloads.
-- [ ] Render total honestly from available metric semantics; no cherry-picked stage.
-- [ ] Hide metric until a complete turn exists.
-- [ ] Python, web and E2E tests pass.
+- [x] Aggregate stages by speech ID with bounded cleanup.
+- [x] Publish ordered `latency.turn` without blocking metrics callback.
+- [x] Validate event and ignore malformed/stale/cross-call payloads.
+- [x] Render total honestly from available metric semantics; no cherry-picked stage.
+- [x] Hide metric until a complete turn exists.
+- [x] Python, web and E2E tests pass.
 
 ## Acceptance
 

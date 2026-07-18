@@ -14,6 +14,7 @@ vi.mock('./client', () => ({
 import {
   cancelBooking,
   confirmBooking,
+  findBookingSnapshotForVerification,
   holdSeats,
   isExplicitBookingConfirmation,
   searchTrips,
@@ -120,6 +121,7 @@ describe('booking-store invariants', () => {
         totalVnd: 300_000,
         departureAt: '2026-07-25T15:00:00.000Z',
         pickupPoint: 'Bến xe A',
+        webhookEventId: 'booking.confirmed.v1:MA-260725-0001',
       }],
     })
 
@@ -129,15 +131,81 @@ describe('booking-store invariants', () => {
       passengerName: 'Nguyễn An',
       phone: '0909123456',
       confirmationText: 'Tôi xác nhận đặt vé.',
+      enqueueWebhook: true,
     })
     expect(result?.code).toBe('MA-260725-0001')
+    expect(result?.webhookEventId).toBe('booking.confirmed.v1:MA-260725-0001')
 
     expect(fakeDb.execute).toHaveBeenCalledTimes(1)
     const statement = sqlText(fakeDb.execute.mock.calls[0]![0] as SQL)
     expect(statement).toContain('s.hold_expires_at > now()')
     expect(statement).toContain('booked as ( update "seats" as s')
     expect(statement).toContain('insert into "bookings"')
+    expect(statement).toContain('verification_snapshot')
+    expect(statement).toContain("'selectedtrip', jsonb_build_object")
     expect(statement).toContain('where booked_count.count = cardinality(p.seat_codes)')
+    expect(statement).toContain('insert into "booking_webhook_outbox"')
+    expect(statement).toContain("concat('booking.confirmed.v1:', c.code)")
+    expect(statement).toContain('on conflict (event_id) do nothing')
+  })
+
+  it('reconstructs a valid confirmed snapshot only when both verification factors match', async () => {
+    const query = queryReturning([{
+      status: 'pending_payment',
+      verificationSnapshot: {
+        id: 'booking-17',
+        conversationId: 'call-17',
+        status: 'confirmed',
+        origin: 'Hà Nội',
+        destination: 'Vinh',
+        travelDateLabel: '25/07/2026',
+        passengerCount: 1,
+        selectedTrip: {
+          id: 'trip-1',
+          origin: 'Hà Nội',
+          destination: 'Vinh',
+          departureTime: '20:00',
+          arrivalTime: '06:00',
+          vehicleType: 'Giường nằm',
+          priceVnd: 300_000,
+          pickupPoint: 'Bến xe Nước Ngầm',
+          dropoffPoint: 'Bến xe Vinh',
+          seatNoun: 'giường',
+        },
+        seats: ['A01'],
+        passengerName: 'Nguyễn An',
+        phone: '0909123456',
+        totalFareVnd: 300_000,
+        bookingCode: 'MA-260725-0017',
+      },
+    }])
+    fakeDb.select.mockReturnValue(query)
+
+    const snapshot = await findBookingSnapshotForVerification({
+      code: 'MA-260725-0017',
+      phone: '0909123456',
+    })
+
+    expect(snapshot).toMatchObject({
+      id: 'booking-17',
+      conversationId: 'call-17',
+      status: 'confirmed',
+      origin: 'Hà Nội',
+      destination: 'Vinh',
+      travelDateLabel: '25/07/2026',
+      selectedTrip: {
+        departureTime: '20:00',
+        arrivalTime: '06:00',
+        seatNoun: 'giường',
+      },
+      phone: '0909123456',
+      bookingCode: 'MA-260725-0017',
+    })
+    const where = (query.where as ReturnType<typeof vi.fn>).mock.calls[0]![0] as SQL
+    const compiled = new PgDialect().sqlToQuery(where)
+    expect(compiled.params).toContain('MA-260725-0017')
+    expect(compiled.params).toContain('0909123456')
+    expect(query.innerJoin).not.toHaveBeenCalled()
   })
 
   it('cancels booking and releases its seats in one authenticated statement', async () => {

@@ -29,6 +29,10 @@ là booking thật trong inventory nhà xe, không phải một bản demo hay p
 - Retry cùng event không tạo transcript, snapshot hoặc booking trùng; lỗi gửi kéo
   dài được ghi log để vận hành phát hiện.
 - Dashboard phản ánh live call và persisted audit từ cùng call ID.
+- Vé đã xác nhận có QR phone-gated, JSON versioned và webhook tùy chọn mà hệ thống
+  ngoài có thể kiểm chứng/xử lý; snapshot cũ không đổi khi catalog thay đổi.
+- Evidence surface giữ kết quả synthetic/no-PII và không biến benchmark thành
+  đường xử lý booking production.
 - Production tại <https://vedi-one.vercel.app/> vượt lint, typecheck, test và build.
 
 ## Scope
@@ -37,4 +41,4 @@ Included: web call, LiveKit SIP, STT/LLM/TTS agent, real inventory, hold/confirm
 lookup/cancel có possession check, ticket/QR và operations dashboard.
 
 Excluded: payment collection, multi-tenant RBAC, outbound marketing calls và giữ
-lại compatibility với OrderVoice/deterministic browser demo.
+lại compatibility với legacy deterministic browser demo.

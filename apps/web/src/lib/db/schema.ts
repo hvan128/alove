@@ -53,6 +53,11 @@ export const bookings = pgTable('bookings', {
   confirmationText: text('confirmation_text').notNull(),
   seatCodes: jsonb('seat_codes').$type<string[]>().notNull(),
   totalFareVnd: integer('total_fare_vnd').notNull(),
+  // Immutable facts captured in the authoritative confirmation statement.
+  // Verification never rebuilds an old ticket from mutable trip/route rows.
+  // This stays nullable for the expand side of the rolling migration; readiness
+  // fails on nulls and the later contract migration will enforce NOT NULL.
+  verificationSnapshot: jsonb('verification_snapshot').$type<Record<string, unknown>>(),
   status: text('status', {
     enum: ['pending_payment', 'paid', 'cancelled'],
   }).notNull().default('pending_payment'),
@@ -111,6 +116,42 @@ export type TripRow = typeof trips.$inferSelect
 export type SeatRow = typeof seats.$inferSelect
 export type BookingRow = typeof bookings.$inferSelect
 export type PaymentRow = typeof payments.$inferSelect
+
+// Public verification limits must survive serverless cold starts and apply
+// across instances. Keys are HMAC digests; raw IPs, codes and phones are never
+// persisted here.
+export const publicRateLimits = pgTable('public_rate_limits', {
+  key: text('key').primaryKey(),
+  count: integer('count').notNull().default(0),
+  resetsAt: timestamp('resets_at', { withTimezone: true }).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('public_rate_limits_resets_at_idx').on(table.resetsAt),
+  check('public_rate_limits_count_positive_check', sql`${table.count} > 0`),
+])
+
+// Enqueued in the same SQL statement that confirms a booking. The configured
+// operator receiver deduplicates on event_id; state here prevents duplicate
+// sends after an agent retry and leaves an auditable pending/failed record.
+export const bookingWebhookOutbox = pgTable('booking_webhook_outbox', {
+  eventId: text('event_id').primaryKey(),
+  payload: jsonb('payload').notNull(),
+  status: text('status', { enum: ['pending', 'delivering', 'delivered', 'failed'] }).notNull().default('pending'),
+  attempts: integer('attempts').notNull().default(0),
+  lastErrorCode: text('last_error_code'),
+  lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }),
+  nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }).notNull().defaultNow(),
+  deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('booking_webhook_outbox_status_created_idx').on(table.status, table.createdAt),
+  check('booking_webhook_outbox_status_check', sql`${table.status} in ('pending', 'delivering', 'delivered', 'failed')`),
+  check('booking_webhook_outbox_attempts_bounded_check', sql`${table.attempts} between 0 and 3`),
+])
+
+export type PublicRateLimitRow = typeof publicRateLimits.$inferSelect
+export type BookingWebhookOutboxRow = typeof bookingWebhookOutbox.$inferSelect
 
 // ---------------------------------------------------------------------------
 // Call audit — a projection of what happened, never an input to the next turn.

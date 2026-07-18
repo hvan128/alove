@@ -1,6 +1,6 @@
 ---
 title: Phase 04 — Executable booking output
-status: pending
+status: in-progress
 priority: P1
 effort: medium
 plan: 2026-07-18-valsea-rubric-gap
@@ -34,11 +34,11 @@ verification flow, and optional server-to-server delivery.
 
 ## Checklist
 
-- [ ] Versioned BookingSnapshot JSON exporter + download UI.
-- [ ] Phone-gated verification API/page with rate limiting.
-- [ ] QR encodes the verification URL, not a protected API URL.
-- [ ] Server-side signed/idempotent webhook with bounded retry.
-- [ ] Route, component and E2E tests.
+- [x] Versioned BookingSnapshot JSON exporter + download UI.
+- [x] Phone-gated verification API/page with rate limiting.
+- [x] QR encodes the verification URL, not a protected API URL.
+- [x] Server-side signed/idempotent webhook with bounded retry.
+- [x] Route, component and E2E tests.
 - [ ] Manual QR phone verification recorded in rubric checklist.
 
 ## Acceptance
