@@ -1,16 +1,13 @@
 """Alove bus-ticket voice agent (LiveKit).
 
-Ported from the project-4 interview agent, domain-swapped to bus-ticket booking.
-The booking itself stays DETERMINISTIC and server-authoritative: this worker never
-invents prices, trips, seats, passenger info or ticket codes. Every customer turn is
-relayed to the Next.js `/api/booking/advance` endpoint (which runs @ordervoice/core
-`advanceBookingAgent`); the worker only speaks the exact reply core returns and
-publishes the authoritative booking snapshot back to the browser over the room's
-data channel.
+The model owns the conversation, while the Next.js booking APIs remain
+server-authoritative for inventory, holds, confirmations, lookups and cancellations.
+The worker publishes live UI events over the room data channel and posts final
+transcripts plus booking snapshots to the web app's audit endpoint.
 
 Three A/B-testable engine configs (env `AGENT_ENGINE` + `STT_PROVIDER`):
-  - VALSEA-first : AGENT_ENGINE=cascade  STT_PROVIDER=valsea       (brief default)
-  - cascade      : AGENT_ENGINE=cascade  STT_PROVIDER=speechmatics (project-4 parity)
+  - VALSEA-first : AGENT_ENGINE=cascade  STT_PROVIDER=valsea       (recommended)
+  - cascade      : AGENT_ENGINE=cascade  STT_PROVIDER=speechmatics
   - gemini-sts   : AGENT_ENGINE=gemini-sts                         (speech-to-speech)
 """
 
@@ -20,6 +17,8 @@ import logging
 import os
 import re
 import sys
+import time
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
@@ -31,6 +30,8 @@ from livekit.agents import (
     Agent,
     AgentServer,
     AgentSession,
+    AudioConfig,
+    BackgroundAudioPlayer,
     JobContext,
     JobProcess,
     RunContext,
@@ -44,6 +45,12 @@ from livekit.plugins import cartesia, google, noise_cancellation, openai, silero
 from livekit.plugins.speechmatics import OperatingPoint
 from google.cloud import texttospeech
 from google.genai import types
+
+from booking_helpers import (
+    build_booking_snapshot,
+    build_confirmation_request,
+    build_realtime_event,
+)
 
 # Load agent/.env by absolute path so engine mode is picked up regardless of cwd.
 load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -100,9 +107,12 @@ _SENTENCE_END_RE = re.compile(r"(?<!\d)[.!?…]+(?=\s|$)")
 if CASCADE_TURN_DETECTOR == "rules":
     from turn_rules import RuleBasedTurnDetector  # local, deterministic
 
-# Next.js seam — the ONLY place booking state changes. Auth with the shared secret.
+# Next.js seam — the only place booking state changes and audit events persist.
+# All agent-only endpoints use the same shared secret.
 NEXTJS_API_URL = os.getenv("NEXTJS_API_URL", "http://localhost:3000").rstrip("/")
 AGENT_WEBHOOK_SECRET = os.getenv("AGENT_WEBHOOK_SECRET", "")
+if len(AGENT_WEBHOOK_SECRET.encode()) < 32:
+    raise RuntimeError("AGENT_WEBHOOK_SECRET must contain at least 32 bytes")
 
 # Named agent → explicit dispatch. Must match LIVEKIT_AGENT_NAME on the web side.
 LIVEKIT_AGENT_NAME = os.getenv("LIVEKIT_AGENT_NAME", "alove")
@@ -117,6 +127,41 @@ if any(cmd in sys.argv for cmd in ("dev", "console")) and not LIVEKIT_AGENT_NAME
 EVENTS_TOPIC = "alove-events"
 
 ROOM_PREFIX = "booking-"
+
+# Câu đệm lấp đúng chặng mô hình đang nghĩ, đo được 700 tới 970 mili giây. Ghi sẵn
+# bằng chính giọng Chirp3 của agent nên nghe như cùng một người, không phải chèn
+# giọng lạ. Chỉ dùng clip ngắn hơn khoảng nghĩ: clip dài sẽ bị cắt giữa chừng khi
+# agent bắt đầu nói câu thật. Xác suất khác nhau để không lặp mãi một chữ.
+THINKING_SOUNDS = [
+    ("um.wav", 0.30),        # 0.28s
+    ("da.wav", 0.30),        # 0.68s
+    ("da-vang.wav", 0.22),   # 0.88s
+    ("vang.wav", 0.18),      # 1.12s
+]
+THINKING_VOLUME = float(os.getenv("THINKING_VOLUME", "0.85"))
+THINKING_SOUND_ON = os.getenv("THINKING_SOUND", "on").lower() == "on"
+
+
+def thinking_audio() -> list:
+    """AudioConfig cho các câu đệm, bỏ qua clip không tìm thấy."""
+    base = Path(__file__).resolve().parent / "sounds"
+    clips = []
+    for name, probability in THINKING_SOUNDS:
+        path = base / name
+        if not path.exists():
+            logger.warning("thiếu câu đệm %s", path)
+            continue
+        clips.append(
+            AudioConfig(
+                str(path),
+                volume=THINKING_VOLUME,
+                probability=probability,
+                # Vào/ra mượt để khi bị cắt lúc agent nói không nghe cụt ngủn.
+                fade_in=0.05,
+                fade_out=0.15,
+            )
+        )
+    return clips
 
 def bus_agent_instructions(today_vn: str) -> str:
     """System prompt. The model owns the CONVERSATION — understanding whatever the
@@ -138,7 +183,9 @@ def bus_agent_instructions(today_vn: str) -> str:
         "đâu khác. Gọi nhầm tên người lạ là hỏng cả cuộc gọi.\n"
         "- Khi khách đã cho tên rồi thì dùng tên đó nhất quán, đừng quay lại \"anh chị\". "
         "Chưa biết giới tính thì \"anh chị\" một lần rồi thôi.\n"
-        "- Đừng mở đầu câu nào cũng \"Dạ\". Xen kẽ, hoặc vào thẳng nội dung.\n"
+        "- ĐỪNG mở đầu câu bằng \"Dạ\", \"Vâng\" hay \"Ừm\". Hệ thống đã tự phát câu đệm "
+        "trong lúc bạn nghĩ, nên bạn mở đầu bằng mấy chữ đó nữa là khách nghe lặp hai lần. "
+        "Vào thẳng nội dung.\n"
         "- Không dùng từ của phần mềm khi nói với khách: đừng nói \"loại xe không chọn lọc\", "
         "\"bộ lọc\", \"hệ thống\". Nói như người: \"xe nào cũng được\".\n"
         "- Đọc lại thông tin thì tách thành câu ngắn, đừng dồn hết vào một câu dài, khách "
@@ -178,12 +225,12 @@ def bus_agent_instructions(today_vn: str) -> str:
         "nhầm số là hỏng cả vé. Số không hợp lệ thì xin khách đọc lại, đừng đoán.\n"
         "- Đọc lại cho khách nghe, khách đồng ý mới gọi confirm_booking.\n"
         "- Báo mã vé, chúc đi đường bình an, rồi gọi end_call.\n"
-        "- Khách đổi ý ngay trong cuộc gọi này thì gọi cancel_booking (không cần tham số) "
+        "- Khách đổi ý ngay trong cuộc gọi này thì gọi cancel_booking không có tham số, "
         "rồi tìm chuyến khác.\n"
         "- Khách gọi lại để hỏi, đổi hay huỷ vé đã đặt HÔM TRƯỚC thì vé đó không thuộc cuộc "
-        "gọi này. Hỏi khách mã vé, nếu khách không nhớ thì hỏi số điện thoại lúc đặt, rồi "
-        "gọi find_booking. Đọc lại vé tìm được cho khách xác nhận đúng vé trước khi huỷ, "
-        "và truyền mã vé đó vào cancel_booking.\n\n"
+        "gọi này. Phải hỏi CẢ mã vé VÀ số điện thoại lúc đặt rồi mới gọi find_booking. "
+        "Đọc lại vé tìm được cho khách xác nhận đúng vé trước khi huỷ, rồi truyền cả mã vé "
+        "và số điện thoại đó vào cancel_booking.\n\n"
         "KHÔNG ĐƯỢC:\n"
         "- Không tự nghĩ ra chuyến, giờ chạy, giá vé, số ghế trống hay mã vé. Những thứ đó chỉ "
         "lấy từ kết quả công cụ. Chưa gọi công cụ thì chưa được nói.\n"
@@ -202,29 +249,6 @@ BACKEND_ERROR_REPLY = "Dạ xin lỗi anh chị, hệ thống đặt vé đang b
 CLOSING_BOOKED = "Dạ cảm ơn anh chị đã đặt vé nhà xe Mai Anh. Chúc anh chị đi đường bình an ạ!"
 CLOSING_NO_BOOKING = "Dạ vâng, cảm ơn anh chị đã gọi nhà xe Mai Anh. Khi nào cần anh chị cứ gọi lại nhé ạ."
 
-
-
-# Nhãn chuyến từ backend là chuỗi vi-VN gộp giờ và ngày ("20:00 20-07"). Thứ tự
-# hai phần phụ thuộc bản ICU của máy chạy Next.js, nên phải bóc theo mẫu chứ
-# không cắt theo vị trí — cắt theo vị trí là cách "Ngày đi" từng hiện ra giờ
-# chạy còn "Giờ khởi hành" hiện ra ngày.
-DEPARTURE_CLOCK_RE = re.compile(r"\b(\d{1,2}):(\d{2})\b")
-
-
-def _departure_clock(label: Optional[str]) -> str:
-    """Giờ chạy dạng HH:MM, khớp busTripSchema bên contracts."""
-    found = DEPARTURE_CLOCK_RE.search(label or "")
-    if not found:
-        return "00:00"
-    return f"{int(found.group(1)):02d}:{found.group(2)}"
-
-
-def _departure_date(label: Optional[str]) -> Optional[str]:
-    """Phần ngày của nhãn, tức nhãn đã bỏ giờ chạy đi."""
-    if not label:
-        return None
-    date_part = DEPARTURE_CLOCK_RE.sub("", label).strip(" ,·-")
-    return date_part or None
 
 
 def conversation_id_from_room(room_name: str) -> Optional[str]:
@@ -252,6 +276,14 @@ def detect_sip_caller(room) -> tuple[str, Optional[str]]:
 # of it inside the caller's wait for a reply. Keep-alive drops that to the round
 # trip alone.
 _http_client: Optional[httpx.AsyncClient] = None
+_background_tasks: set[asyncio.Task] = set()
+
+
+def schedule_background(coroutine) -> None:
+    """Keep a strong reference until a best-effort background job finishes."""
+    task = asyncio.create_task(coroutine)
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
 
 
 def api_client() -> httpx.AsyncClient:
@@ -266,16 +298,43 @@ def api_client() -> httpx.AsyncClient:
 
 
 async def post_call_event(
-    conversation_id: str, event_type: str, channel: str = "web", caller_number: Optional[str] = None
+    conversation_id: str,
+    event_type: str,
+    channel: Optional[str] = None,
+    caller_number: Optional[str] = None,
+    *,
+    event_id: Optional[str] = None,
+    sequence: Optional[int] = None,
+    role: Optional[str] = None,
+    text: Optional[str] = None,
+    booking: Optional[dict] = None,
 ) -> None:
-    """Audit-only notification to the web app; losing it never affects the call."""
-    body: dict = {"conversationId": conversation_id, "type": event_type, "channel": channel}
+    """Post audit data with bounded retries without changing booking outcomes."""
+    body: dict = {"conversationId": conversation_id, "type": event_type}
+    if channel:
+        body["channel"] = channel
     if caller_number:
         body["callerNumber"] = caller_number
-    try:
-        await api_client().post(f"{NEXTJS_API_URL}/api/call/events", json=body)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("post_call_event(%s) failed: %s", event_type, exc)
+    if event_id:
+        body["eventId"] = event_id
+    if sequence is not None:
+        body["sequence"] = sequence
+    if role:
+        body["role"] = role
+    if text:
+        body["text"] = text
+    if booking is not None:
+        body["booking"] = booking
+    for attempt in range(3):
+        try:
+            response = await api_client().post(f"{NEXTJS_API_URL}/api/call/events", json=body)
+            response.raise_for_status()
+            return
+        except Exception as exc:  # noqa: BLE001
+            if attempt == 2:
+                logger.warning("post_call_event(%s) failed after retries: %s", event_type, exc)
+                return
+            await asyncio.sleep(0.25 * (2**attempt))
 
 
 # --- Cascade provider builders ---------------------------------------------------
@@ -439,6 +498,19 @@ class BusBookingAgent(Agent):
         # what the caller is being told.
         self._selected_trip: Optional[dict] = None
         self._offers: dict[str, dict] = {}
+        # Epoch-millisecond buckets keep ordering monotonic across a worker
+        # redispatch/restart; the final three digits order same-process events.
+        self._event_sequence = (time.time_ns() // 1_000_000) * 1_000
+        # Updated synchronously from conversation_item_added before the model can
+        # execute confirm_booking for that user turn.
+        self._latest_final_user_transcript: Optional[str] = None
+
+    def _next_event_sequence(self) -> int:
+        self._event_sequence = max(
+            self._event_sequence + 1,
+            (time.time_ns() // 1_000_000) * 1_000,
+        )
+        return self._event_sequence
 
     async def tts_node(self, text, model_settings):
         """Chuẩn hoá ngay trước khi tổng hợp giọng.
@@ -467,57 +539,44 @@ class BusBookingAgent(Agent):
             yield frame
 
     async def _publish(self, payload: dict) -> None:
-        if self._room is None:
+        if self._room is None or not self._conversation_id:
             return
+        sequence = self._next_event_sequence()
+        event_id = uuid.uuid4().hex
+        event = build_realtime_event(
+            call_id=self._conversation_id,
+            event_id=event_id,
+            sequence=sequence,
+            payload=payload,
+        )
         try:
             await self._room.local_participant.publish_data(
-                json.dumps(payload).encode(), topic=EVENTS_TOPIC, reliable=True
+                json.dumps(event).encode(), topic=EVENTS_TOPIC, reliable=True
             )
         except Exception as exc:  # noqa: BLE001 — data-channel best-effort
             logger.debug("publish_data failed: %s", exc)
+        if payload.get("type") == "booking.update" and isinstance(payload.get("booking"), dict):
+            schedule_background(
+                post_call_event(
+                    self._conversation_id,
+                    "booking.updated",
+                    event_id=event_id,
+                    sequence=sequence,
+                    booking=payload["booking"],
+                )
+            )
 
     def _draft_payload(self, **over) -> dict:
-        """A complete BookingDraft for the browser's ticket card.
+        """A complete BookingSnapshot for the browser's ticket card.
 
         The card reads every field (and calls .join on the arrays), so a partial
         object would blow up the UI — always send the whole shape, using nulls and
         empty lists for what is not known yet."""
-        trip = self._selected_trip or {}
-        offer = trip.get("offer") or {}
-        base = {
-            "id": f"booking-{self._conversation_id}",
-            "conversationId": self._conversation_id,
-            "status": "collecting",
-            "origin": offer.get("originCity"),
-            "destination": offer.get("destinationCity"),
-            "travelDateLabel": _departure_date(offer.get("departureLabel")),
-            "timeWindow": None,
-            "passengerCount": trip.get("seatsHeld"),
-            "selectedTrip": (
-                {
-                    "id": offer.get("tripId") or trip.get("tripId") or "",
-                    "origin": offer.get("originCity") or "",
-                    "destination": offer.get("destinationCity") or "",
-                    "departureTime": _departure_clock(offer.get("departureLabel")),
-                    "arrivalTime": "00:00",
-                    "vehicleType": offer.get("vehicleType") or "",
-                    "priceVnd": trip.get("priceVnd") or offer.get("priceVnd") or 0,
-                    "pickupPoint": offer.get("pickupPoint") or "",
-                    "dropoffPoint": offer.get("dropoffPoint") or "",
-                    "availableSeats": trip.get("seatCodes") or [],
-                }
-                if offer or trip.get("tripId")
-                else None
-            ),
-            "seats": trip.get("seatCodes") or [],
-            "passengerName": None,
-            "phone": None,
-            "totalFareVnd": trip.get("totalVnd"),
-            "bookingCode": None,
-            "evidenceMessageIds": [],
-        }
-        base.update(over)
-        return base
+        return build_booking_snapshot(
+            self._conversation_id or "local-console",
+            self._selected_trip,
+            **over,
+        )
 
     async def _say_result(self, context: RunContext, text: str):
         """Đọc thẳng kết quả công cụ rồi dừng, không cho mô hình chạy vòng hai.
@@ -598,9 +657,8 @@ class BusBookingAgent(Agent):
     async def hold_seats(self, context: RunContext, trip_id: str, passengers: int) -> dict:
         """Giữ chỗ THẬT trên một chuyến, dùng trip_id lấy từ search_trips.
 
-        Trả về seatCodes đã giữ được và tổng tiền. Nếu seatsHeld nhỏ hơn số vé
-        khách cần (shortfall > 0) thì xe chỉ còn từng ấy chỗ — phải nói đúng số
-        còn lại, không được hứa đủ. held=false nghĩa là hết chỗ.
+        Việc giữ chỗ là all-or-nothing theo số khách yêu cầu. held=false nghĩa là
+        không còn đủ chỗ; không được hứa hoặc tự giảm số khách.
         """
         if not self._conversation_id:
             return {"error": "no_conversation"}
@@ -621,12 +679,6 @@ class BusBookingAgent(Agent):
         )
         codes = ", ".join(data.get("seatCodes") or [])
         total = f"{data.get('totalVnd', 0):,}".replace(",", ".")
-        if (data.get("shortfall") or 0) > 0:
-            return await self._say_result(
-                context,
-                f"Dạ chuyến này chỉ còn {data.get('seatsHeld')} {noun} thôi ạ, {codes}. "
-                f"Anh chị lấy từng này được không ạ?",
-            )
         return await self._say_result(
             context,
             f"Dạ em giữ được {noun} {codes}, tổng {total} đồng ạ. "
@@ -645,14 +697,19 @@ class BusBookingAgent(Agent):
         """
         if not self._conversation_id:
             return {"error": "no_conversation"}
+        request_body = build_confirmation_request(
+            conversation_id=self._conversation_id,
+            trip_id=trip_id,
+            passenger_name=passenger_name,
+            phone=phone,
+            latest_final_user_transcript=self._latest_final_user_transcript,
+        )
+        if request_body is None:
+            logger.warning("confirm_booking blocked: no final customer transcript")
+            return {"error": "missing_confirmation_transcript"}
         data = await self._call_api(
             "/api/booking/confirm",
-            {
-                "conversationId": self._conversation_id,
-                "tripId": trip_id,
-                "passengerName": passenger_name,
-                "phone": phone,
-            },
+            request_body,
         )
         if data is None:
             return {"error": "backend_unavailable"}
@@ -690,21 +747,18 @@ class BusBookingAgent(Agent):
     async def find_booking(self, context: RunContext, code: str = "", phone: str = "") -> dict:
         """Tra vé đã đặt TRƯỚC ĐÓ, ở cuộc gọi khác.
 
-        Dùng khi khách gọi lại để hỏi, đổi hoặc huỷ vé đã đặt hôm trước. Truyền mã
-        vé nếu khách đọc được, không thì truyền số điện thoại khách dùng lúc đặt.
+        Dùng khi khách gọi lại để hỏi, đổi hoặc huỷ vé đã đặt hôm trước. Vì đây là
+        dữ liệu nhạy cảm, phải truyền CẢ mã vé VÀ số điện thoại khách dùng lúc đặt.
         Trả về danh sách vé còn hiệu lực kèm tuyến, giờ chạy và ghế.
 
-        bookings rỗng nghĩa là không tìm thấy — hỏi lại khách mã vé hoặc số điện
+        bookings rỗng nghĩa là không tìm thấy — hỏi lại khách cả mã vé và số điện
         thoại, đừng đoán.
         """
-        if not code and not phone:
-            return {"error": "need_code_or_phone"}
-        body: dict = {}
-        if code:
-            body["code"] = code
-        if phone:
-            body["phone"] = phone
-        data = await self._call_api("/api/booking/lookup", body)
+        code = (code or "").strip()
+        phone = (phone or "").strip()
+        if not code or not phone:
+            return {"error": "need_code_and_phone"}
+        data = await self._call_api("/api/booking/lookup", {"code": code, "phone": phone})
         if data is None:
             return {"error": "backend_unavailable"}
         return data
@@ -714,12 +768,16 @@ class BusBookingAgent(Agent):
         """Huỷ vé và trả ghế lại cho khách khác.
 
         Không truyền gì thì huỷ vé vừa đặt trong chính cuộc gọi này. Khách gọi lại
-        để huỷ vé cũ thì truyền mã vé, hoặc số điện thoại lúc đặt.
+        để huỷ vé cũ thì phải truyền cả mã vé và số điện thoại lúc đặt.
         Huỷ xong muốn đổi chuyến thì gọi search_trips như bình thường.
         cancelled=false nghĩa là không tìm thấy vé nào để huỷ — nói thật với khách.
         """
         if not self._conversation_id:
             return {"error": "no_conversation"}
+        code = (code or "").strip()
+        phone = (phone or "").strip()
+        if bool(code) != bool(phone):
+            return {"error": "need_code_and_phone"}
         body: dict = {"conversationId": self._conversation_id}
         if code:
             body["code"] = code
@@ -730,7 +788,9 @@ class BusBookingAgent(Agent):
             return {"error": "backend_unavailable"}
         if not data.get("cancelled"):
             return await self._say_result(
-                context, "Dạ em không tìm thấy vé nào để huỷ ạ. Anh chị đọc giúp em mã vé nhé?"
+                context,
+                "Dạ em không tìm thấy vé nào để huỷ ạ. Anh chị đọc lại giúp em mã vé "
+                "và số điện thoại lúc đặt nhé?",
             )
         self._selected_trip = None
         await self._publish({"type": "booking.update", "booking": self._draft_payload()})
@@ -789,9 +849,12 @@ async def entrypoint(ctx: JobContext):
     )
 
     if conversation_id:
-        asyncio.create_task(post_call_event(conversation_id, "call.started", channel, caller_number))
+        schedule_background(post_call_event(conversation_id, "call.started", channel, caller_number))
 
         async def _post_call_ended() -> None:
+            pending = list(_background_tasks)
+            if pending:
+                await asyncio.wait(pending, timeout=3.0)
             await post_call_event(conversation_id, "call.ended", channel, caller_number)
 
         ctx.add_shutdown_callback(_post_call_ended)
@@ -801,6 +864,37 @@ async def entrypoint(ctx: JobContext):
     today_vn = datetime.now(timezone(timedelta(hours=7))).strftime("%d/%m/%Y")
     agent = BusBookingAgent(conversation_id=conversation_id, room=ctx.room, today_vn=today_vn)
     session = build_agent_session("vi", vad=ctx.proc.userdata.get("vad"))
+
+    # A committed conversation item is the final transcript for both cascade and
+    # realtime engines. Capture the customer text synchronously so a tool call in
+    # the same turn can attach the actual confirmation words to the booking write.
+    def _on_conversation_item_added(ev) -> None:
+        item = getattr(ev, "item", None)
+        raw_role = getattr(item, "role", "")
+        item_role = str(getattr(raw_role, "value", raw_role)).lower()
+        audit_role = {"user": "customer", "assistant": "agent"}.get(item_role)
+        text = (getattr(item, "text_content", None) or "").strip()
+        if audit_role is None or not text:
+            return
+        if audit_role == "customer":
+            agent._latest_final_user_transcript = text
+        if conversation_id:
+            item_id = getattr(item, "id", None)
+            event_id = f"transcript-{item_id}" if item_id else uuid.uuid4().hex
+            schedule_background(
+                post_call_event(
+                    conversation_id,
+                    "transcript.final",
+                    channel,
+                    caller_number,
+                    event_id=event_id,
+                    sequence=agent._next_event_sequence(),
+                    role=audit_role,
+                    text=text,
+                )
+            )
+
+    session.on("conversation_item_added", _on_conversation_item_added)
 
     # Commit the customer turn immediately when they press "Tôi nói xong".
     def _on_data_received(packet) -> None:
@@ -827,12 +921,13 @@ async def entrypoint(ctx: JobContext):
     def _on_agent_state(ev) -> None:
         try:
             raw = getattr(ev, "new_state", None) or getattr(ev, "state", None) or ev
-            asyncio.create_task(
-                ctx.room.local_participant.publish_data(
-                    json.dumps({"type": "agent.state", "state": str(raw).lower()}).encode(),
-                    topic=EVENTS_TOPIC,
-                )
-            )
+            state = str(getattr(raw, "value", raw)).lower()
+            if state == "initializing":
+                state = "idle"
+            if state not in {"idle", "listening", "thinking", "speaking"}:
+                logger.debug("ignore unknown agent state: %s", state)
+                return
+            asyncio.create_task(agent._publish({"type": "agent.state", "state": state}))
         except Exception as exc:
             logger.debug("publish agent state failed: %s", exc)
 
@@ -892,6 +987,21 @@ async def entrypoint(ctx: JobContext):
             audio_input=room_io.AudioInputOptions(noise_cancellation=cancellation),
         ),
     )
+
+    # Câu đệm: BackgroundAudioPlayer tự phát khi phiên vào trạng thái "đang nghĩ"
+    # (lượt khách đã chốt, mô hình đang sinh câu) và tự tắt ngay khi agent cất
+    # tiếng. Đúng chặng im lặng thật; chặng chờ chốt lượt tuyệt đối không chèn gì
+    # vì khách có thể còn đang nói dở.
+    if THINKING_SOUND_ON:
+        clips = thinking_audio()
+        if clips:
+            player = BackgroundAudioPlayer(thinking_sound=clips)
+            try:
+                await player.start(room=ctx.room, agent_session=session)
+                ctx.add_shutdown_callback(player.aclose)
+                logger.info("Câu đệm: %d clip, âm lượng %.2f", len(clips), THINKING_VOLUME)
+            except Exception as exc:  # noqa: BLE001 — câu đệm hỏng không được làm chết cuộc gọi
+                logger.warning("không bật được câu đệm: %s", exc)
 
     # AI speaks first — greet AFTER the session is live so the greeting isn't dropped.
     await session.generate_reply(
