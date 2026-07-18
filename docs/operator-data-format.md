@@ -1,78 +1,98 @@
-# Định dạng dữ liệu nhà xe
+# Dữ liệu vận hành nhà xe
 
-Hệ thống đặt vé đọc **toàn bộ** tuyến, chuyến, giá và ghế từ database. Không có
-giá hay lịch chạy nào được sinh ra trong code — agent chỉ đọc lại những gì có ở đây.
+## Tổng quan
 
-Gửi 4 file CSV dưới đây (UTF-8, dòng đầu là tiêu đề). Thiếu file nào thì phần đó
-chưa đặt được vé.
+Agent chỉ tư vấn và bán những tuyến, lịch, giá và ghế đã được seed vào Neon.
+Nguồn seed chuẩn hiện tại là `data/mai-anh-seed` gồm năm file CSV UTF-8.
 
-## 1. `operators.csv` — nhà xe
+## `operators.csv`
 
 ```csv
 id,name,hotline
-phuong-trang,Phương Trang,19006067
+mai-anh,Nhà xe Mai Anh,(024) 0000 6868
 ```
 
-| Cột | Bắt buộc | Ghi chú |
-|---|---|---|
-| `id` | có | slug không dấu, không khoảng trắng |
-| `name` | có | tên hiển thị, có dấu |
-| `hotline` | không | |
+`id` là slug ổn định dùng làm khóa. Không đổi `id` chỉ để sửa tên hiển thị.
 
-## 2. `routes.csv` — tuyến
+## `routes.csv`
 
 ```csv
-id,operator_id,origin_city,destination_city,duration_minutes
-sgn-dlt,phuong-trang,Sài Gòn,Đà Lạt,450
+id,operator_id,origin_city,destination_city,duration_minutes,pickup_point,dropoff_point
+MA-R01,mai-anh,Hà Nội,Vinh,330,Bến xe Nước Ngầm,Bến xe Vinh
 ```
 
-`origin_city` / `destination_city` viết **có dấu, đúng tên gọi khách hay dùng**.
-Hệ thống tự khớp cách khách nói (không dấu, "TP HCM", "Sài Gòn", "HCM"…) về tên này.
+Mỗi chiều là một route riêng. `duration_minutes` được dùng để tính giờ đến;
+pickup/dropoff là fact agent phải đọc đúng cho khách.
 
-## 3. `trips.csv` — chuyến chạy
-
-Mỗi dòng là **một chuyến cụ thể vào một ngày giờ cụ thể**, không phải lịch lặp.
+## `vehicle_types.csv`
 
 ```csv
-id,route_id,departure_at,arrival_at,vehicle_type,price_vnd,pickup_point,dropoff_point
-sgn-dlt-2200-2026-07-25,sgn-dlt,2026-07-25T22:00:00+07:00,2026-07-26T05:30:00+07:00,Giường nằm 34 chỗ,320000,Bến xe Miền Đông mới,Bến xe liên tỉnh Đà Lạt
+id,name,price_vnd,stated_capacity
+VT-CABIN-22,Limousine Cabin VIP 22 phòng,520000,22
 ```
 
-| Cột | Ghi chú |
-|---|---|
-| `departure_at` / `arrival_at` | ISO 8601 **kèm offset `+07:00`** |
-| `price_vnd` | số nguyên, không dấu chấm phẩy |
+`price_vnd` là giá tham chiếu bắt buộc của loại xe. Giá phải là số nguyên VND
+dương, không có dấu phân cách hàng nghìn. `stated_capacity` dùng để đối chiếu
+với số dòng seat map.
 
-Nếu bạn chỉ có lịch lặp hằng ngày, gửi lịch đó + khoảng ngày cần mở bán, tôi sinh ra
-các dòng chuyến tương ứng.
-
-## 4. `seats.csv` — sơ đồ ghế
-
-Mỗi dòng là **một ghế của một chuyến**. Đây là tồn kho thật: đặt hết là hết.
+## `seat_maps.csv`
 
 ```csv
-trip_id,code,deck
-sgn-dlt-2200-2026-07-25,A05,lower
-sgn-dlt-2200-2026-07-25,B05,upper
+vehicle_type_id,code,deck
+VT-CABIN-22,A01,lower
+VT-CABIN-22,A02,lower
 ```
 
-`deck` để trống nếu xe một tầng.
+Mỗi dòng là một ghế/giường/phòng vật lý. `deck` nhận `lower`, `upper` hoặc để
+trống. Code phải duy nhất trong cùng `vehicle_type_id`.
 
-Nếu mọi chuyến cùng loại xe dùng chung một sơ đồ ghế, gửi **một** sơ đồ mẫu kèm
-loại xe, tôi nhân bản cho từng chuyến.
+## `schedules.csv`
+
+```csv
+route_id,vehicle_type_id,departure_time,price_vnd
+MA-R01,VT-SLEEPER-34,06:00,350000
+```
+
+`departure_time` dùng giờ Việt Nam `HH:MM`. Seed script sinh các trip cụ thể cho
+số ngày được yêu cầu. `price_vnd` là **giá bán cuối cùng bắt buộc** của đúng
+route/loại xe/giờ chạy đó; giá phải là số nguyên VND dương và không được để
+trống.
 
 ## Nạp dữ liệu
 
 ```bash
-cd apps/web
-pnpm exec drizzle-kit migrate      # tạo bảng
-pnpm seed:operator ./duong-dan/toi/thu-muc-csv
+pnpm --dir apps/web exec drizzle-kit migrate
+pnpm --dir apps/web seed:operator ../../data/mai-anh-seed 14
 ```
 
-Nạp lại nhiều lần được: tuyến và chuyến ghi đè theo `id`, ghế **đã đặt hoặc đang
-giữ thì không bị ghi đè** để không phá vé đã bán.
+Tham số cuối là số ngày muốn mở bán kể từ hôm nay ở timezone
+`Asia/Ho_Chi_Minh`. Với các operator có trong `operators.csv`, năm file này là
+nguồn canonical:
 
-## Điều tuyệt đối không làm
+- operator/route/trip còn trong CSV được upsert và kích hoạt lại;
+- route bị gỡ được chuyển sang inactive;
+- mọi trip tương lai không nằm trong lịch và horizon mới được chuyển sang
+  inactive (giảm `14` xuống `7` cũng đóng ngày 8 trở đi);
+- ghế `available` hoặc hold đã hết hạn bị gỡ khỏi seat map/thuộc trip đã đóng sẽ
+  bị xóa;
+- active hold và ghế `booked` được giữ nguyên, không sửa trạng thái hay metadata.
 
-Không tự bịa giá, giờ chạy hay số ghế để "cho có". Nếu dữ liệu chưa có, agent
-phải nói chưa có tuyến — không được đoán.
+Việc bỏ một trip có active hold sẽ đóng trip ngay để không tiếp tục bán; hold và
+vé đã tạo vẫn còn dữ liệu, nhưng hold đó không thể confirm sau khi trip bị đóng.
+Vì vậy thay đổi lịch/seat map production nên chạy trong cửa sổ vận hành ít lưu
+lượng, rồi chạy seed lại sau khi các hold liên quan hết hạn để dọn nốt ghế đã gỡ.
+
+Một lần seed lớn được chia thành nhiều Neon transaction để tránh vượt giới hạn
+batch. Nếu tiến trình lỗi giữa chừng, không mở traffic hay deploy dựa trên trạng
+thái đó; sửa nguyên nhân rồi chạy lại đúng cùng input. Các thao tác đều idempotent
+và bước reconcile cuối sẽ hoàn tất catalog canonical.
+
+## Kiểm tra trước khi seed production
+
+- File có đúng năm tên trên và header chứa đúng các tên cột như ví dụ.
+- Mọi `operator_id`, `route_id`, `vehicle_type_id` đều tham chiếu tới dòng tồn tại.
+- Capacity khớp số seat code; không trùng code.
+- Cả hai cột `price_vnd` đều bắt buộc và là số nguyên VND dương; thời gian là
+  `HH:MM`, duration là số phút dương.
+- CSV có giá trị chứa dấu phẩy phải đặt trong dấu nháy kép.
+- Seed vào database staging trước, kiểm tra landing/search/hold rồi mới chạy production.

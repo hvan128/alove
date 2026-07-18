@@ -1,0 +1,17 @@
+{
+  "phase": "00",
+  "plan": "plans/2026-07-18-valsea-rubric-gap/plan.md",
+  "scoutContext": [
+    "Current canonical product is Alove.",
+    "Phase 00 adds a standalone root probe, tests, plan metadata, and a redacted live report.",
+    "Runtime application contracts and booking behavior are unchanged.",
+    "The workspace migrated concurrently from a packages-based monorepo to apps/web; future phases require re-scouting."
+  ],
+  "acceptanceCriteria": [
+    "Documented batch and annotation endpoints have real redacted responses.",
+    "Brief-only REST paths and realtime configuration probes have real server evidence.",
+    "Probe report includes UTC timestamp and returned model/engine evidence.",
+    "Credentials, balances, PII, and local fixture paths are not published.",
+    "Required positive probes fail the command when unavailable."
+  ]
+}

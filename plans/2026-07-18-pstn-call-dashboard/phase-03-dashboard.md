@@ -3,7 +3,7 @@
 ## Context
 
 - Token route `/api/livekit/token` đã nhận `{ conversationId, role, identity }`.
-- Data-channel topic `vedi-events` đã publish `booking.update`, `agent.state`, `call.end`.
+- Data-channel topic `alove-events` đã publish `booking.update`, `agent.state`, `call.end`.
 - Phase-02 cung cấp Neon: `calls`, `call_turns`, `booking_snapshots`.
 
 ## Yêu cầu

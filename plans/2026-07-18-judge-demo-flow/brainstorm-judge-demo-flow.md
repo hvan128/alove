@@ -5,7 +5,7 @@
 
 ## Vấn đề
 
-Repo đã có lõi mạnh (agent LiveKit GPT-4.1 + booking xác định server-side, `/console`, `/dashboard`, `find_booking`) nhưng demo hiện tại chỉ là "vào console → bấm nút → nói chuyện": không có mở bài, không cho thấy hệ quả (vé vào hệ thống, nhà xe thấy gì), không chứng minh persistence. Kịch bản cũ `docs/vedi-demo-script.md` viết cho bản 4 nút preset, lỗi thời.
+Repo đã có lõi mạnh (agent LiveKit GPT-4.1 + booking xác định server-side, `/console`, `/dashboard`, `find_booking`) nhưng demo hiện tại chỉ là "vào console → bấm nút → nói chuyện": không có mở bài, không cho thấy hệ quả (vé vào hệ thống, nhà xe thấy gì), không chứng minh persistence. Kịch bản cũ `docs/alove-demo-script.md` viết cho bản 4 nút preset, lỗi thời.
 
 ## Phương án đã cân nhắc
 
@@ -44,7 +44,7 @@ Chiếu QR → giám khảo quét, gọi từ điện thoại của họ (produc
 **P0 — thiếu là demo vỡ**
 1. Đường thoát khi agent không join: sau ~30s redispatch thất bại → thông báo + nút "Gọi lại" trên `/console` (hiện ringback chạy vô hạn — `livekit-call.tsx`).
 2. Verify end-to-end đường ghi dashboard với credentials thật (cuộc gọi LiveKit → calls/transcript/booking vào DB). Cảnh 2 phụ thuộc hoàn toàn.
-3. Viết lại `docs/vedi-demo-script.md` theo kịch bản này.
+3. Viết lại `docs/alove-demo-script.md` theo kịch bản này.
 4. Quay video backup toàn luồng.
 
 **P1 — cần cho QR + độ dễ hiểu**

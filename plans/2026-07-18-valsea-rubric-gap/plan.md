@@ -1,6 +1,17 @@
+---
+title: Đóng lỗ hổng rubric VALSEA — Vietnam AI Innovation Challenge
+status: in-progress
+priority: P1
+effort: high
+branch: feat/livekit-agent
+tags: [valsea, rubric, hackathon]
+created: 2026-07-18
+progress: 2/7 phases
+---
+
 # Đóng lỗ hổng rubric VALSEA — Vietnam AI Innovation Challenge
 
-**Status:** Reviewed — đã có key + docs công khai, chờ chạy probe Phase 00
+**Status:** In progress — Phase 00–01 hoàn tất; Phase 02–06 theo current Alove
 **Ngày lập:** 2026-07-18
 **Vertical đã chốt:** Tổng đài nhà xe (Mai Anh) → phiếu đặt vé có thể thực thi
 
@@ -29,15 +40,25 @@ Bốn khoản mất điểm lớn nhất:
 | Phase | Nội dung | Chặn bởi | Ước lượng |
 |---|---|---|---|
 | [00](phase-00-probe-valsea-api.md) | Probe API sandbox — xác minh endpoint nào thật sự tồn tại | — | 30–60p |
-| [01](phase-01-valsea-compliance.md) | Hợp lệ hoá VALSEA: REST transcribe + sửa default cấu hình | 00 | 2–3h |
-| [02](phase-02-valsea-understand.md) | Tầng nghĩa qua `/v1/annotations` | 00 | 3–4h |
-| [03](phase-03-hard-case-evidence.md) | Bằng chứng hard-case ở `/engine`: fixture, diff, WER, nhãn accent | — | 4–5h |
-| [04](phase-04-workflow-output.md) | Output thực thi được: QR thật, export JSON, webhook | — | 3–4h |
-| [05](phase-05-latency-surface.md) | Đưa latency đã đo lên UI | — | 1–2h |
-| [06](phase-06-cleanup-and-docs.md) | Dọn code chết, cập nhật roadmap, checklist rubric | 01–05 | 2h |
+| [01](phase-01-valsea-compliance.md) | VALSEA-first provider config + maintainer batch evidence | 00 | 1–2h |
+| [02](phase-02-valsea-understand.md) | Advisory annotation event qua `/v1/annotations` | 01 | 3–4h |
+| [03](phase-03-hard-case-evidence.md) | Synthetic hard-case harness + trang `/evidence` mới | 01 | 4–5h |
+| [04](phase-04-workflow-output.md) | BookingSnapshot JSON + QR verification + server webhook | — | 4–5h |
+| [05](phase-05-latency-surface.md) | `latency.turn` qua current Alove event contract | — | 2–3h |
+| [06](phase-06-cleanup-and-docs.md) | Canonical docs/specs + rubric checklist theo bằng chứng | 01–05 | 2–3h |
 
 Phase 03, 04, 05 **không phụ thuộc** Phase 00–02 → chạy song song được nếu API
 key về muộn. Đây là lý do xếp chúng tách khỏi nhánh VALSEA.
+
+## Tiến độ phase
+
+- [x] Phase 00 — probe sandbox, report live, security review và clean-install verification
+- [x] Phase 01 — VALSEA-first provider config + maintainer batch evidence
+- [ ] Phase 02 — advisory semantic annotation trên live call
+- [ ] Phase 03 — synthetic hard-case harness + trang `/evidence` mới
+- [ ] Phase 04 — workflow output
+- [ ] Phase 05 — latency surface
+- [ ] Phase 06 — cleanup, docs và rubric checklist
 
 ## Phụ thuộc ngoài
 
@@ -47,25 +68,26 @@ key về muộn. Đây là lý do xếp chúng tách khỏi nhánh VALSEA.
   `https://valsea.ai/docs/api/transcribe`, `https://valsea.ai/docs/api/annotate`
   và `https://valsea.ai/docs/realtime`. Phase 00 vẫn probe live vì docs không thay
   thế bằng chứng credential/credits/schema thật của sandbox.
-- **Clip audio hard-case** — Phase 03 cần 3 clip (giọng vùng miền, code-switch, điện thoại nhiễu).
-  Tự thu được nếu bộ mẫu của VALSEA về muộn.
+- **Clip audio hard-case** — Phase 03 sẽ chỉ commit fixture synthetic/no-PII có
+  provenance. Chưa có giọng vùng miền thật; checklist phải giữ mục đó ở trạng thái mở.
 
 ## Acceptance criteria
 
 Plan coi là xong khi tất cả đúng:
 
-- [ ] Ít nhất **2 endpoint VALSEA** khác nhau được gọi thật trong đường chạy demo,
+- [ ] Ít nhất **2 endpoint VALSEA** khác nhau được gọi thật trong đường live/evidence,
       có log/timestamp chứng minh (không phải mock).
-- [ ] `/engine` chạy được **3 clip hard-case** commit trong repo, hiện diff
+- [ ] `/evidence` chạy được **3 clip synthetic hard-case** commit trong repo, hiện diff
       Alove↔baseline và số WER cho từng clip.
 - [ ] Baseline Whisper chạy **có** `language: "vi"` — thắng một đối chứng đã được
       ưu ái, không phải đối chứng bị làm yếu.
-- [ ] Phiếu vé xác nhận sinh QR quét được bằng điện thoại + tải được JSON đúng
-      `bookingDraftSchema` + bắn được webhook ra endpoint ngoài.
+- [ ] Phiếu xác nhận sinh QR tới flow verification có code + phone, tải JSON đúng
+      `bookingSnapshotSchema`, và webhook server-side có idempotency khi được cấu hình.
 - [ ] Latency mỗi lượt (eou/ttft/ttfb) hiện trên `/console`, không chỉ trong log.
 - [ ] `agent/agent.py` mặc định `STT_PROVIDER=valsea` — thiếu `.env` không làm
       demo âm thầm chạy sai engine.
-- [ ] `docs/rubric-checklist.md` map từng tiêu chí ↔ bằng chứng ↔ file:line.
+- [ ] `docs/rubric-checklist.md` map từng tiêu chí ↔ bằng chứng ↔ file:line và
+      không đánh ✅ cho bằng chứng giọng vùng miền chưa có.
 
 ## Điều kiện dừng (giữ nguyên từ pilot roadmap)
 
@@ -82,3 +104,6 @@ deployment ID, latency và bằng chứng lỗi. Demo public phải tiếp tục
   `vietnamese`. Trung thực về giới hạn ghi điểm cao hơn là một tuyên bố không đứng vững.
 - Thêm REST call vào đường realtime có thể tăng độ trễ — Phase 01 giữ hai nhánh
   tách biệt, realtime không đi qua REST.
+- `AGENTS.md` coi dated plan là historical notes. Mọi thay đổi runtime Phase 01–06
+  phải theo re-scout report `reports/260718-2245-alove-rescout.md`, không khôi phục
+  module cũ chỉ vì chúng còn được nhắc trong lịch sử.

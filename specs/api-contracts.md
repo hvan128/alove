@@ -1,81 +1,121 @@
-# API and Event Contracts — VéĐi
+# API and Event Contracts — Alove
 
-All text is UTF-8 Vietnamese. Public demo requires no provider credential and stores no personal data remotely.
+Tất cả booking và audit endpoint chạy Node runtime. Provider credentials chỉ tồn
+tại ở Vercel/agent secret manager.
 
-## Deployed web surface
+## Public call session
 
-| Method | Path | Response | Invariant |
-|---|---|---|---|
-| `GET` | `/api/health` | `{ status: 'ok' }` | no provider or database dependency |
-| `GET` | `/console` | VéĐi Web Call workspace | deterministic no-key demo |
-| `GET` | `/design-system` | shared token/component catalogue | same primitives as console |
-
-## Core contracts
-
-```ts
-type CallMode = 'human' | 'auto'
-type CallStatus = 'idle' | 'connected' | 'ended'
-type CallRole = 'customer' | 'staff' | 'agent' | 'system'
-type BookingStatus = 'collecting' | 'trip_proposed' | 'awaiting_confirmation' | 'confirmed'
-
-type CallMessage = {
-  id: string
-  conversationId: string
-  role: CallRole
-  text: string
-  createdAt: string
-  channel: 'voice' | 'text' | 'preset'
-  final: boolean
-}
-
-type BookingDraft = {
-  id: string
-  conversationId: string
-  status: BookingStatus
-  origin: string | null
-  destination: string | null
-  travelDateLabel: string | null
-  timeWindow: string | null
-  passengerCount: number | null
-  selectedTrip: BusTrip | null
-  seats: string[]
-  passengerName: string | null
-  phone: string | null
-  totalFareVnd: number | null
-  bookingCode: string | null
-  evidenceMessageIds: string[]
-}
-```
-
-`confirmed` is valid only when trip, passenger count, passenger name, phone, one seat per passenger and booking code exist.
-
-## Deterministic agent boundary
-
-```ts
-type AgentTurn = {
-  draft: BookingDraft
-  reply: string
-}
-
-advanceBookingAgent(draft: BookingDraft, message: CallMessage): AgentTurn
-confirmBooking(draft: BookingDraft, actor: 'customer' | 'staff'): BookingDraft
-```
-
-Agent input must be a final customer message. Confirmation is idempotent: existing `bookingCode` and seats are preserved.
-
-## Future LiveKit token endpoint
-
-Not implemented or exposed in this release. Pilot endpoint will accept authenticated participant identity and server-controlled room name, returning only short-lived join token and `wss` URL. `LIVEKIT_API_SECRET` remains server-only.
-
-```ts
+```text
 POST /api/livekit/token
-{ roomName: string, participantName: string, role: 'customer' | 'staff' }
+body: none
 
-201
-{ serverUrl: string, participantToken: string }
+200 {
+  token,
+  sessionToken,
+  conversationId,
+  serverUrl,
+  roomName
+}
 ```
 
-## Legacy compatibility
+Server tự tạo `conversationId`, customer identity và role. `sessionToken` là
+capability ngắn hạn dùng cho redispatch; client-supplied room,
+role hoặc identity không có hiệu lực.
 
-Existing Fastify VALSEA/Twilio/order endpoints remain in source for the previous MVP and its tests. VéĐi public UI does not call them. A later pilot may replace their order projection with booking tools after LiveKit/provider credentials are provisioned.
+```text
+POST /api/livekit/redispatch
+{ sessionToken }
+```
 
+Observer dùng endpoint riêng có dashboard auth:
+
+```text
+POST /api/livekit/observer-token
+{ conversationId }
+```
+
+## Agent booking API
+
+Mọi endpoint yêu cầu `Authorization: Bearer <AGENT_WEBHOOK_SECRET>`.
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/booking/search` | Tìm trip thật theo tuyến/ngày/số khách |
+| POST | `/api/booking/hold` | Giữ ghế atomic cho call |
+| POST | `/api/booking/confirm` | Xác nhận explicit, tạo một booking idempotent |
+| POST | `/api/booking/lookup` | Tra vé bằng cả code và phone |
+| POST | `/api/booking/cancel` | Hủy current-call hoặc code+phone, trả ghế atomic |
+
+## Persisted call events
+
+```ts
+type CallEvent =
+  | { conversationId: string; type: 'call.started'; channel: 'web' | 'phone'; callerNumber?: string }
+  | { conversationId: string; type: 'call.ended' }
+  | { conversationId: string; type: 'transcript.final'; eventId: string; sequence: number; role: 'customer' | 'agent'; text: string }
+  | { conversationId: string; type: 'booking.updated'; eventId: string; sequence: number; booking: BookingSnapshot }
+```
+
+`POST /api/call/events` yêu cầu agent bearer secret. Hai event có payload cuối
+phải idempotent theo `eventId`; worker gửi với bounded retry.
+
+## Realtime agent events
+
+```ts
+type AgentEvent = {
+  callId: string
+  eventId: string
+  sequence: number
+} & (
+  | { type: 'agent.state'; state: 'idle' | 'listening' | 'thinking' | 'speaking' }
+  | { type: 'booking.update'; booking: BookingSnapshot }
+  | {
+      type: 'semantic.annotation'
+      timestamp: string
+      sourceTranscript: string
+      correctedText?: string
+      tags: string[]
+      annotations: string[]
+    }
+  | { type: 'call.end' }
+)
+```
+
+Browser chỉ áp dụng event từ LiveKit participant kind `AGENT`, đúng current call,
+schema hợp lệ và sequence lớn hơn event đã nhận.
+
+### Semantic annotation
+
+`semantic.annotation` là event có thứ tự trong cùng envelope `callId` / `eventId` /
+`sequence` như các realtime agent event khác. `timestamp` là thời điểm Alove
+tạo event sau khi nhận response annotation, không phải timestamp do VALSEA trả về;
+giá trị là chuỗi ISO 8601. `sourceTranscript` là final customer transcript đã
+gửi tới `POST /v1/annotations` và được giữ nguyên. `correctedText` được
+map từ provider field `text`; adapter bỏ field này nếu giá trị rỗng hoặc giống
+hệt `sourceTranscript`. `tags` và `annotations` luôn có mặt trong event, nhưng
+mỗi mảng có thể rỗng.
+
+Probe live Phase 00 chỉ xác nhận response shape sau:
+
+```ts
+type ObservedValseaAnnotationResponse = {
+  text: string
+  raw_text: string
+  annotated_text: string
+  annotations: []
+}
+```
+
+Sample probe có `annotations: []`; không có `semantic_tags` hoặc
+`accent_corrections`. Vì vậy adapter coi các field provider này là optional,
+chuẩn hoá field vắng thành mảng rỗng, và chỉ phát các chuỗi hiển thị đã
+kiểm tra vào `tags` / `annotations`. Contract không khẳng định raw element
+schema mà probe chưa quan sát.
+
+Event này chỉ là bằng chứng tham khảo. Nó không thay thế transcript, không
+xác lập entity hay intent, không mutate `BookingSnapshot`, và không được dùng
+để search, hold, confirm hoặc cancel booking. Network error, timeout, non-2xx hay
+response không hợp lệ không tạo event thành công giả với mảng rỗng; call và
+booking flow vẫn tiếp tục. Do đó, không có `semantic.annotation` không đồng
+nghĩa với "không có semantic tag"; chỉ event thành công có `tags: []` mới
+biểu diễn empty result đã quan sát.

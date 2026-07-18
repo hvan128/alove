@@ -2,7 +2,7 @@
 
 ## Làm được
 
-- **P0-3 kịch bản demo:** `docs/vedi-demo-script.md` viết lại theo 4 cảnh, kèm lời thoại,
+- **P0-3 kịch bản demo:** `docs/alove-demo-script.md` viết lại theo 4 cảnh, kèm lời thoại,
   bảng chữa cháy và checklist trước ngày demo. README cập nhật theo luồng khách mới.
 - **Gates toàn repo xanh:** lint (chỉ còn 1 lỗi tồn đọng ở `call-stage.tsx` TypewriterCaption,
   ngoài phạm vi các phase này), typecheck 6/6 package, unit 66 test, build, e2e 6/6

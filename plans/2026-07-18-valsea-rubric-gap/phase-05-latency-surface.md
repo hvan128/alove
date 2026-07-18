@@ -1,63 +1,52 @@
-# Phase 05 — Đưa latency lên UI
+---
+title: Phase 05 — Turn latency surface
+status: pending
+priority: P1
+effort: small
+plan: 2026-07-18-valsea-rubric-gap
+---
 
-**Mục tiêu:** Brief ghi *"aim near-real-time (a few seconds per utterance)"* và
-Outcome 1 đo *"time-to-output vs. a manual baseline, timed on stage"*. Số đã đo rồi,
-chỉ đang nằm sai chỗ.
+# Phase 05 — Turn latency surface
 
-**Không chặn bởi phase nào.** Rẻ nhất trong tất cả các phase.
+## Context
 
-## Tình trạng hiện tại
+The Python worker logs EOU/transcription delay, TTFT and TTFB but does not aggregate
+or publish them. Current web events are ordered and call-bound; latency should use
+that contract and remain ephemeral in this phase.
 
-`agent/agent.py:848-869` đã đo đầy đủ và chuẩn xác:
+## Architecture
 
-- `eou` — từ lúc khách ngừng nói tới lúc chốt lượt
-- `ttft` — từ chốt lượt tới chữ đầu của mô hình
-- `ttfb` — từ có chữ tới mẫu âm thanh đầu
+- New pure `agent/latency_metrics.py` aggregates stages by `speech_id` and emits
+  only complete/expired bounded records.
+- `agent.py` publishes `latency.turn` best-effort through `_publish`.
+- `AgentEvent` adds a validated latency variant with non-negative seconds.
+- `LiveKitCall` forwards it; workspace stores latest turn; `CallStage` shows total
+  plus stage detail.
+- No DB migration or dashboard persistence in this phase.
 
-Nhưng cả ba chỉ đi vào `logger.info`. Không data-channel, không DB, không UI nào
-đọc được. Trên sân khấu chúng vô hình.
+## Current touchpoints
 
-Trong khi đó `EVENTS_TOPIC = "alove-events"` (`agent/agent.py:117`) đã tồn tại và
-`booking.update` đã chạy qua đó (`agent/agent.py:620, 667, 736`). Đường ống có sẵn.
+- `agent/agent.py`, new helper + Python tests.
+- `apps/web/src/lib/call-contract.ts` + tests.
+- `livekit-call.tsx`, `bus-call-workspace.tsx`, `call-stage.tsx` + tests.
+- `specs/api-contracts.md`, `e2e/console.spec.ts`.
 
-## Việc phải làm
+## Checklist
 
-1. `agent/agent.py` — trong `_on_metrics`, ngoài `logger.info` thì publish thêm
-   `{"type": "latency.turn", "eou": …, "ttft": …, "ttfb": …, "speech": …}` qua
-   `EVENTS_TOPIC`. Gom theo `speech_id` để ba chặng của cùng một lượt về chung một
-   sự kiện thay vì ba sự kiện rời.
-2. Contract Zod cho `latency.turn` trong `packages/contracts`.
-3. `livekit-call.tsx` — nhận và forward lên workspace, cạnh chỗ đang xử lý
-   `booking.update` (dòng 184-193).
-4. `call-stage.tsx` — hiện chỉ số nhỏ, kín đáo, gần chỉ báo trạng thái agent
-   (dòng 105-117). Dạng "1,2s" cho tổng mỗi lượt, hover ra chi tiết ba chặng.
+- [ ] Aggregate stages by speech ID with bounded cleanup.
+- [ ] Publish ordered `latency.turn` without blocking metrics callback.
+- [ ] Validate event and ignore malformed/stale/cross-call payloads.
+- [ ] Render total honestly from available metric semantics; no cherry-picked stage.
+- [ ] Hide metric until a complete turn exists.
+- [ ] Python, web and E2E tests pass.
 
-## Nguyên tắc trình bày
+## Acceptance
 
-Hiện **tổng ba chặng** làm số chính, không hiện riêng một chặng đẹp nhất. Comment
-tại `agent/agent.py:843` đã ghi đúng: *"Độ trễ mỗi lượt là tổng của ba chặng, không
-phải riêng chặng nào"* — giữ đúng tinh thần đó trên UI. Khoe `ttft=200ms` trong khi
-người dùng đợi 2,5s là tự bịa.
+- UI value matches the worker event for a test turn.
+- No LiveKit/demo-less call shows `0 ms` or stale prior-call latency.
+- Publish failure does not affect the call.
 
-Không làm cái đồng hồ to đùng nhấp nháy. Một con số nhỏ, luôn hiện, đủ để giám khảo
-liếc thấy trong suốt cuộc gọi — thuyết phục hơn nhiều một biểu đồ hào nhoáng.
+## Out of scope
 
-## Files
-
-- Sửa: `agent/agent.py` (`_on_metrics`, ~dòng 848-869)
-- Sửa: `packages/contracts/src/index.ts`
-- Sửa: `apps/web/src/components/bus-call/livekit-call.tsx`
-- Sửa: `apps/web/src/components/bus-call/call-stage.tsx`
-- Sửa: `apps/web/src/components/bus-call/bus-call-workspace.tsx` (state)
-
-## Validation
-
-- Chạy một cuộc gọi LiveKit thật, đối chiếu số trên UI với `[latency]` trong log
-  worker — phải khớp.
-- Nhánh demo không LiveKit: không có số → UI ẩn hẳn chỉ số, không hiện "0ms".
-
-## Rủi ro
-
-- `_on_metrics` chạy trong hot path; publish_data là async. Bọc try/except và
-  không bao giờ để lỗi publish làm hỏng cuộc gọi — giống cách `call-store.ts:11-13`
-  đang nuốt lỗi DB có chủ ý.
+- Persisting turn latency or adding a dashboard chart.
+- Claiming stage sum until LiveKit metric semantics prove stages are additive.

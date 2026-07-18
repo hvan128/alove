@@ -1,38 +1,40 @@
-# Product Vision — VéĐi
+# Product Vision — Alove
 
 ## Purpose
 
-VéĐi is a Vietnamese voice-assisted bus-ticket workspace. It lets a passenger ask for a trip naturally while customer-care staff watch the same conversation, take over when needed, and confirm a reviewable booking. The hackathon demo prioritizes a complete, repeatable Web Call over unavailable phone or LiveKit credentials.
+Alove giúp khách đặt vé nhà xe bằng hội thoại tiếng Việt tự nhiên. Kết quả phải
+là booking thật trong inventory nhà xe, không phải một bản demo hay phiếu giả.
 
 ## Users
 
-| User | Need | Product outcome |
+| User | Need | Outcome |
 |---|---|---|
-| Passenger | Book a suitable trip without navigating a long form | Conversational route search, clear fare, seats and confirmation code |
-| Customer-care employee | See what the passenger asked and intervene safely | Shared transcript, extracted booking, human mode and explicit confirmation |
-| Bus operator | Demonstrate automation without losing operational control | Auto-agent mode, staff takeover, evidence and deterministic booking rules |
+| Hành khách | Tìm và đặt chuyến mà không điền form dài | Nghe đúng lịch/giá/điểm đón, xác nhận rồi nhận mã vé |
+| Điều hành nhà xe | Theo dõi cuộc gọi và booking | Dashboard có trạng thái, transcript final và booking projection |
+| Quản trị dữ liệu | Mở bán lịch và sơ đồ ghế thật | Seed có kiểm chứng, không sửa ghế đã hold/booked |
 
 ## Principles
 
-1. Two sides remain visible: passenger experience and customer-care control.
-2. Agent automation is a mode, not an irreversible handoff; staff can take over without losing state.
-3. A final customer message may update the draft; provisional speech may not.
-4. Explicit confirmation is required before a booking code is issued.
-5. Provider readiness is truthful. The zero-key demo never claims a real phone or LiveKit connection.
-6. Preset and text controls always work; browser speech is progressive enhancement.
+1. Chỉ có một production flow: LiveKit + Python agent + `apps/web` API + Neon.
+2. LLM hiểu ý định; database quyết định chuyến, giá, ghế và mã vé.
+3. Browser không được tự chọn room, role, identity hoặc phát event như agent.
+4. Booking chỉ được tạo sau xác nhận rõ ràng; retry không tạo vé thứ hai.
+5. Hệ thống thiếu dependency phải báo unavailable, không rơi về dữ liệu demo.
+6. Không lưu raw audio; PII và transcript được tối thiểu hóa theo nhu cầu vận hành.
 
-## MVP success measures
+## Success measures
 
-- Complete Sài Gòn → Đà Lạt booking for two passengers in under two minutes.
-- Demonstrate both `Nhân viên` and `Agent tự động` modes.
-- Auto agent proposes a trip, collects passenger details, reads a summary and confirms once.
-- Human mode sends no automatic reply and permits explicit staff response.
-- Every extracted value links to at least one customer message.
-- Demo works on deployed Vercel without provider credentials and at desktop/mobile widths.
+- Khách hoàn thành một booking thật từ web hoặc SIP và nhận mã vé đúng inventory.
+- Hai cuộc gọi cạnh tranh không thể giữ/xác nhận cùng một ghế.
+- Retry cùng event không tạo transcript, snapshot hoặc booking trùng; lỗi gửi kéo
+  dài được ghi log để vận hành phát hiện.
+- Dashboard phản ánh live call và persisted audit từ cùng call ID.
+- Production tại <https://vedi-one.vercel.app/> vượt lint, typecheck, test và build.
 
 ## Scope
 
-Included: two-sided Web Call workspace, deterministic bus catalog and agent, text/preset input, optional browser speech recognition, device TTS, staff takeover, evidence-backed booking draft, idempotent demo confirmation, Apple-like shared UI, tests and production deployment.
+Included: web call, LiveKit SIP, STT/LLM/TTS agent, real inventory, hold/confirm,
+lookup/cancel có possession check, ticket/QR và operations dashboard.
 
-Excluded: payment, real seat inventory lock, SMS/Zalo delivery, PSTN/SIP, remote two-device audio, production LiveKit deployment without project credentials, and autonomous purchase without explicit confirmation.
-
+Excluded: payment collection, multi-tenant RBAC, outbound marketing calls và giữ
+lại compatibility với OrderVoice/deterministic browser demo.

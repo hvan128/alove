@@ -32,14 +32,14 @@ Biến code thành buổi demo chạy được: verify end-to-end với credenti
 1. **Verify local end-to-end (P0-2):** chạy `agent` (`python agent.py dev`) + `pnpm dev:web` với env thật → thực hiện 1 cuộc đặt vé + 1 cuộc gọi lại tra vé → kiểm tra `/dashboard` có call, transcript, booking confirmed; kiểm tra `find_booking` tìm được vé của cuộc trước. Ghi kết quả vào `reports/`.
 2. **Deploy (P1-5):** build/push Docker worker, deploy host đã chọn; set Vercel env; deploy web; gọi thử từ production.
 3. **Concurrency + mobile (P1-6):** 3 thiết bị gọi đồng thời từ QR; ghi nhận độ trễ, lỗi; kiểm tra UI mobile thật (iOS Safari + Android Chrome).
-4. **Kịch bản (P0-3):** viết lại `docs/vedi-demo-script.md` theo 4 cảnh (nguồn: `visuals/alove-judge-demo-flow.html`) — lời thoại, ai bấm gì, thời lượng, phương án chữa cháy từng cảnh.
+4. **Kịch bản (P0-3):** viết lại `docs/alove-demo-script.md` theo 4 cảnh (nguồn: `visuals/alove-judge-demo-flow.html`) — lời thoại, ai bấm gì, thời lượng, phương án chữa cháy từng cảnh.
 5. **Video backup (P0-4):** quay trọn luồng (landing → morph → đặt vé → dashboard → gọi lại → QR) bản mượt nhất.
 6. **Credit + latency (P2-9):** check quota ElevenLabs/OpenAI/STT; đo độ trễ mỗi lượt; note vào kịch bản.
 7. Tập dượt: 3 lần chạy trọn không lỗi trước ngày demo (tiêu chí từ brainstorm).
 
 ## Tiến độ 2026-07-18
 
-- [x] P0-3 kịch bản demo 4 cảnh (`docs/vedi-demo-script.md`) + README theo luồng khách mới.
+- [x] P0-3 kịch bản demo 4 cảnh (`docs/alove-demo-script.md`) + README theo luồng khách mới.
 - [ ] Các mục còn lại **chặn vì thiếu credentials**: mọi biến LiveKit trong `.env` gốc và
   `apps/web/.env.production.local` đều rỗng, không có `agent/.env` → `/api/livekit/token`
   trả 503. Chi tiết và cách chạy local đúng: `reports/phase-05-verify-findings.md`.
@@ -48,7 +48,7 @@ Biến code thành buổi demo chạy được: verify end-to-end với credenti
 
 - [ ] Cuộc gọi thật từ production hiện trên `/dashboard` trong vài giây (transcript + vé).
 - [ ] Điện thoại lạ quét QR gọi được; 3 cuộc song song OK.
-- [ ] `docs/vedi-demo-script.md` bản mới thay bản 4-nút-preset cũ.
+- [ ] `docs/alove-demo-script.md` bản mới thay bản 4-nút-preset cũ.
 - [ ] Video backup lưu ngoài repo (link trong kịch bản).
 - [ ] 3 lần tập dượt liên tiếp pass.
 

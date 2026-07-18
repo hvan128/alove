@@ -36,11 +36,11 @@ Customer browser (LiveKitRoom, audio)
 
 - Room: `booking-<conversationId>`.
 - `POST /api/livekit/token` — body `{ conversationId, role, identity?, displayName? }`
-  → `{ token, serverUrl, roomName }`. Dispatch agent theo `LIVEKIT_AGENT_NAME` (mặc định `vedi`).
+  → `{ token, serverUrl, roomName }`. Dispatch agent theo `LIVEKIT_AGENT_NAME` (mặc định `alove`).
 - `POST /api/booking/advance` — auth `Bearer AGENT_WEBHOOK_SECRET`,
   body `{ conversationId, draft: BookingDraft | null, text }`
   → `{ draft, reply }`. Stateless; agent giữ draft giữa các lượt. draft=null → core khởi tạo.
-- Data-channel topic `vedi-events`:
+- Data-channel topic `alove-events`:
   - agent → web: `{ type:'booking.update', booking }`, `{ type:'agent.state', state }`
   - web → agent: `{ type:'user.end_turn' }`
 - Caption: web đọc `useTranscriptions()` trực tiếp (không DB).

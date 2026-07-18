@@ -1,84 +1,43 @@
-# Phase 06 — Dọn dẹp, docs, checklist rubric
+---
+title: Phase 06 — Canonical docs and rubric evidence
+status: pending
+priority: P1
+effort: small
+plan: 2026-07-18-valsea-rubric-gap
+---
 
-**Mục tiêu:** Repo public là một deliverable được chấm. Giám khảo mở nó ra và phải
-hiểu ngay kiến trúc + tìm được bằng chứng cho từng tiêu chí.
+# Phase 06 — Canonical docs and rubric evidence
 
-**Chặn bởi:** Phase 01–05 (cần kết quả thật để điền vào checklist)
+## Context
 
-## 6.1 — Dọn code chết
+The Alove migration already removed the historical console/engine/demo code. This
+phase does not restore deleted roadmaps or perform another cleanup pass; it aligns
+canonical documentation and challenge evidence with what actually shipped.
 
-`apps/web/src/components/console/` (~390 dòng, 6 file) **không nằm trên route nào**:
-`app/console/page.tsx:6` render `BusCallWorkspace` từ `bus-call/`, không phải
-`ConsoleWorkspace`. Cả thư mục chỉ còn được tham chiếu bởi chính test của nó
-(`console-workspace.test.tsx:5`).
+## Canonical scope
 
-Đây là di sản domain cũ "OrderVoice / đơn hàng cà phê". Giám khảo mở repo, thấy
-thư mục `console/` mà route `/console` lại render thứ khác → mất điểm Technical
-Execution vì tưởng kiến trúc rối.
+- `README.md`, `docs/architecture.md`, `docs/deployment.md`.
+- `specs/product-vision.md`, `specs/features.md`, `specs/api-contracts.md`.
+- ADR 0009 and a new ADR only if annotation/event/evidence decisions require it.
+- New `docs/rubric-checklist.md` plus regenerated HTML evidence artifact.
 
-Xoá cả thư mục + test. Nếu muốn giữ lịch sử, nó nằm trong git rồi.
+## Checklist
 
-Lưu ý: `order-panel.tsx` có nút "Xuất ERP nháp" nhưng chỉ gán chuỗi cứng
-`'ERP-DRAFT-0001'` vào state (`console-workspace.tsx:56-58`) — giả lập hoàn toàn.
-Đừng nhầm nó với Phase 04; xoá luôn, đừng cứu.
+- [ ] Map every rubric criterion to status, timestamp, evidence and file:line.
+- [ ] Mark only live/manual verified claims ✅; use partial/blocked otherwise.
+- [ ] Record Phase 00 endpoint evidence and Phase 01–05 shipped behavior.
+- [ ] Keep regional-accent proof open if only synthetic audio exists.
+- [ ] Remove stale `/v1/understand`, `/engine`, old identity/branch and deleted-doc claims from HTML.
+- [ ] Update canonical docs/specs for new contracts/envs/routes only.
+- [ ] Run agent tests plus root lint/typecheck/test/e2e/build.
 
-## 6.2 — Cập nhật `docs/pilot-roadmap.md`
+## Acceptance
 
-Brief yêu cầu *"Pilot / deployment roadmap (1–2 pages)"* là deliverable bắt buộc.
-File hiện tại viết tốt nhưng có hai vấn đề:
+- A reviewer can trace each checked claim to current Alove code or timestamped report.
+- No canonical doc presents a dated plan path as current runtime behavior.
+- README commands work from a clean checkout.
 
-- **Viết bằng tiếng Anh trộn tiếng Việt** không nhất quán (P0-P2 tiếng Anh, exit
-  criteria tiếng Việt). Chốt một ngôn ngữ — tiếng Việt, vì đây là giải Việt Nam.
-- Chưa phản ánh kết quả các phase mới. Thêm mốc: VALSEA hai endpoint, số WER thật
-  trên ba clip, webhook ra hệ ngoài.
+## Out of scope
 
-Giữ nguyên "Exit criteria" — đoạn đó là điểm mạnh, nó cho thấy đội không thổi phồng.
-
-## 6.3 — Sơ đồ kiến trúc explainable
-
-Deliverable bắt buộc: *"Explainable AI architecture"*. Hiện `docs/architecture.md`
-có nhưng chưa thể hiện đường đi speech→meaning→action sau các phase mới.
-
-Vẽ một sơ đồ (mermaid, render được ngay trên GitHub):
-
-```
-mic/PSTN → VALSEA ASR → VALSEA understand → advanceBookingAgent → phiếu + QR + webhook
-                ↓              ↓                    ↓
-           WER vs baseline  entity panel      DB audit + dashboard
-```
-
-Nhấn vào chỗ mà kiến trúc này khác một chatbot bọc ASR: lõi xác định không cho
-mô hình bịa giá/ghế/mã vé. Đó chính là anti-pattern brief liệt kê
-(*"thin wrapper around a generic chatbot"*) và mình tránh được **bằng thiết kế**,
-không phải tình cờ.
-
-## 6.4 — `docs/rubric-checklist.md`
-
-Bảng map từng tiêu chí ↔ trạng thái ↔ bằng chứng ↔ `file:line`.
-
-Dùng làm hai việc: đội tự soát trước khi nộp, và dán vào README để giám khảo không
-phải đi tìm. Bản HTML preview đi kèm plan này là phiên bản trình bày của cùng dữ liệu.
-
-Quy tắc: chỉ đánh ✅ khi có bằng chứng chạy thật kèm timestamp. Không đánh dấu theo
-dự định. Đây là cùng tinh thần với "Exit criteria" đã có trong pilot roadmap.
-
-## 6.5 — README
-
-- Thêm mục "Bằng chứng theo tiêu chí" trỏ tới checklist.
-- Cập nhật mô tả `/engine` cho khớp Phase 03 (WER, 3 clip).
-- Ghi rõ endpoint VALSEA nào đang dùng, chế độ nào.
-
-## Files
-
-- Xoá: `apps/web/src/components/console/` (toàn bộ)
-- Sửa: `docs/pilot-roadmap.md`
-- Sửa: `docs/architecture.md`
-- Tạo: `docs/rubric-checklist.md`
-- Sửa: `README.md`
-- Tạo: `adrs/0010-valsea-two-endpoint-pipeline.md` (nếu Phase 02 thành)
-
-## Validation
-
-- `pnpm test` + `pnpm typecheck` sau khi xoá thư mục chết — không còn import treo.
-- `pnpm test:e2e` — route `/console` vẫn chạy.
-- Mở README trên GitHub, mermaid render đúng.
+- Restoring deleted `docs/pilot-roadmap.md` or historical OrderVoice material.
+- Turning intended work into evidence without a passing artifact.

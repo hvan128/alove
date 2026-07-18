@@ -19,7 +19,7 @@
 Cuộc gọi PSTN (số từ Telnyx/Twilio)
         | SIP origination → LiveKit SIP endpoint
         v
-LiveKit inbound trunk + dispatch rule (room booking-<id>, dispatch agent "vedi")
+LiveKit inbound trunk + dispatch rule (room booking-<id>, dispatch agent "alove")
         v
 Agent worker (đã có)  STT -> advance_booking -> TTS
         | HTTPS Bearer AGENT_WEBHOOK_SECRET

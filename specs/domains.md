@@ -1,34 +1,31 @@
-# Domain Boundaries — VéĐi
+# Domain Boundaries — Alove
 
-## Web Call session
+## Call session
 
-Owns call lifecycle, elapsed time, mode and role presence. The demo session is local to one browser and visibly labelled. It does not claim PSTN, SIP or remote-room connectivity.
+Server tạo call ID, customer identity và signed capability. Session sở hữu room,
+TTL và redispatch budget; browser không được tự chọn các giá trị này.
 
-## Conversation
+## Voice agent
 
-Owns ordered customer, staff, agent and system messages. Only final customer messages enter booking extraction. Each message keeps channel and timestamp provenance.
+Python worker sở hữu STT, turn detection, LLM tool selection và TTS. Nó không sở
+hữu inventory fact. Tool response là nguồn duy nhất cho thông tin vận hành.
 
-## Booking intelligence
+## Inventory và booking
 
-Owns static trip catalog, supported-route parsing, missing-slot detection, fare arithmetic, seat selection and confirmation invariants. It is pure TypeScript and cannot access browser APIs or send audio.
+Next.js booking service sở hữu route/trip/seat search, expiring holds, fare,
+confirmation, idempotency và cancellation. Neon là state authoritative.
 
-## Agent orchestration
+## Realtime presentation
 
-Owns the next concise Vietnamese reply for `Agent tự động`. It reads a final customer message and booking draft, then returns a new draft plus reply. It cannot charge money or bypass confirmation.
+LiveKit caption và data channel cập nhật UI nhanh. Event phải đúng agent kind,
+call ID, schema và sequence. Realtime state không thay thế booking database.
 
-## Human customer care
+## Audit và dashboard
 
-Owns manual replies, staff takeover and explicit staff confirmation. Switching modes preserves messages and booking state.
+Agent gửi final transcript và booking snapshot qua API có bearer auth. `eventId`
+chống duplicate. Dashboard chỉ đọc projection và observer stream.
 
-## Voice interface
+## Operator data
 
-Owns optional browser speech recognition and device speech synthesis. Unsupported/denied microphone access degrades to preset and text input. Voice adapters cannot mutate a booking directly.
-
-## Realtime transport adapters
-
-Own future LiveKit, WebRTC or phone transport. Existing VALSEA/Twilio modules remain isolated legacy seams. No transport credential enters client code.
-
-## UI
-
-Owns presentation and user intent. It composes customer and customer-care surfaces from typed domain results; it does not implement booking rules.
-
+Seed pipeline biến năm CSV của Mai Anh thành trip/seat cụ thể. Nó không sửa trạng
+thái ghế đã hold/booked và không sinh fact ngoài input.

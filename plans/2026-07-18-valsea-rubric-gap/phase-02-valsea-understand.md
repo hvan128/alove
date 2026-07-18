@@ -1,84 +1,57 @@
-# Phase 02 — Tầng nghĩa qua `/v1/annotations`
+---
+title: Phase 02 — Advisory VALSEA annotations
+status: in-progress
+priority: P1
+effort: medium
+plan: 2026-07-18-valsea-rubric-gap
+---
 
-**Mục tiêu:** Ăn trọn tiêu chí "Best Use of VALSEA API" (15%) bằng endpoint semantic,
-đồng thời giảm phụ thuộc OpenAI (chạm anti-pattern *"dependent on foreign APIs"*).
+# Phase 02 — Advisory VALSEA annotations
 
-**Chặn bởi:** Phase 00
+## Context
 
-## Tình trạng hiện tại
+`POST /v1/annotations` returned a valid live schema in Phase 00, but the clean
+booking sample produced no tags. Annotation is therefore advisory evidence, not an
+entity/intent authority. Booking state remains controlled by server APIs and Neon.
 
-Tầng nghĩa hoàn toàn là code riêng + OpenAI:
+## Architecture
 
-- `packages/core/src/bus-booking.ts:83` — `advanceBookingAgent()` rule-based
-- `agent/agent.py:58` — `LLM_PROVIDER = "openai/gpt-4.1"` cho hội thoại
-- `packages/providers/src/openai.ts:16` — `proposeOpenAiOrderPatch()`
+```text
+VALSEA realtime final text
+  ├─> LiveKit/LLM turn (unchanged)
+  └─> async VALSEA annotation -> semantic.annotation event -> evidence panel
 
-Rubric ghi thẳng: *"plus any additional VALSEA endpoint used to go from speech to
-a workflow-ready output"*. Zero endpoint thứ hai = mất phần lớn 15% này.
-
-## Nguyên tắc thiết kế — quan trọng
-
-**Không** thay `advanceBookingAgent` bằng `/v1/annotations`. Booking xác định phía
-server là điểm mạnh kiến trúc của dự án (agent không bịa giá/ghế/mã vé) và là thứ
-ADR đã chốt. Vứt nó đi để nhét VALSEA vào là đánh đổi sai.
-
-Thay vào đó, `/v1/annotations` làm **tầng ngữ nghĩa đứng trước** lõi xác định:
-
-```
-VALSEA ASR  →  VALSEA /v1/annotations  →  advanceBookingAgent  →  phiếu vé
-   (text)       (correction + semantic tags)  (xác thực + tra kho)   (xác định)
+semantic.annotation never mutates BookingSnapshot
 ```
 
-VALSEA lo phần khó và mờ mà API công khai cam kết: sửa ngôn ngữ/giọng địa phương,
-giữ semantic tag cùng span/phrase/meaning. Text đã sửa được đưa vào lõi booking;
-tags là bằng chứng/giải thích, không được coi là dữ liệu đã xác thực. Lõi xác định
-vẫn tự parse và lo phần phải đúng tuyệt đối: chuyến nào còn ghế, giá bao nhiêu,
-mã vé gì. Không tuyên bố API trả entity/intent nếu response thật không có.
+## Current touchpoints
 
-Đây cũng là câu chuyện kể trên sân khấu tốt hơn hẳn "chúng em gọi thêm một API".
+- New agent client: `agent/valsea_api.py` using existing `httpx`.
+- New pure response types/tests: `agent/tests/test_valsea_api.py`.
+- Final customer transcript seam: `agent/agent.py` `conversation_item_added`.
+- Current event contract: `apps/web/src/lib/call-contract.ts`.
+- Event receiver/UI: `livekit-call.tsx`, `bus-call-workspace.tsx`, `call-stage.tsx`.
+- Canonical contract doc: `specs/api-contracts.md`.
 
-## Việc phải làm
+## Checklist
 
-1. `packages/providers/src/valsea-annotate.ts` — client cho endpoint, schema
-   request/response theo đúng kết quả Phase 00 (không đoán trước).
-2. Zod contract cho output trong `packages/contracts` — mọi thứ từ ngoài vào đều
-   phải qua schema, giống `bookingDraftSchema` đang làm.
-3. Adapter đưa corrected text vào `advanceBookingAgent`; semantic tags chỉ là
-   context giải thích và không được bypass validation/tra kho.
-4. Hiển thị trên `/console` và `/engine`: một panel nhỏ "VALSEA hiểu được gì"
-   liệt kê correction + semantic tags, **trước khi** thành phiếu vé. Đây chính là bằng
-   chứng trực quan cho cả "Best Use of VALSEA API" lẫn "explainable AI architecture"
-   (một deliverable bắt buộc).
-5. Feature flag `VALSEA_ANNOTATE_ENABLED` — demo public không key vẫn phải chạy.
+- [ ] Validate annotation response with optional corrections/tags/annotations.
+- [ ] Call annotation asynchronously only for final customer text.
+- [ ] Publish `semantic.annotation` through ordered `alove-events` envelope.
+- [ ] Add Zod event variant and contract tests.
+- [ ] Render corrected text/tags with an honest empty state.
+- [ ] Ensure annotation failure cannot break the call or booking flow.
+- [ ] Compare call behavior with annotation success/failure in tests.
 
-## Files
+## Acceptance
 
-- Tạo: `packages/providers/src/valsea-annotate.ts`
-- Tạo: `packages/providers/test/valsea-annotate.test.ts`
-- Sửa: `packages/contracts/src/index.ts` (schema mới)
-- Sửa: `packages/core/src/bus-booking.ts` (nhận entity gợi ý, vẫn tự xác thực)
-- Tạo: `apps/web/src/components/bus-call/understanding-panel.tsx`
-- Sửa: `apps/web/src/components/engine/engine-workspace.tsx`
+- A live final transcript produces a timestamped annotation event when VALSEA
+  responds, proving a second VALSEA endpoint in the call evidence path.
+- Empty tags render as “Không có semantic tag” rather than fabricated entities.
+- Booking confirmation rules and `BookingSnapshot` are byte-for-byte unchanged.
 
-## Validation
+## Out of scope
 
-- Unit test adapter với payload thật đã lược dữ liệu lấy từ report Phase 00.
-- Chạy 3 clip hard-case (Phase 03) qua đường đầy đủ, so phiếu vé có/không có
-  `/v1/annotations` — ghi kết quả vào `reports/`.
-- Tắt flag → demo vẫn chạy y như cũ.
-
-## Fallback nếu `/v1/annotations` không khả dụng trong sandbox
-
-Không giả vờ có. Hai lựa chọn, theo thứ tự ưu tiên:
-
-1. Dùng semantic tags/corrections trả ngay từ `/v1/audio/transcriptions`, hoặc
-   endpoint VALSEA khác mà Phase 00 xác minh (clarification, formatting/subtitles,
-   translation…)
-   cho một phần workflow thật — subtitle chẳng hạn ăn thẳng vào ví dụ "subtitle file"
-   mà brief liệt kê là workflow-ready output.
-2. Nếu sandbox chỉ mở ASR: ghi rõ trong docs + slide rằng mình đã probe và
-   endpoint semantic chưa khả dụng cho key hiện tại, kèm bằng chứng. Rồi dồn điểm vào
-   Workflow-Readiness (Phase 04) và chiều sâu ASR (Phase 01, 03).
-
-Trường hợp 2 vẫn ổn: brief ghi endpoint thứ hai là *optional*, chỉ "Best Use of
-VALSEA API" thưởng thêm cho nó.
+- Replacing the LLM transcript for the same turn.
+- Persisting annotations in Neon in this round.
+- Feature-flagged zero-key production fallback.

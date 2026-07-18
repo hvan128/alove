@@ -1,85 +1,55 @@
-# Phase 03 — Bằng chứng hard-case ở `/engine`
+---
+title: Phase 03 — Synthetic hard-case evidence
+status: pending
+priority: P1
+effort: medium
+plan: 2026-07-18-valsea-rubric-gap
+---
 
-**Mục tiêu:** Biến `/engine` từ "hai cột text để người xem tự đọc" thành bằng chứng
-đo được. Ăn vào Outcome 2 của brief và chống anti-pattern *"only works with clean data"*.
+# Phase 03 — Synthetic hard-case evidence
 
-**Không chặn bởi phase nào** — làm song song được với nhánh VALSEA.
+## Context
 
-## Tình trạng hiện tại
+The historical `/engine` route was removed during the Alove migration. This phase
+creates a new evidence-only surface deliberately; it does not restore browser
+fallback or proxy production provider credentials.
 
-`/engine` đã có khung so sánh side-by-side (`engine-workspace.tsx:139-148`) — đây là
-tài sản tốt. Thiếu phần ruột:
+## Deliverables
 
-- `find` toàn repo cho `*.wav|*.mp3|*.m4a|*.ogg` → **rỗng**. Không có clip nào.
-- Không WER, không chỉ số nào (grep `WER` → 0 hit).
-- Không diff highlight — hai đoạn text đặt cạnh nhau, mắt thường tự dò.
-- Kịch bản mẫu duy nhất (`engine-workspace.tsx:16-17`) là thuần Việt, giọng chuẩn,
-  không có tiếng Anh xen — tức đúng cái "clean demo clip" brief bảo đừng dùng.
+- Three committed synthetic/no-PII fixtures with provenance, ground truth and hash:
+  tonal Vietnamese, dense VN–EN code-switch, and 8 kHz noisy telephone audio.
+- `scripts/evaluate-valsea-hard-cases.ts` calls documented batch VALSEA and a
+  Whisper baseline with `language=vi`, then writes a redacted result artifact.
+- Pure Unicode-NFC WER/diff metrics plus English-token and tone-retention rates.
+- New `/evidence` page renders fixture labels, diffs and comparison table from the
+  committed artifact; it never receives API keys.
 
-## 3.1 — Bộ clip hard-case
+## Current touchpoints
 
-Tạo `fixtures/audio/` với **3 clip + transcript chuẩn (ground truth)** viết tay:
+- Fixtures: `apps/web/public/evidence/fixtures/`.
+- Metrics: `apps/web/src/lib/evidence/wer.ts` + tests.
+- Results: `plans/.../reports/hard-case-results.json` and a web-safe copy.
+- UI: new `apps/web/src/app/evidence/page.tsx` and focused components.
+- Navigation: current `AppShell`, added deliberately after tests.
 
-| Clip | Nội dung cần có |
-|---|---|
-| `mien-trung-accent.wav` | Giọng Trung hoặc Nam rõ rệt, thuần Việt, có tên riêng + địa danh |
-| `code-switch-vn-en.wav` | Xen tiếng Anh dày: "book cho anh 2 vé", "thanh toán qua transfer", "check giùm em cái schedule" |
-| `phone-8khz-noisy.wav` | Thu qua điện thoại, 8kHz, có nhiễu nền |
+## Checklist
 
-Mỗi clip kèm `.json` ground truth: transcript đúng + danh sách token tiếng Anh
-+ các dấu thanh dễ sai. Đây là thứ làm WER tính được.
+- [ ] Generate three synthetic fixtures and provenance manifest.
+- [ ] Implement/test WER, diff, English-token and tonal-diacritic metrics.
+- [ ] Implement evaluation script with secret/PII redaction and fail-closed keys.
+- [ ] Run both engines or record a truthful external blocker—never mock results.
+- [ ] Build `/evidence` from committed, validated result JSON.
+- [ ] Add unit and Playwright coverage.
 
-Nếu bộ mẫu VALSEA ở kickoff phủ được ca nào thì dùng luôn — nhớ kiểm điều khoản
-dữ liệu (brief ghi *hackathon period only*, nên **không commit** clip của VALSEA
-vào repo public; chỉ commit clip tự thu, clip VALSEA để `.gitignore` + ghi cách lấy).
+## Acceptance
 
-## 3.2 — WER + diff
+- All three synthetic fixtures are runnable and visibly labelled synthetic.
+- Comparison uses the same audio input and `language=vi` for Whisper.
+- Metrics/diffs are reproducible; any engine loss remains visible.
+- Regional-accent rubric evidence stays unchecked until a consented real fixture exists.
 
-`packages/core/src/wer.ts`:
+## Out of scope
 
-- Levenshtein trên token, chuẩn hoá Unicode NFC trước khi so (dấu thanh tiếng Việt
-  có nhiều cách mã hoá — không chuẩn hoá thì WER sai một cách vô nghĩa).
-- Trả cả số WER lẫn danh sách thao tác (giữ/thêm/xoá/thay) để render diff.
-- Thêm chỉ số riêng: **tỉ lệ giữ đúng token tiếng Anh** và **tỉ lệ dấu thanh đúng**.
-  Hai chỉ số này map thẳng vào yêu cầu H1 của brief (*"preserve tonal diacritics
-  correctly; must not silently drop or garble code-switched English terms"*) và
-  không engine generic nào ăn được.
-
-UI: hiển thị WER dưới mỗi panel, tô màu chỗ lệch so với ground truth. Đỏ = sai,
-vàng = thiếu. Người xem hiểu trong hai giây thay vì tự dò.
-
-## 3.3 — Nhãn ca khó
-
-Mỗi clip có badge trên UI: `Giọng Trung` / `Code-switch VN-EN` / `Điện thoại 8kHz`.
-Nút chọn nhanh 3 clip ngay trên `AudioSourcePanel` — giám khảo bấm một cái là chạy,
-không phải chờ mình lục file.
-
-## 3.4 — Bảng tổng kết
-
-Một bảng nhỏ cuối trang: 3 clip × 2 engine × (WER, token EN giữ đúng, dấu thanh đúng).
-Đây là artifact chụp màn hình được, đưa thẳng vào slide và README.
-
-## Files
-
-- Tạo: `fixtures/audio/*.wav` + `*.ground-truth.json`
-- Tạo: `packages/core/src/wer.ts` + `packages/core/test/wer.test.ts`
-- Tạo: `apps/web/src/components/engine/comparison-table.tsx`
-- Tạo: `apps/web/src/components/engine/transcript-diff.tsx`
-- Sửa: `apps/web/src/components/engine/engine-workspace.tsx`
-- Sửa: `apps/web/src/components/engine/audio-source-panel.tsx` (nút chọn clip)
-- Sửa: `apps/web/src/components/engine/baseline-panel.tsx` (chỗ hiện WER)
-
-## Validation
-
-- `packages/core/test/wer.test.ts` — ca có dấu, ca NFC/NFD khác nhau nhưng cùng chữ,
-  ca chuỗi rỗng, ca hoàn toàn khác nhau.
-- Chạy đủ 3 clip trên `/engine`, chụp lại bảng tổng kết vào `reports/`.
-
-## Rủi ro
-
-- **WER của Alove có thể không thắng baseline trên cả 3 clip.** Nếu vậy: giữ nguyên
-  số thật, không chọn clip để làm đẹp số. Chọn cách trình bày trung thực — chỉ ra ca
-  nào thắng và vì sao, ca nào chưa. Một đội biết engine mình yếu ở đâu đáng tin hơn
-  một đội có ba con số đẹp. Rubric "Outstanding" cho AI accuracy còn đòi hẳn
-  *"includes error detection mechanism"* — thừa nhận giới hạn đúng là thứ đó.
-- Ground truth viết tay có thể lệch — để hai người soát, ghi ai soát vào file JSON.
+- Raw customer/call audio.
+- Claiming synthetic speech proves regional accent accuracy.
+- A production upload/transcription feature.

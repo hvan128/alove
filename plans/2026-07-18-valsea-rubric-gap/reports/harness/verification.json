@@ -1,0 +1,23 @@
+{
+  "phase": "00",
+  "decision": "PASS",
+  "tester": {
+    "passed": 77,
+    "failed": 0,
+    "focusedTests": "10/10",
+    "strictTypeScript": "PASS",
+    "scopedLint": "PASS",
+    "frozenLockfileInstall": "PASS",
+    "reportAndSecurityChecks": "PASS"
+  },
+  "liveEvidence": {
+    "requiredPositiveProbes": "4/4",
+    "allProbeSections": 7,
+    "serverTimestamps": 6,
+    "engine": "valsea-4"
+  },
+  "artifactGate": {
+    "status": "NOT_RUN",
+    "reason": "claude/hooks/workflow-artifact-gate.cjs is not present in this repository"
+  }
+}
