@@ -1,7 +1,7 @@
 [project]
-name = "vedi-bus-agent"
+name = "alove-bus-agent"
 version = "0.1.0"
-description = "VéĐi bus-ticket voice agent (LiveKit) — deterministic booking via @ordervoice/core"
+description = "Alove bus-ticket voice agent for nhà xe Mai Anh (LiveKit) — deterministic booking via @ordervoice/core"
 requires-python = ">=3.11"
 dependencies = [
     "livekit-agents[silero]~=1.3",

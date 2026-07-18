@@ -32,10 +32,12 @@
 
 ## Consequences
 
-- `packages/providers/src/valsea.ts` **đang sai giao thức** (xem commit sửa
-  `agent/valsea_stt.py`): nó gửi `input_audio_buffer.commit` mà server trả về
-  `UNKNOWN_MESSAGE`, và không truyền `language`. Adapter Node này phải sửa trước
-  khi được dùng lại ở đâu đó, nếu không sẽ im lặng không ra transcript.
+- ~~`packages/providers/src/valsea.ts` **đang sai giao thức**~~ — đã sửa khi dựng
+  màn test `/engine`: `session.start` giờ gửi `language`/`model`, `sendFrame`
+  đợi `session.ready` thật từ server trước khi xả hàng đợi thay vì xả ngay khi
+  socket mở, và `endUtterance()` không còn gửi `input_audio_buffer.commit`
+  (luôn trả `UNKNOWN_MESSAGE`) — khớp giao thức đã verify trong
+  `agent/valsea_stt.py`. Xem `packages/providers/test/valsea.test.ts`.
 - VALSEA **không có TTS**, nên tiếng nói ra luôn phụ thuộc provider khác.
 - Chưa đo chất lượng VALSEA trên audio điện thoại 8 kHz; phải đo trong cuộc gọi
   PSTN thật đầu tiên và ghi vào `docs/integration-feasibility.md`.

@@ -1,4 +1,4 @@
-"""VéĐi bus-ticket voice agent (LiveKit).
+"""Alove bus-ticket voice agent (LiveKit).
 
 Ported from the project-4 interview agent, domain-swapped to bus-ticket booking.
 The booking itself stays DETERMINISTIC and server-authoritative: this worker never
@@ -103,7 +103,7 @@ NEXTJS_API_URL = os.getenv("NEXTJS_API_URL", "http://localhost:3000").rstrip("/"
 AGENT_WEBHOOK_SECRET = os.getenv("AGENT_WEBHOOK_SECRET", "")
 
 # Named agent → explicit dispatch. Must match LIVEKIT_AGENT_NAME on the web side.
-LIVEKIT_AGENT_NAME = os.getenv("LIVEKIT_AGENT_NAME", "vedi")
+LIVEKIT_AGENT_NAME = os.getenv("LIVEKIT_AGENT_NAME", "alove")
 # A local `agent.py dev`/`console` worker shares the prod agent name and LiveKit
 # load-balances across all workers under a name — a stray local worker would steal
 # prod dispatches. Force a distinct "-dev" name in dev/console mode.
@@ -112,7 +112,7 @@ if any(cmd in sys.argv for cmd in ("dev", "console")) and not LIVEKIT_AGENT_NAME
     logger.info("Dev/console mode → agent name forced to %s (isolated from prod)", LIVEKIT_AGENT_NAME)
 
 # Data-channel topic shared with the browser (see apps/web livekit-call.tsx).
-EVENTS_TOPIC = "vedi-events"
+EVENTS_TOPIC = "alove-events"
 
 ROOM_PREFIX = "booking-"
 
@@ -122,7 +122,7 @@ def bus_agent_instructions(today_vn: str) -> str:
     the FACTS: departures, prices, seats and ticket codes come back from tools that
     read the database, so the model can restate them but never make them up."""
     return (
-        "Bạn là nhân viên tổng đài nhà xe VéĐi, đang nghe điện thoại. Xưng \"em\", gọi khách "
+        "Bạn là nhân viên tổng đài nhà xe Mai Anh, đang nghe điện thoại. Xưng \"em\", gọi khách "
         "là \"anh\" hoặc \"chị\".\n\n"
         f"Hôm nay là {today_vn} (giờ Việt Nam). Tự quy ngày khách nói ra ngày cụ thể: "
         "\"mai\", \"ngày 20 tháng 7\", \"thứ sáu tuần này\", \"cuối tuần\"...\n\n"
@@ -166,7 +166,7 @@ def bus_agent_instructions(today_vn: str) -> str:
 
 # Spoken when the booking backend is unreachable — never leave the caller in silence.
 BACKEND_ERROR_REPLY = "Dạ xin lỗi anh chị, hệ thống đặt vé đang bận, anh chị chờ em một chút ạ."
-CLOSING_LINE = "Dạ cảm ơn anh chị đã đặt vé qua VéĐi. Chúc anh chị đi đường bình an ạ!"
+CLOSING_LINE = "Dạ cảm ơn anh chị đã đặt vé nhà xe Mai Anh qua Alove. Chúc anh chị đi đường bình an ạ!"
 
 
 def conversation_id_from_room(room_name: str) -> Optional[str]:
@@ -269,7 +269,7 @@ def _openai_stt(language: str):
 def _cascade_stt(language: str):
     """STT backend for the cascade engine: valsea | speechmatics | openai.
 
-    valsea      : VALSEA realtime ASR (VéĐi brief default) — see valsea_stt.py.
+    valsea      : VALSEA realtime ASR (Alove brief default) — see valsea_stt.py.
     speechmatics: Speechmatics enhanced, OpenAI fallback when a key is present.
     openai      : OpenAI realtime transcription.
     """
@@ -644,7 +644,7 @@ async def entrypoint(ctx: JobContext):
     conversation_id = conversation_id_from_room(ctx.room.name)
     channel, caller_number = detect_sip_caller(ctx.room)
     logger.info(
-        "VéĐi agent connected — room=%s conversation=%s channel=%s",
+        "Alove agent connected — room=%s conversation=%s channel=%s",
         ctx.room.name, conversation_id, channel,
     )
 
@@ -735,7 +735,7 @@ async def entrypoint(ctx: JobContext):
     await session.generate_reply(
         instructions=(
             "Bắt máy: chào khách và xưng danh nhà xe, rồi hỏi MỘT câu mở để khách "
-            "nói ra nhu cầu. Ví dụ: \"Dạ em chào anh chị, nhà xe VéĐi xin nghe ạ. "
+            "nói ra nhu cầu. Ví dụ: \"Dạ em chào anh chị, nhà xe Mai Anh xin nghe ạ. "
             "Anh chị cần đặt vé đi đâu ạ?\". Chỉ một hai câu ngắn. Tuyệt đối không "
             "hỏi dồn điểm đi, ngày và số vé cùng lúc. Chưa gọi công cụ nào ở lượt này."
         )

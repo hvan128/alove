@@ -11,8 +11,22 @@ export type ValseaEventContext = {
 
 export type ValseaSessionOptions = ValseaEventContext & {
   apiKey: string
+  // ISO code ('vi', 'en'); mapped to VALSEA's full language name below. VALSEA
+  // does not transcribe Vietnamese correctly if this is omitted from session.start.
+  language?: string
   onTranscript: (segment: TranscriptSegment) => void
   onStatus: (state: 'connecting' | 'live' | 'error', detail?: string) => void
+}
+
+const VALSEA_MODEL = 'valsea-rtt'
+
+// VALSEA names languages in full ("vietnamese"), not as ISO codes ("vi") — verified
+// against the live API on 2026-07-18 (see agent/valsea_stt.py, the source of truth
+// for this protocol).
+const VALSEA_LANGUAGE_NAMES: Record<string, string> = { vi: 'vietnamese', en: 'english' }
+
+function valseaLanguage(code: string): string {
+  return VALSEA_LANGUAGE_NAMES[code] ?? code
 }
 
 export type ValseaSession = {
@@ -52,8 +66,10 @@ export function mapValseaTranscriptEvent(raw: unknown, context: ValseaEventConte
 }
 
 export function createValseaSession(options: ValseaSessionOptions): ValseaSession {
+  // VALSEA rejects audio with NOT_READY until it has answered session.ready, so
+  // frames sent before that must be buffered rather than dropped or sent early.
   const pendingFrames: NormalizedAudioFrame[] = []
-  let pendingCommit = false
+  let ready = false
   const socket = new WebSocket('wss://api.valsea.ai/v1/realtime', {
     headers: { Authorization: `Bearer ${options.apiKey}` },
   })
@@ -63,47 +79,58 @@ export function createValseaSession(options: ValseaSessionOptions): ValseaSessio
     socket.send(JSON.stringify({
       type: 'session.start',
       audio: { encoding: 'pcm_s16le', sample_rate: 16000, channels: 1 },
+      language: valseaLanguage(options.language ?? 'vi'),
+      model: VALSEA_MODEL,
     }))
-    while (pendingFrames.length > 0) {
-      const frame = pendingFrames.shift()
-      if (frame) sendPcmFrame(socket, frame)
-    }
-    if (pendingCommit) {
-      socket.send(JSON.stringify({ type: 'input_audio_buffer.commit' }))
-      pendingCommit = false
-    }
-    options.onStatus('live')
   })
   socket.on('message', (payload) => {
+    let raw: unknown
     try {
-      const mapped = mapValseaTranscriptEvent(JSON.parse(payload.toString()), options)
-      if (mapped) {
-        options.onTranscript(mapped)
-      }
+      raw = JSON.parse(payload.toString())
     } catch {
       options.onStatus('error', 'Không thể đọc sự kiện VALSEA.')
+      return
+    }
+    if (!isRecord(raw)) return
+
+    if (raw.type === 'session.ready') {
+      ready = true
+      while (pendingFrames.length > 0) {
+        const frame = pendingFrames.shift()
+        if (frame) sendPcmFrame(socket, frame)
+      }
+      options.onStatus('live')
+      return
+    }
+    if (raw.type === 'error') {
+      options.onStatus('error', stringValue(raw.message) ?? stringValue(raw.code) ?? 'Lỗi không rõ từ VALSEA.')
+      return
+    }
+
+    const mapped = mapValseaTranscriptEvent(raw, options)
+    if (mapped) {
+      options.onTranscript(mapped)
     }
   })
   socket.on('error', () => options.onStatus('error', 'Kết nối VALSEA thất bại.'))
 
   return {
     sendFrame(frame) {
-      if (socket.readyState !== WebSocket.OPEN) {
+      if (!ready || socket.readyState !== WebSocket.OPEN) {
         if (pendingFrames.length < 250) pendingFrames.push(frame)
         return
       }
       sendPcmFrame(socket, frame)
     },
-    endUtterance() {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: 'input_audio_buffer.commit' }))
-      } else {
-        pendingCommit = true
-      }
-    },
+    // VALSEA does its own endpointing and rejects every commit-style message
+    // (input_audio_buffer.commit, commit, flush, finalize, end_utterance all
+    // return UNKNOWN_MESSAGE) — finals arrive on VALSEA's own schedule, so this
+    // is deliberately a no-op. Kept as a method so existing callers (the
+    // end_of_utterance control message, the live smoke test) stay valid.
+    endUtterance() {},
     stop() {
       pendingFrames.length = 0
-      pendingCommit = false
+      ready = false
       if (socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: 'session.stop' }))
       }

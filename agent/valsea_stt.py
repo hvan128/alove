@@ -2,7 +2,7 @@
 
 Wraps VALSEA's realtime WebSocket ASR (the same protocol the Node provider in
 `packages/providers/src/valsea.ts` uses) as a livekit-agents `stt.STT` so the
-cascade pipeline can run VALSEA-first per the VéĐi brief:
+cascade pipeline can run VALSEA-first per the Alove brief:
 
     session.start -> stream PCM16 16k mono -> input_audio_buffer.commit
     <- transcript.partial / transcript.final
