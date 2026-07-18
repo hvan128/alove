@@ -1,3 +1,8 @@
+UPDATE "seats"
+SET "held_by_call_id" = NULL,
+    "hold_expires_at" = NULL
+WHERE "status" = 'booked'
+  AND "booking_id" IS NOT NULL;--> statement-breakpoint
 DROP INDEX "booking_snapshots_call_sequence_idx";--> statement-breakpoint
 DROP INDEX "call_turns_call_sequence_idx";--> statement-breakpoint
 ALTER TABLE "seats" ADD CONSTRAINT "seats_booking_id_bookings_id_fk" FOREIGN KEY ("booking_id") REFERENCES "public"."bookings"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

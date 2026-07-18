@@ -83,16 +83,28 @@ export const callMessageSchema = z.object({
 export const SEMANTIC_ANNOTATION_TEXT_MAX_CHARS = 4_096
 export const SEMANTIC_ANNOTATION_DISPLAY_MAX_CHARS = 80
 export const SEMANTIC_ANNOTATION_ITEMS_MAX = 16
+export const MAX_REALTIME_EVENT_BYTES = 60 * 1_024
+
+const semanticStringSchema = (maxCodePoints: number) => z
+  .string()
+  .min(1)
+  .refine(
+    (value) => Array.from(value).length <= maxCodePoints,
+    { message: `Must not exceed ${maxCodePoints} Unicode code points.` },
+  )
+
+const semanticTextSchema = semanticStringSchema(SEMANTIC_ANNOTATION_TEXT_MAX_CHARS)
+const semanticDisplaySchema = semanticStringSchema(SEMANTIC_ANNOTATION_DISPLAY_MAX_CHARS)
 
 export const semanticAnnotationSchema = z.object({
   timestamp: z.string().datetime(),
-  sourceTranscript: z.string().min(1).max(SEMANTIC_ANNOTATION_TEXT_MAX_CHARS),
-  correctedText: z.string().min(1).max(SEMANTIC_ANNOTATION_TEXT_MAX_CHARS).optional(),
+  sourceTranscript: semanticTextSchema,
+  correctedText: semanticTextSchema.optional(),
   tags: z
-    .array(z.string().min(1).max(SEMANTIC_ANNOTATION_DISPLAY_MAX_CHARS))
+    .array(semanticDisplaySchema)
     .max(SEMANTIC_ANNOTATION_ITEMS_MAX),
   annotations: z
-    .array(z.string().min(1).max(SEMANTIC_ANNOTATION_DISPLAY_MAX_CHARS))
+    .array(semanticDisplaySchema)
     .max(SEMANTIC_ANNOTATION_ITEMS_MAX),
 })
 

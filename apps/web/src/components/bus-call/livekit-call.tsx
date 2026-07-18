@@ -11,17 +11,19 @@ import {
   useTranscriptions,
 } from '@livekit/components-react'
 import { ConnectionState, ParticipantKind } from 'livekit-client'
-import { Loader2, Mic, MicOff, PhoneOff, RotateCcw } from 'lucide-react'
+import { Loader2, PhoneOff, RotateCcw } from 'lucide-react'
 import { z } from 'zod'
 
 import {
   agentEventSchema,
+  MAX_REALTIME_EVENT_BYTES,
   type AgentEvent,
   type BookingSnapshot,
   type CallRole,
   type SemanticAnnotation,
 } from '@/lib/call-contract'
 import { useRingback } from '@/hooks/use-ringback'
+import { CallControlDock } from './call-control-dock'
 
 const EVENTS_TOPIC = 'alove-events'
 const TRANSCRIPTION_SEGMENT_ATTRIBUTE = 'lk.segment_id'
@@ -380,44 +382,21 @@ function RoomBridge({
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        {isConnecting || !agentJoined ? (
-          <span className="inline-flex items-center gap-2 text-xs text-white/50" role="status">
-            <Loader2 className="size-3.5 animate-spin" aria-hidden />
-            {isConnecting ? 'Đang kết nối…' : 'Đang chờ tổng đài viên AI…'}
-          </span>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => void toggleMicrophone()}
-          disabled={!isConnected}
-          aria-describedby={micError ? 'livekit-mic-error' : undefined}
-          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 text-sm font-medium text-white/90 transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {isMicrophoneEnabled ? <Mic className="size-4" aria-hidden /> : <MicOff className="size-4 text-[var(--danger)]" aria-hidden />}
-          {isMicrophoneEnabled ? 'Tắt mic' : 'Bật mic'}
-        </button>
-        <button
-          type="button"
-          onClick={() => void endTurn()}
-          disabled={!isConnected || agentState === 'speaking' || agentState === 'thinking'}
-          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 text-sm font-medium text-white/90 transition hover:bg-white/15 disabled:opacity-40"
-        >
-          Tôi nói xong
-        </button>
-        <button
-          type="button"
-          onClick={() => void endCall()}
-          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--danger)_55%,transparent)] bg-[color-mix(in_srgb,var(--danger)_22%,transparent)] px-4 text-sm font-medium text-white transition hover:bg-[color-mix(in_srgb,var(--danger)_35%,transparent)]"
-        >
-          <PhoneOff className="size-4" aria-hidden /> Kết thúc
-        </button>
-      </div>
-      {micError ? (
-        <p id="livekit-mic-error" className="text-center text-xs text-[var(--danger)]" role="alert">
-          {micError}
-        </p>
+      {isConnecting || !agentJoined ? (
+        <span className="inline-flex items-center gap-2 text-xs text-white/50" role="status">
+          <Loader2 className="size-3.5 animate-spin" aria-hidden />
+          {isConnecting ? 'Đang kết nối…' : 'Đang chờ tổng đài viên AI…'}
+        </span>
       ) : null}
+      <CallControlDock
+        connected={isConnected}
+        microphoneEnabled={isMicrophoneEnabled}
+        busy={agentState === 'speaking' || agentState === 'thinking'}
+        micError={micError}
+        onToggleMicrophone={() => void toggleMicrophone()}
+        onEndTurn={() => void endTurn()}
+        onEndCall={() => void endCall()}
+      />
     </div>
   )
 }
@@ -434,6 +413,7 @@ export function parseAgentEventMessage({
   lastSequence: number
 }): AgentEvent | null {
   if (senderKind !== ParticipantKind.AGENT) return null
+  if (payload.byteLength > MAX_REALTIME_EVENT_BYTES) return null
   try {
     const decoded: unknown = JSON.parse(new TextDecoder().decode(payload))
     const parsed = agentEventSchema.safeParse(decoded)

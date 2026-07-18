@@ -1,0 +1,933 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "complete",
+  "statusReason": null,
+  "generatedAt": "2026-07-18T16:56:59.872Z",
+  "fixtureManifestSha256": "e4cfae32bf910c4531490c5966a9be97c9e089cbc0fd93a1c4a61fe014d4ae00",
+  "fixtures": [
+    {
+      "id": "tonal-vietnamese",
+      "label": "Tiếng Việt giàu thanh điệu",
+      "description": "Câu tổng hợp chứa nhiều thanh sắc, huyền, hỏi, ngã và nặng.",
+      "category": "tonal-vietnamese",
+      "provenance": "synthetic-no-pii",
+      "groundTruth": "Tôi muốn đặt sáu vé ghế số sáu, tuyến Huế đi Mỹ Tho, khởi hành lúc bảy giờ tối.",
+      "expectedEnglishTokens": [],
+      "audio": {
+        "path": "/evidence/fixtures/tonal-vietnamese.wav",
+        "sha256": "71d109c9feaa235708533178e8132da172050f0f7c0d39d11aa71f7ce0782613",
+        "format": {
+          "container": "wav",
+          "codec": "pcm_s16le",
+          "sampleRateHz": 16000,
+          "channels": 1,
+          "bitsPerSample": 16
+        }
+      },
+      "engines": {
+        "valsea": {
+          "provider": "valsea",
+          "model": "valsea-transcribe",
+          "language": "vietnamese",
+          "result": {
+            "status": "succeeded",
+            "inputSha256": "71d109c9feaa235708533178e8132da172050f0f7c0d39d11aa71f7ce0782613",
+            "transcript": "Tôi muốn đặt 6 vé, ghế số 6, tuyến Huế đi Mỹ Tho, khởi hành lúc 7 giờ tối.",
+            "metrics": {
+              "wordErrorRate": {
+                "value": 0.15789473684210525,
+                "edits": 3,
+                "referenceWords": 19,
+                "diff": [
+                  {
+                    "type": "equal",
+                    "reference": "tôi",
+                    "hypothesis": "tôi"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "muốn",
+                    "hypothesis": "muốn"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "đặt",
+                    "hypothesis": "đặt"
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "sáu",
+                    "hypothesis": "6"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "vé",
+                    "hypothesis": "vé"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "ghế",
+                    "hypothesis": "ghế"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "số",
+                    "hypothesis": "số"
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "sáu",
+                    "hypothesis": "6"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "tuyến",
+                    "hypothesis": "tuyến"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "huế",
+                    "hypothesis": "huế"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "đi",
+                    "hypothesis": "đi"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "mỹ",
+                    "hypothesis": "mỹ"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "tho",
+                    "hypothesis": "tho"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "khởi",
+                    "hypothesis": "khởi"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "hành",
+                    "hypothesis": "hành"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "lúc",
+                    "hypothesis": "lúc"
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "bảy",
+                    "hypothesis": "7"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "giờ",
+                    "hypothesis": "giờ"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "tối",
+                    "hypothesis": "tối"
+                  }
+                ]
+              },
+              "englishTokenRetention": {
+                "value": null,
+                "retained": 0,
+                "total": 0
+              },
+              "vietnameseToneRetention": {
+                "value": 0.8125,
+                "retained": 13,
+                "total": 16
+              }
+            },
+            "error": null
+          }
+        },
+        "whisper": {
+          "provider": "openai-whisper",
+          "model": "whisper-1",
+          "language": "vi",
+          "result": {
+            "status": "succeeded",
+            "inputSha256": "71d109c9feaa235708533178e8132da172050f0f7c0d39d11aa71f7ce0782613",
+            "transcript": "Tôi muốn đặt 6VG số 6 Tuyên Huế đi Mỹ Tho, khởi hành lúc 7 giờ tối.",
+            "metrics": {
+              "wordErrorRate": {
+                "value": 0.3157894736842105,
+                "edits": 6,
+                "referenceWords": 19,
+                "diff": [
+                  {
+                    "type": "equal",
+                    "reference": "tôi",
+                    "hypothesis": "tôi"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "muốn",
+                    "hypothesis": "muốn"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "đặt",
+                    "hypothesis": "đặt"
+                  },
+                  {
+                    "type": "delete",
+                    "reference": "sáu",
+                    "hypothesis": null
+                  },
+                  {
+                    "type": "delete",
+                    "reference": "vé",
+                    "hypothesis": null
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "ghế",
+                    "hypothesis": "6vg"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "số",
+                    "hypothesis": "số"
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "sáu",
+                    "hypothesis": "6"
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "tuyến",
+                    "hypothesis": "tuyên"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "huế",
+                    "hypothesis": "huế"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "đi",
+                    "hypothesis": "đi"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "mỹ",
+                    "hypothesis": "mỹ"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "tho",
+                    "hypothesis": "tho"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "khởi",
+                    "hypothesis": "khởi"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "hành",
+                    "hypothesis": "hành"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "lúc",
+                    "hypothesis": "lúc"
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "bảy",
+                    "hypothesis": "7"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "giờ",
+                    "hypothesis": "giờ"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "tối",
+                    "hypothesis": "tối"
+                  }
+                ]
+              },
+              "englishTokenRetention": {
+                "value": null,
+                "retained": 0,
+                "total": 0
+              },
+              "vietnameseToneRetention": {
+                "value": 0.625,
+                "retained": 10,
+                "total": 16
+              }
+            },
+            "error": null
+          }
+        }
+      }
+    },
+    {
+      "id": "dense-code-switch",
+      "label": "Code-switch Việt–Anh dày",
+      "description": "Câu tổng hợp chuyển mã liên tục trong ngữ cảnh đặt vé.",
+      "category": "dense-vn-en-code-switch",
+      "provenance": "synthetic-no-pii",
+      "groundTruth": "Cho tôi check availability, book hai vé VIP sleeper từ Sài Gòn đi Đà Lạt, pickup tại Bến xe Miền Đông, drop-off ở trung tâm.",
+      "expectedEnglishTokens": [
+        "check",
+        "availability",
+        "book",
+        "vip",
+        "sleeper",
+        "pickup",
+        "drop-off"
+      ],
+      "audio": {
+        "path": "/evidence/fixtures/dense-code-switch.wav",
+        "sha256": "cd47aa8beec8d5feeced61decdf85085fedc532d12eede3d3f33cbfe745ff14f",
+        "format": {
+          "container": "wav",
+          "codec": "pcm_s16le",
+          "sampleRateHz": 16000,
+          "channels": 1,
+          "bitsPerSample": 16
+        }
+      },
+      "engines": {
+        "valsea": {
+          "provider": "valsea",
+          "model": "valsea-transcribe",
+          "language": "vietnamese",
+          "result": {
+            "status": "succeeded",
+            "inputSha256": "cd47aa8beec8d5feeced61decdf85085fedc532d12eede3d3f33cbfe745ff14f",
+            "transcript": "Cho tôi check availability: book 2 vé VIP Sleeper từ Sài Gòn đi Đà Lạt, pickup tại Bến xe Miền Đông, drop-off ở trung tâm.",
+            "metrics": {
+              "wordErrorRate": {
+                "value": 0.04,
+                "edits": 1,
+                "referenceWords": 25,
+                "diff": [
+                  {
+                    "type": "equal",
+                    "reference": "cho",
+                    "hypothesis": "cho"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "tôi",
+                    "hypothesis": "tôi"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "check",
+                    "hypothesis": "check"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "availability",
+                    "hypothesis": "availability"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "book",
+                    "hypothesis": "book"
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "hai",
+                    "hypothesis": "2"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "vé",
+                    "hypothesis": "vé"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "vip",
+                    "hypothesis": "vip"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "sleeper",
+                    "hypothesis": "sleeper"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "từ",
+                    "hypothesis": "từ"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "sài",
+                    "hypothesis": "sài"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "gòn",
+                    "hypothesis": "gòn"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "đi",
+                    "hypothesis": "đi"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "đà",
+                    "hypothesis": "đà"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "lạt",
+                    "hypothesis": "lạt"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "pickup",
+                    "hypothesis": "pickup"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "tại",
+                    "hypothesis": "tại"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "bến",
+                    "hypothesis": "bến"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "xe",
+                    "hypothesis": "xe"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "miền",
+                    "hypothesis": "miền"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "đông",
+                    "hypothesis": "đông"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "drop-off",
+                    "hypothesis": "drop-off"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "ở",
+                    "hypothesis": "ở"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "trung",
+                    "hypothesis": "trung"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "tâm",
+                    "hypothesis": "tâm"
+                  }
+                ]
+              },
+              "englishTokenRetention": {
+                "value": 1,
+                "retained": 7,
+                "total": 7
+              },
+              "vietnameseToneRetention": {
+                "value": 1,
+                "retained": 10,
+                "total": 10
+              }
+            },
+            "error": null
+          }
+        },
+        "whisper": {
+          "provider": "openai-whisper",
+          "model": "whisper-1",
+          "language": "vi",
+          "result": {
+            "status": "succeeded",
+            "inputSha256": "cd47aa8beec8d5feeced61decdf85085fedc532d12eede3d3f33cbfe745ff14f",
+            "transcript": "Cho tôi check availability, búc 2 vé VIP Slipper từ Sài Gòn đi Đà Lạt, pick up tại bến xe miền đông, drop off ở trung tâm.",
+            "metrics": {
+              "wordErrorRate": {
+                "value": 0.28,
+                "edits": 7,
+                "referenceWords": 25,
+                "diff": [
+                  {
+                    "type": "equal",
+                    "reference": "cho",
+                    "hypothesis": "cho"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "tôi",
+                    "hypothesis": "tôi"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "check",
+                    "hypothesis": "check"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "availability",
+                    "hypothesis": "availability"
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "book",
+                    "hypothesis": "búc"
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "hai",
+                    "hypothesis": "2"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "vé",
+                    "hypothesis": "vé"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "vip",
+                    "hypothesis": "vip"
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "sleeper",
+                    "hypothesis": "slipper"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "từ",
+                    "hypothesis": "từ"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "sài",
+                    "hypothesis": "sài"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "gòn",
+                    "hypothesis": "gòn"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "đi",
+                    "hypothesis": "đi"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "đà",
+                    "hypothesis": "đà"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "lạt",
+                    "hypothesis": "lạt"
+                  },
+                  {
+                    "type": "insert",
+                    "reference": null,
+                    "hypothesis": "pick"
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "pickup",
+                    "hypothesis": "up"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "tại",
+                    "hypothesis": "tại"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "bến",
+                    "hypothesis": "bến"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "xe",
+                    "hypothesis": "xe"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "miền",
+                    "hypothesis": "miền"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "đông",
+                    "hypothesis": "đông"
+                  },
+                  {
+                    "type": "insert",
+                    "reference": null,
+                    "hypothesis": "drop"
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "drop-off",
+                    "hypothesis": "off"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "ở",
+                    "hypothesis": "ở"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "trung",
+                    "hypothesis": "trung"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "tâm",
+                    "hypothesis": "tâm"
+                  }
+                ]
+              },
+              "englishTokenRetention": {
+                "value": 0.42857142857142855,
+                "retained": 3,
+                "total": 7
+              },
+              "vietnameseToneRetention": {
+                "value": 1,
+                "retained": 10,
+                "total": 10
+              }
+            },
+            "error": null
+          }
+        }
+      }
+    },
+    {
+      "id": "noisy-telephone-8khz",
+      "label": "Điện thoại 8 kHz có nhiễu",
+      "description": "Câu tổng hợp qua băng thoại 300–3400 Hz và nhiễu hồng có seed cố định.",
+      "category": "noisy-telephone-8khz",
+      "provenance": "synthetic-no-pii",
+      "groundTruth": "A lô, tôi cần một vé từ Hà Nội đi Vinh vào tám giờ tối mai, đón ở Bến xe Nước Ngầm.",
+      "expectedEnglishTokens": [],
+      "audio": {
+        "path": "/evidence/fixtures/noisy-telephone-8khz.wav",
+        "sha256": "4fac4396889769859329b78a5d29917f85c8771e7b7f4659f2b3b1421abd98c8",
+        "format": {
+          "container": "wav",
+          "codec": "pcm_s16le",
+          "sampleRateHz": 8000,
+          "channels": 1,
+          "bitsPerSample": 16
+        }
+      },
+      "engines": {
+        "valsea": {
+          "provider": "valsea",
+          "model": "valsea-transcribe",
+          "language": "vietnamese",
+          "result": {
+            "status": "succeeded",
+            "inputSha256": "4fac4396889769859329b78a5d29917f85c8771e7b7f4659f2b3b1421abd98c8",
+            "transcript": "Alo, tôi cần một vé từ Hà Nội đi Vinh vào 8 giờ tối mai, đón ở bến xe Nước Ngầm.",
+            "metrics": {
+              "wordErrorRate": {
+                "value": 0.13636363636363635,
+                "edits": 3,
+                "referenceWords": 22,
+                "diff": [
+                  {
+                    "type": "delete",
+                    "reference": "a",
+                    "hypothesis": null
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "lô",
+                    "hypothesis": "alo"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "tôi",
+                    "hypothesis": "tôi"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "cần",
+                    "hypothesis": "cần"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "một",
+                    "hypothesis": "một"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "vé",
+                    "hypothesis": "vé"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "từ",
+                    "hypothesis": "từ"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "hà",
+                    "hypothesis": "hà"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "nội",
+                    "hypothesis": "nội"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "đi",
+                    "hypothesis": "đi"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "vinh",
+                    "hypothesis": "vinh"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "vào",
+                    "hypothesis": "vào"
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "tám",
+                    "hypothesis": "8"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "giờ",
+                    "hypothesis": "giờ"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "tối",
+                    "hypothesis": "tối"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "mai",
+                    "hypothesis": "mai"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "đón",
+                    "hypothesis": "đón"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "ở",
+                    "hypothesis": "ở"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "bến",
+                    "hypothesis": "bến"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "xe",
+                    "hypothesis": "xe"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "nước",
+                    "hypothesis": "nước"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "ngầm",
+                    "hypothesis": "ngầm"
+                  }
+                ]
+              },
+              "englishTokenRetention": {
+                "value": null,
+                "retained": 0,
+                "total": 0
+              },
+              "vietnameseToneRetention": {
+                "value": 0.9333333333333333,
+                "retained": 14,
+                "total": 15
+              }
+            },
+            "error": null
+          }
+        },
+        "whisper": {
+          "provider": "openai-whisper",
+          "model": "whisper-1",
+          "language": "vi",
+          "result": {
+            "status": "succeeded",
+            "inputSha256": "4fac4396889769859329b78a5d29917f85c8771e7b7f4659f2b3b1421abd98c8",
+            "transcript": "Alo, tôi cần một vé từ Hà Nội đi Vinh vào 8 giờ tối mai, nón ở bến xe nước ngầm.",
+            "metrics": {
+              "wordErrorRate": {
+                "value": 0.18181818181818182,
+                "edits": 4,
+                "referenceWords": 22,
+                "diff": [
+                  {
+                    "type": "delete",
+                    "reference": "a",
+                    "hypothesis": null
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "lô",
+                    "hypothesis": "alo"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "tôi",
+                    "hypothesis": "tôi"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "cần",
+                    "hypothesis": "cần"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "một",
+                    "hypothesis": "một"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "vé",
+                    "hypothesis": "vé"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "từ",
+                    "hypothesis": "từ"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "hà",
+                    "hypothesis": "hà"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "nội",
+                    "hypothesis": "nội"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "đi",
+                    "hypothesis": "đi"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "vinh",
+                    "hypothesis": "vinh"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "vào",
+                    "hypothesis": "vào"
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "tám",
+                    "hypothesis": "8"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "giờ",
+                    "hypothesis": "giờ"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "tối",
+                    "hypothesis": "tối"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "mai",
+                    "hypothesis": "mai"
+                  },
+                  {
+                    "type": "substitute",
+                    "reference": "đón",
+                    "hypothesis": "nón"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "ở",
+                    "hypothesis": "ở"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "bến",
+                    "hypothesis": "bến"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "xe",
+                    "hypothesis": "xe"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "nước",
+                    "hypothesis": "nước"
+                  },
+                  {
+                    "type": "equal",
+                    "reference": "ngầm",
+                    "hypothesis": "ngầm"
+                  }
+                ]
+              },
+              "englishTokenRetention": {
+                "value": null,
+                "retained": 0,
+                "total": 0
+              },
+              "vietnameseToneRetention": {
+                "value": 0.8666666666666667,
+                "retained": 13,
+                "total": 15
+              }
+            },
+            "error": null
+          }
+        }
+      }
+    }
+  ]
+}

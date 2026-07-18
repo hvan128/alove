@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { ParticipantKind } from 'livekit-client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { BookingSnapshot } from '@/lib/call-contract'
+import { MAX_REALTIME_EVENT_BYTES, type BookingSnapshot } from '@/lib/call-contract'
 import { LiveKitCall, parseAgentEventMessage } from './livekit-call'
 
 const CALL_ID = '11111111-1111-4111-8111-111111111111'
@@ -159,6 +159,30 @@ describe('agent event validation', () => {
       senderKind: ParticipantKind.AGENT,
       expectedCallId: CALL_ID,
       lastSequence: 5,
+    })).toBeNull()
+  })
+
+  it('rejects a raw event above the transport budget before JSON decoding', () => {
+    const event = {
+      type: 'agent.state',
+      callId: CALL_ID,
+      eventId: 'event-oversized',
+      sequence: 7,
+      state: 'thinking',
+    }
+    const encoder = new TextEncoder()
+    const json = JSON.stringify(event)
+    const jsonBytes = encoder.encode(json).byteLength
+    const oversizedPayload = encoder.encode(
+      json + ' '.repeat(MAX_REALTIME_EVENT_BYTES + 1 - jsonBytes),
+    )
+
+    expect(oversizedPayload.byteLength).toBe(MAX_REALTIME_EVENT_BYTES + 1)
+    expect(parseAgentEventMessage({
+      payload: oversizedPayload,
+      senderKind: ParticipantKind.AGENT,
+      expectedCallId: CALL_ID,
+      lastSequence: 6,
     })).toBeNull()
   })
 })

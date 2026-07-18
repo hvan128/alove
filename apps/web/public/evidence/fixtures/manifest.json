@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "1.0.0",
+  "provenance": "synthetic-no-pii",
+  "fixtures": [
+    {
+      "id": "tonal-vietnamese",
+      "label": "Tiếng Việt giàu thanh điệu",
+      "description": "Câu tổng hợp chứa nhiều thanh sắc, huyền, hỏi, ngã và nặng.",
+      "category": "tonal-vietnamese",
+      "audioPath": "/evidence/fixtures/tonal-vietnamese.wav",
+      "groundTruth": "Tôi muốn đặt sáu vé ghế số sáu, tuyến Huế đi Mỹ Tho, khởi hành lúc bảy giờ tối.",
+      "expectedEnglishTokens": [],
+      "synthetic": true,
+      "noPii": true,
+      "sampleRateHz": 16000,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "sha256": "71d109c9feaa235708533178e8132da172050f0f7c0d39d11aa71f7ce0782613",
+      "provenance": {
+        "generator": "Google Cloud Text-to-Speech",
+        "voice": "vi-VN-Chirp3-HD-Kore",
+        "processing": [
+          "ffmpeg PCM16 mono resample to 16000 Hz"
+        ]
+      }
+    },
+    {
+      "id": "dense-code-switch",
+      "label": "Code-switch Việt–Anh dày",
+      "description": "Câu tổng hợp chuyển mã liên tục trong ngữ cảnh đặt vé.",
+      "category": "dense-vn-en-code-switch",
+      "audioPath": "/evidence/fixtures/dense-code-switch.wav",
+      "groundTruth": "Cho tôi check availability, book hai vé VIP sleeper từ Sài Gòn đi Đà Lạt, pickup tại Bến xe Miền Đông, drop-off ở trung tâm.",
+      "expectedEnglishTokens": [
+        "check",
+        "availability",
+        "book",
+        "vip",
+        "sleeper",
+        "pickup",
+        "drop-off"
+      ],
+      "synthetic": true,
+      "noPii": true,
+      "sampleRateHz": 16000,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "sha256": "cd47aa8beec8d5feeced61decdf85085fedc532d12eede3d3f33cbfe745ff14f",
+      "provenance": {
+        "generator": "Google Cloud Text-to-Speech",
+        "voice": "vi-VN-Chirp3-HD-Kore",
+        "processing": [
+          "ffmpeg PCM16 mono resample to 16000 Hz"
+        ]
+      }
+    },
+    {
+      "id": "noisy-telephone-8khz",
+      "label": "Điện thoại 8 kHz có nhiễu",
+      "description": "Câu tổng hợp qua băng thoại 300–3400 Hz và nhiễu hồng có seed cố định.",
+      "category": "noisy-telephone-8khz",
+      "audioPath": "/evidence/fixtures/noisy-telephone-8khz.wav",
+      "groundTruth": "A lô, tôi cần một vé từ Hà Nội đi Vinh vào tám giờ tối mai, đón ở Bến xe Nước Ngầm.",
+      "expectedEnglishTokens": [],
+      "synthetic": true,
+      "noPii": true,
+      "sampleRateHz": 8000,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "sha256": "4fac4396889769859329b78a5d29917f85c8771e7b7f4659f2b3b1421abd98c8",
+      "provenance": {
+        "generator": "Google Cloud Text-to-Speech",
+        "voice": "vi-VN-Chirp3-HD-Kore",
+        "processing": [
+          "ffmpeg PCM16 mono resample to 8000 Hz",
+          "300–3400 Hz telephone band plus seeded pink noise (seed 20260718)"
+        ]
+      }
+    }
+  ]
+}

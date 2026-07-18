@@ -15,7 +15,11 @@ import {
   Wifi,
 } from 'lucide-react'
 import { CallOverlay } from '@/components/bus-call/call-overlay'
-import { AloveProductTour, type AloveTourTrip } from '@/components/landing/alove-product-tour'
+import {
+  AloveHeroProductPreview,
+  AloveProductTour,
+  type AloveTourTrip,
+} from '@/components/landing/alove-product-tour'
 import { MobileStickyCall } from '@/components/landing/mobile-sticky-call'
 import { BrandMark } from '@/components/ui/brand-mark'
 import { listUpcomingTrips, type TripOffer } from '@/lib/db/booking-store'
@@ -26,7 +30,7 @@ export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
   title: 'Alove × Nhà xe Mai Anh — AloVé, alo là có vé đi',
   description:
-    'Đặt vé nhà xe Mai Anh bằng giọng nói tự nhiên. Alove hiểu giọng vùng miền, cách nói thường ngày và tiếng Việt xen tiếng Anh để tìm đúng chuyến.',
+    'Đặt vé nhà xe Mai Anh bằng giọng nói. Bằng chứng tổng hợp kiểm tra thanh điệu và câu Việt–Anh; khả năng với giọng vùng miền chưa được xác minh.',
 }
 
 function formatVnd(value: number): string {
@@ -45,106 +49,6 @@ async function loadUpcomingTrips(): Promise<TripOffer[]> {
 
 function routeLabel(trip: TripOffer): string {
   return `${trip.originCity} → ${trip.destinationCity}`
-}
-
-function VoiceBars() {
-  return (
-    <span aria-hidden className="landing-voice-bars">
-      {Array.from({ length: 9 }, (_, index) => <span key={index} />)}
-    </span>
-  )
-}
-
-function HeroExperience({ trip }: { trip: TripOffer | undefined }) {
-  const destination = trip?.destinationCity ?? 'Vinh'
-  const route = trip ? routeLabel(trip) : 'Hà Nội → Vinh'
-  const departure = trip?.departureLabel ?? '20:00 tối nay'
-  const price = trip ? formatVnd(trip.priceVnd) : '350.000 ₫'
-
-  return (
-    <div className="landing-voice-stage" aria-label="Minh hoạ cuộc gọi đặt vé với Alove">
-      <div className="landing-stage-topline">
-        <span className="inline-flex items-center gap-2">
-          <span className="landing-live-dot" aria-hidden />
-          Minh hoạ cuộc gọi Alove
-        </span>
-        <span className="font-mono text-xs text-slate-400">00:18</span>
-      </div>
-
-      <div className="landing-hero-demo-grid">
-        <div className="landing-call-pane">
-          <span className="inline-flex items-center gap-2 self-start rounded-full border border-white/10 bg-white/8 px-2.5 py-1 text-[11px] text-white/65">
-            <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)]" /> Đang nghe
-          </span>
-          <div className="landing-orb-wrap" aria-hidden>
-            <span className="landing-orb-ring landing-orb-ring-one" />
-            <span className="landing-orb-ring landing-orb-ring-two" />
-            <span className="landing-orb"><span className="landing-orb-glow" /></span>
-          </div>
-          <VoiceBars />
-          <div className="mt-5 text-center">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-white/35">Bạn nói</p>
-            <p className="mx-auto mt-2 max-w-[18rem] text-base font-medium leading-6 text-white sm:text-lg">
-              “Cho mình book 2 vé Hà Nội đi {destination} tối ni, chuyến gần nhất nha.”
-            </p>
-            <div className="mt-3 flex flex-wrap justify-center gap-1.5 text-[10px] font-medium text-white/65">
-              <span className="rounded-full bg-white/10 px-2 py-1">“book 2 vé” · Việt–Anh</span>
-              <span className="rounded-full bg-white/10 px-2 py-1">“tối ni” · giọng miền Trung</span>
-              <span className="rounded-full bg-white/10 px-2 py-1">“nha” · nói tự nhiên</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="landing-understanding-pane">
-          <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-            <span className="grid size-10 place-items-center rounded-xl bg-blue-50 text-blue-600"><Sparkles size={18} aria-hidden /></span>
-            <div>
-              <p className="text-sm font-semibold text-slate-950">Alove đã hiểu</p>
-              <p className="text-xs text-slate-500">Giọng nào, cách nói nào cũng tách đúng ý</p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-2.5">
-            {[
-              ['Điểm đến', destination],
-              ['Số khách', '2 người'],
-              ['Ưu tiên', 'Chuyến gần nhất'],
-            ].map(([label, value]) => (
-              <div key={label} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2.5">
-                <span className="text-xs text-slate-500">{label}</span>
-                <span className="text-xs font-semibold text-slate-950">{value}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-3.5" aria-label="Vé được tạo từ cuộc gọi">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-600">Chuyến phù hợp</p>
-                <p className="mt-1 text-sm font-semibold tracking-[-0.025em] text-slate-950">{route}</p>
-              </div>
-              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-700"><Check size={14} strokeWidth={2.5} aria-hidden /></span>
-            </div>
-            <div className="mt-3 flex items-end justify-between border-t border-dashed border-blue-200 pt-3">
-              <div>
-                <p className="text-[10px] text-slate-500">Khởi hành</p>
-                <p className="mt-0.5 font-mono text-xs font-semibold text-slate-950">{departure}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] text-slate-500">Mỗi vé</p>
-                <p className="mt-0.5 font-mono text-xs font-semibold text-blue-700">{price}</p>
-              </div>
-            </div>
-          </div>
-
-          <p className="mt-3 flex items-center gap-2 text-[11px] leading-4 text-slate-500">
-            <VoiceBars />
-            Alove nhận ra: “book” → đặt vé · “tối ni” → tối nay
-          </p>
-        </div>
-      </div>
-    </div>
-  )
 }
 
 const flowSteps = [
@@ -233,14 +137,14 @@ export default async function HomePage() {
             <div className="max-w-xl">
               <div className="inline-flex min-h-8 items-center gap-2 rounded-full border border-blue-200 bg-white/75 px-3 text-xs font-medium text-blue-800 shadow-sm backdrop-blur-md">
                 <Sparkles size={14} aria-hidden className="text-violet-600" />
-                Hiểu giọng vùng miền & cách nói thường ngày
+                Có bằng chứng tổng hợp: thanh điệu & Việt–Anh
               </div>
               <h1 className="mt-6 text-[clamp(3rem,5.2vw,4.75rem)] font-bold leading-[0.92] tracking-[-0.06em] text-slate-950">
                 AloVé.
                 <span className="landing-accent-text mt-1 block">Alo là có vé đi.</span>
               </h1>
               <p className="mt-6 max-w-lg text-base leading-7 text-slate-600 sm:text-lg">
-                Giọng Bắc, Trung, Nam; nói nhanh, nói tự nhiên hay xen tiếng Anh — Alove hiểu ý bạn để tìm đúng chuyến và giữ đúng chỗ.
+                Alove được kiểm tra bằng giọng tổng hợp cho thanh điệu tiếng Việt và câu Việt–Anh. Khả năng với giọng Bắc, Trung, Nam chưa được xác minh; hạng mục này cần mẫu giọng thật có đồng thuận.
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-3">
                 <CallOverlay layoutKey="hero" className="shadow-[0_16px_50px_-16px_rgba(73,125,255,0.9)]" />
@@ -253,13 +157,14 @@ export default async function HomePage() {
               </div>
 
               <ul className="mt-8 grid gap-2.5 text-sm text-slate-600">
-                <li className="inline-flex items-center gap-2.5"><Check size={16} aria-hidden className="text-emerald-600" /> Hiểu giọng vùng miền và tiếng Việt xen tiếng Anh</li>
+                <li className="inline-flex items-center gap-2.5"><Check size={16} aria-hidden className="text-emerald-600" /> Kiểm thử tổng hợp: thanh điệu và câu Việt–Anh</li>
+                <li className="inline-flex items-center gap-2.5"><Check size={16} aria-hidden className="text-amber-600" /> Giọng vùng miền: chưa được xác minh</li>
                 <li className="inline-flex items-center gap-2.5"><Check size={16} aria-hidden className="text-emerald-600" /> Luôn đọc lại thông tin trước khi đặt</li>
                 <li className="inline-flex items-center gap-2.5"><Check size={16} aria-hidden className="text-emerald-600" /> Không cần cài app, chỉ cần nói như bình thường</li>
               </ul>
             </div>
 
-            <HeroExperience trip={featuredTrip} />
+            <AloveHeroProductPreview {...(tourTrip ? { trip: tourTrip } : {})} />
           </div>
 
           <div className="landing-hero-bottom" aria-hidden>
