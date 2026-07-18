@@ -187,6 +187,36 @@ export async function releaseHolds(callId: string): Promise<void> {
   `)
 }
 
+/**
+ * Cancel this call's booking and put its seats back on sale. Without this the
+ * agent could only apologise when a caller changed their mind after confirming —
+ * and the seats stayed locked to a ticket nobody wanted.
+ */
+export async function cancelBooking(input: {
+  callId: string
+  code?: string | null
+}): Promise<{ cancelled: boolean; code?: string; seatCodes?: string[] }> {
+  const db = getDb()
+  if (!db) return { cancelled: false }
+
+  const rows = await db
+    .select({ id: bookings.id, code: bookings.code, seatCodes: bookings.seatCodes, status: bookings.status })
+    .from(bookings)
+    .where(input.code ? eq(bookings.code, input.code) : eq(bookings.callId, input.callId))
+    .orderBy(sql`${bookings.id} desc`)
+    .limit(1)
+  const booking = rows[0]
+  if (!booking || booking.status === 'cancelled') return { cancelled: false }
+
+  await db.update(bookings).set({ status: 'cancelled' }).where(eq(bookings.id, booking.id))
+  await db.execute(sql`
+    UPDATE ${seats} SET status = 'available', booking_id = NULL,
+                        held_by_call_id = NULL, hold_expires_at = NULL
+    WHERE booking_id = ${booking.id}
+  `)
+  return { cancelled: true, code: booking.code, seatCodes: booking.seatCodes }
+}
+
 /** Ticket code derived from the booking id, so it is unique by construction. */
 function ticketCode(id: number, departsAt: Date): string {
   const stamp = new Intl.DateTimeFormat('en-CA', {

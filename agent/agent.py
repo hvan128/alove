@@ -18,6 +18,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -88,6 +89,12 @@ CASCADE_PREEMPTIVE = os.getenv("CASCADE_PREEMPTIVE", "on").lower() == "on"
 CASCADE_MIN_INTERRUPTION_DURATION = float(os.getenv("CASCADE_MIN_INTERRUPTION_DURATION", "0.8"))
 CASCADE_MIN_INTERRUPTION_WORDS = int(os.getenv("CASCADE_MIN_INTERRUPTION_WORDS", "2"))
 
+from speech_text import normalize_for_speech  # local, thuần hàm
+
+# Ranh giới câu: dấu chấm/hỏi/than KHÔNG đứng ngay sau chữ số (1.060.000) và có
+# khoảng trắng hoặc hết chuỗi phía sau.
+_SENTENCE_END_RE = re.compile(r"(?<!\d)[.!?…]+(?=\s|$)")
+
 if CASCADE_TURN_DETECTOR == "rules":
     from turn_rules import RuleBasedTurnDetector  # local, deterministic
 
@@ -115,26 +122,38 @@ def bus_agent_instructions(today_vn: str) -> str:
     the FACTS: departures, prices, seats and ticket codes come back from tools that
     read the database, so the model can restate them but never make them up."""
     return (
-        "Bạn là tổng đài viên đặt vé xe khách của nhà xe VéĐi. Nói tiếng Việt tự nhiên như "
-        "người thật: thân thiện, ngắn gọn, xưng \"em\", gọi khách \"anh/chị\".\n\n"
-        f"Hôm nay là {today_vn} (giờ Việt Nam). Tự quy đổi mọi cách nói ngày sang dạng "
-        "YYYY-MM-DD: \"mai\", \"ngày 20 tháng 7\", \"thứ sáu tuần này\", \"cuối tuần\"...\n\n"
-        "CÁCH LÀM VIỆC:\n"
-        "- Hiểu khách nói gì theo cách tự nhiên nhất. Khách có thể nói lộn xộn, đổi ý, nói "
-        "thiếu, hỏi ngoài lề, hay gộp nhiều thông tin vào một câu — cứ xử lý như người thật.\n"
-        "- Cần điểm đi, điểm đến, ngày và số vé thì mới tìm được chuyến. Thiếu gì hỏi nấy, "
-        "hỏi gọn, đừng hỏi lại thứ khách đã nói.\n"
-        "- Có đủ thông tin thì gọi search_trips. Đọc cho khách các chuyến tìm được.\n"
-        "- Khách chọn chuyến thì gọi hold_seats để giữ ghế, rồi xin họ tên và số điện thoại.\n"
-        "- Có đủ tên và số điện thoại, đọc lại toàn bộ cho khách nghe và hỏi xác nhận. "
-        "Khách đồng ý mới gọi confirm_booking.\n"
-        "- Báo mã vé cho khách, chúc đi đường bình an, rồi gọi end_call.\n\n"
-        "TUYỆT ĐỐI KHÔNG:\n"
-        "- Không tự nghĩ ra chuyến, giờ chạy, giá vé, số ghế còn trống hay mã vé. Những thứ "
-        "đó CHỈ được lấy từ kết quả công cụ trả về. Chưa gọi công cụ thì chưa được nói.\n"
-        "- search_trips không trả về chuyến nào thì nói thật là tuyến hoặc ngày đó chưa có, "
-        "và gợi ý tuyến mà nhà xe đang chạy (công cụ có trả về danh sách này).\n"
-        "- Không hứa giữ ghế khi hold_seats báo không đủ chỗ."
+        "Bạn là nhân viên tổng đài nhà xe VéĐi, đang nghe điện thoại. Xưng \"em\", gọi khách "
+        "là \"anh\" hoặc \"chị\".\n\n"
+        f"Hôm nay là {today_vn} (giờ Việt Nam). Tự quy ngày khách nói ra ngày cụ thể: "
+        "\"mai\", \"ngày 20 tháng 7\", \"thứ sáu tuần này\", \"cuối tuần\"...\n\n"
+        "NÓI CHUYỆN NHƯ NGƯỜI THẬT:\n"
+        "- Câu ngắn. Mỗi lượt nói một hai câu thôi, đừng đọc một tràng dài.\n"
+        "- Mở đầu bằng \"Dạ\", \"Vâng\", \"Dạ rồi\" cho tự nhiên, nhưng đừng lặp mãi một chữ.\n"
+        "- Nghe khách xong thì đáp lại cái vừa nghe rồi mới hỏi tiếp, đừng hỏi trống không.\n"
+        "- Đừng bao giờ hỏi lại thứ khách đã nói. Nhớ hết những gì khách đã cung cấp.\n"
+        "- Đừng nói kiểu liệt kê biểu mẫu (\"điểm đi, điểm đến, ngày đi và số vé\"). Hỏi từng "
+        "thứ một cách tự nhiên: \"Dạ anh đi ngày nào ạ?\"\n"
+        "- Khách nói lộn xộn, ngập ngừng, đổi ý, nói nhầm thì cứ bình thường như người thật.\n\n"
+        "LẤP KHOẢNG CHỜ:\n"
+        "- Trước khi gọi bất kỳ công cụ nào (tra chuyến, giữ chỗ, xuất vé), hãy nói một câu "
+        "ngắn báo cho khách biết mình đang làm gì rồi hãy gọi: \"Dạ anh chờ em chút, em kiểm "
+        "tra chuyến ạ\", \"Vâng để em giữ chỗ cho mình nhé\", \"Dạ em đang xuất vé ạ\". "
+        "Đổi cách nói mỗi lần. Việc này giúp khách không phải nghe im lặng lúc hệ thống tra cứu.\n\n"
+        "CÁCH ĐỌC SỐ VÀ NGÀY:\n"
+        "- Viết tiền bằng chữ số kèm \"đồng\" (ví dụ 530.000 đồng), hệ thống sẽ tự đọc thành lời.\n"
+        "- Nói ngày kiểu người Việt: \"ngày 20 tháng 7\", không đọc dạng năm-tháng-ngày.\n"
+        "- Đọc số điện thoại tách từng cụm cho khách dễ nghe.\n\n"
+        "QUY TRÌNH:\n"
+        "- Đủ điểm đi, điểm đến, ngày, số vé thì gọi search_trips.\n"
+        "- Khách chọn chuyến thì gọi hold_seats, rồi xin họ tên và số điện thoại.\n"
+        "- Đọc lại cho khách nghe, khách đồng ý mới gọi confirm_booking.\n"
+        "- Báo mã vé, chúc đi đường bình an, rồi gọi end_call.\n"
+        "- Khách muốn đổi chuyến hoặc bỏ vé đã đặt thì gọi cancel_booking rồi tìm chuyến khác.\n\n"
+        "KHÔNG ĐƯỢC:\n"
+        "- Không tự nghĩ ra chuyến, giờ chạy, giá vé, số ghế trống hay mã vé. Những thứ đó chỉ "
+        "lấy từ kết quả công cụ. Chưa gọi công cụ thì chưa được nói.\n"
+        "- search_trips không có chuyến nào thì nói thật, rồi gợi ý tuyến nhà xe đang chạy.\n"
+        "- Không hứa giữ đủ ghế khi hold_seats báo còn ít hơn."
     )
 
 # Spoken when the booking backend is unreachable — never leave the caller in silence.
@@ -265,7 +284,9 @@ def _cascade_stt(language: str):
 
 def _turn_detector():
     if CASCADE_TURN_DETECTOR == "rules":
-        return RuleBasedTurnDetector()
+        # Tiếng Việt: bỏ danh sách từ tiếng Anh, nếu không "Nghệ An" bị coi là
+        # câu chưa xong và mỗi lượt phải chờ hết max_endpointing_delay.
+        return RuleBasedTurnDetector(language="vi")
     return None
 
 
@@ -346,6 +367,32 @@ class BusBookingAgent(Agent):
         # what the caller is being told.
         self._selected_trip: Optional[dict] = None
         self._offers: dict[str, dict] = {}
+
+    async def tts_node(self, text, model_settings):
+        """Chuẩn hoá ngay trước khi tổng hợp giọng.
+
+        Đặt ở đây chứ không nhờ mô hình tự viết đúng, vì mô hình sẽ quên: chỉ cần
+        một câu lọt ra là khách nghe thấy "anh trên chị" hoặc dãy số đọc từng chữ.
+        Chặn ở cửa cuối thì mọi câu đều đi qua."""
+
+        async def normalized():
+            # Văn bản tới theo từng mảnh nhỏ, "1.060.000" có thể bị cắt làm đôi và
+            # regex sẽ trượt. Gom đến hết câu rồi mới chuẩn hoá. Ranh giới câu bỏ
+            # qua dấu chấm đứng sau chữ số, vì tiếng Việt dùng dấu chấm ngăn nghìn.
+            buffer = ""
+            async for chunk in text:
+                buffer += chunk
+                while True:
+                    match = _SENTENCE_END_RE.search(buffer)
+                    if not match:
+                        break
+                    head, buffer = buffer[: match.end()], buffer[match.end():]
+                    yield normalize_for_speech(head)
+            if buffer:
+                yield normalize_for_speech(buffer)
+
+        async for frame in Agent.default.tts_node(self, normalized(), model_settings):
+            yield frame
 
     async def _publish(self, payload: dict) -> None:
         if self._room is None:
@@ -496,6 +543,26 @@ class BusBookingAgent(Agent):
                     passengerCount=len(data.get("seatCodes") or []),
                 ),
             })
+        return data
+
+    @function_tool()
+    async def cancel_booking(self, context: RunContext) -> dict:
+        """Huỷ vé đã đặt trong cuộc gọi này và trả ghế lại cho khách khác.
+
+        Gọi khi khách đổi ý, muốn đổi chuyến hoặc đổi giờ sau khi đã xuất vé.
+        Huỷ xong thì tìm chuyến mới bằng search_trips như bình thường.
+        cancelled=false nghĩa là không có vé nào để huỷ — nói thật với khách.
+        """
+        if not self._conversation_id:
+            return {"error": "no_conversation"}
+        data = await self._call_api(
+            "/api/booking/cancel", {"conversationId": self._conversation_id}
+        )
+        if data is None:
+            return {"error": "backend_unavailable"}
+        if data.get("cancelled"):
+            self._selected_trip = None
+            await self._publish({"type": "booking.update", "booking": self._draft_payload()})
         return data
 
     @function_tool()
