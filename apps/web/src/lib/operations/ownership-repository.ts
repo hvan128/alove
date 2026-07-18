@@ -33,7 +33,13 @@ export function seededOwnership(): OwnershipMemoryState {
   return { ownership: new Map(), audit: [] }
 }
 
-const sharedMemory = seededOwnership()
+// Pinned to globalThis rather than a module constant: the dashboard reads this
+// store from a server component while the command routes write to it from route
+// handlers, and Next.js compiles those into separate module instances in dev.
+// A plain module-level store would give each side its own copy, so an accepted
+// call would never show an owner on the page that triggered it.
+const globalStore = globalThis as typeof globalThis & { __vediOwnershipMemory?: OwnershipMemoryState }
+const sharedMemory: OwnershipMemoryState = globalStore.__vediOwnershipMemory ??= seededOwnership()
 
 const DEFAULT_AUDIT_LIMIT = 20
 

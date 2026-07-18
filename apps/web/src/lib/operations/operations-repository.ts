@@ -137,7 +137,10 @@ function createMemoryOperationsRepository(
     async getDashboard(at, options) {
       // Ownership lives in its own repository, so the fixture supplies the call
       // list and the ownership store supplies who actually holds each one.
-      const owners = await ownership.getMany(memory.activeCalls.map((call) => call.sessionCode))
+      const owners = await ownership.getMany([
+        ...memory.activeCalls.map((call) => call.sessionCode),
+        ...memory.queue.map((call) => call.sessionCode),
+      ])
       return projectMemory(memory, at, owners, await ownership.listAudit(), options)
     },
     async getReport(range) {
@@ -173,6 +176,11 @@ function projectMemory(
   auditTrail: OperationsAuditEvent[],
   options: DashboardOptions | undefined,
 ): OperationsDashboardSnapshot {
+  // A claimed call leaves the queue. Leaving it visible invites a second
+  // dispatcher to accept a session that is already owned and only find out
+  // from a 409.
+  const waiting = memory.queue.filter((call) => !owners.get(call.sessionCode)?.ownerId)
+
   const activeCalls = memory.activeCalls.map((call) => {
     const owner = owners.get(call.sessionCode) ?? unassignedOwnership(call.sessionCode)
     return {
@@ -190,15 +198,15 @@ function projectMemory(
     // Metrics describe the shift, not the current filter, so they are computed
     // before any search is applied.
     metrics: {
-      queuedCalls: memory.queue.length,
-      longestWaitSeconds: Math.max(0, ...memory.queue.map((call) => call.waitSeconds)),
+      queuedCalls: waiting.length,
+      longestWaitSeconds: Math.max(0, ...waiting.map((call) => call.waitSeconds)),
       activeCalls: memory.activeCalls.length,
       callsToday: memory.callsToday,
       confirmedBookings: memory.confirmedBookings,
       conversionRate: percentage(memory.confirmedBookings, memory.callsToday),
       agentAssistRate: percentage(memory.assistedCalls, memory.callsToday),
     },
-    queue: matchAll(structuredClone(memory.queue), options?.query, (call) => [call.sessionCode, call.routeLabel]),
+    queue: matchAll(structuredClone(waiting), options?.query, (call) => [call.sessionCode, call.routeLabel]),
     activeCalls: matchAll(activeCalls, options?.query, (call) => [
       call.sessionCode,
       call.bookingState,
@@ -242,7 +250,8 @@ function createNeonOperationsRepository(ownership: OwnershipRepository): Operati
       const callsTodayIds = new Set(callsToday.map((call) => call.id))
       const confirmed = bookingRows.filter((booking) => booking.status === 'confirmed')
       const confirmedToday = confirmed.filter((booking) => callsTodayIds.has(booking.callId))
-      const waiting = callRows.filter((call) => call.status === 'waiting')
+      // Same rule as the memory projection: an owned call is no longer queued.
+      const waiting = callRows.filter((call) => call.status === 'waiting' && !call.ownerId)
       const active = callRows.filter((call) => !['waiting', 'ended'].includes(call.status))
 
       const queue = waiting.map((call) => {

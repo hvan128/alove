@@ -3,11 +3,12 @@ import type { OperationsDashboardSnapshot } from '@/lib/operations/operations-re
 import { RobotIcon, UserCircleIcon, WaveformIcon } from '@phosphor-icons/react/dist/ssr'
 import Link from 'next/link'
 import { canPerform } from '@/lib/auth/operator-permissions'
-import { DelegateAgentButton } from './call-actions'
+import { AcceptCallButton, DelegateAgentButton } from './call-actions'
 
 type ActiveCall = OperationsDashboardSnapshot['activeCalls'][number]
 
 export function ActiveCallList({ calls, role }: { calls: ActiveCall[]; role: OperatorRole }) {
+  const canAccept = canPerform(role, 'call.accept')
   const canDelegate = canPerform(role, 'call.delegate')
 
   return (
@@ -57,6 +58,14 @@ export function ActiveCallList({ calls, role }: { calls: ActiveCall[]; role: Ope
                 <p className="mt-2 rounded-xl bg-[var(--warning-soft)] px-3 py-2 text-xs text-[var(--warning)]">
                   Đã thu quyền · {call.takeoverReason}
                 </p>
+              ) : null}
+
+              {/* An in-progress call nobody claimed is still claimable; otherwise
+                  it could only be accepted while it sat in the queue. */}
+              {canAccept && !call.ownerId ? (
+                <div className="mt-2">
+                  <AcceptCallButton sessionCode={call.sessionCode} />
+                </div>
               ) : null}
 
               {canDelegate && call.ownerId ? (
