@@ -1,0 +1,4575 @@
+{
+  "dataset_id": "vedi_voice_booking_eval_base_v2",
+  "dataset_role": "base",
+  "description": "Ten long base booking calls following the lab-style failure-driven contract.",
+  "schema_version": "2.0",
+  "fixture_version": "2.0",
+  "cases": [
+    {
+      "id": "CASE_001",
+      "phase": "B",
+      "suite": "base",
+      "title": "Khách lần đầu đặt vé Hà Nội đi Nghệ An",
+      "failure_type": "booking_without_confirmation",
+      "focus_turn": 14,
+      "preconditions": {
+        "call_datetime": "2026-07-18T09:00:00+07:00",
+        "timezone": "Asia/Ho_Chi_Minh",
+        "fixture_refs": [
+          "fixtures/v2/catalog.json",
+          "fixtures/v2/policies.json",
+          "fixtures/v2/case_overrides.json#/tool_results/CASE_001"
+        ],
+        "existing_bookings": []
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "customer": "Alo em ơi, anh chưa đặt vé xe qua điện thoại bao giờ. Anh muốn đi từ Hà Nội về Vinh thì làm thế nào?",
+          "expect": {
+            "agent_response": {
+              "reference": "Em chào anh. Em có thể hỗ trợ đặt chuyến Hà Nội đi Nghệ An, trả tại Vinh. Trước hết anh cho em biết ngày đi và số hành khách nhé.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "origin": "Hà Nội",
+              "destination": "Nghệ An"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 2,
+          "customer": "Anh đi ngày mai, có một mình thôi em.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, tính từ thời điểm anh gọi thì ngày mai là 19/07/2026 và có 1 hành khách. Anh muốn khởi hành khoảng mấy giờ?",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "travel_date": "2026-07-19",
+              "passenger_count": 1
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 3,
+          "customer": "Anh cần chuyến tối, sau chín giờ có chuyến nào không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Em tìm thấy chuyến 21:30 ngày 19/07, xe giường nằm 34 chỗ, đến lúc 02:30 và giá 350.000 đồng.",
+              "must_include_facts": [
+                "19/07 21:30"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "search_trips",
+                "arguments": {
+                  "origin": "Hà Nội",
+                  "destination": "Nghệ An",
+                  "date": "2026-07-19",
+                  "passengers": 1
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_001/turn_03_search_trips"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 4,
+          "customer": "Ừ, lấy chuyến 21:30 đó cho anh.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em ghi nhận chuyến 21:30, giường nằm 34 chỗ. Anh có yêu cầu vị trí ghế không?",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "selected_trip_id": "HN-NA-20260719-2130-GN34"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 5,
+          "customer": "Nếu còn thì giữ chỗ ghế tầng dưới phía trước giúp anh, anh dễ say xe.",
+          "expect": {
+            "agent_response": {
+              "reference": "Chuyến còn ghế B01 ở tầng dưới, khu vực phía trước. Em sẽ giữ B01 cho anh với giá 350.000 đồng.",
+              "must_include_facts": [
+                "B01",
+                "350000"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "held_seats": [
+                "B01"
+              ]
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "hold_seats",
+                "arguments": {
+                  "trip_id": "HN-NA-20260719-2130-GN34",
+                  "passengers": 1
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_001/turn_05_hold_seats"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 6,
+          "customer": "Người đi là anh, tên Nguyễn Minh Khôi nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã ghi hành khách Nguyễn Minh Khôi, người lớn, ghế B01. Anh cũng là người đứng tên đặt vé đúng không?",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "passenger_name": "Nguyễn Minh Khôi"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 7,
+          "customer": "Đúng rồi. Điểm đón ở bến xe Mỹ Đình được chứ?",
+          "expect": {
+            "agent_response": {
+              "reference": "Được anh. Bến xe Mỹ Đình là điểm đón hợp lệ; anh cần có mặt trước giờ khởi hành 30 phút.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "pickup_point": "Bến xe Mỹ Đình"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 8,
+          "customer": "Ở Vinh thì cho anh xuống Bến xe Vinh luôn.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em chọn điểm trả Bến xe Vinh.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "dropoff_point": "Bến xe Vinh"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 9,
+          "customer": "Anh trả tiền mặt lúc lên xe có được không em?",
+          "expect": {
+            "agent_response": {
+              "reference": "Được anh. Em ghi phương thức tiền mặt khi lên xe; trạng thái thanh toán sẽ là chờ thanh toán.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 10,
+          "customer": "Anh có một vali khoảng mười ký, hành lý vậy có phải mua thêm vé không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Không anh. Mỗi hành khách được mang tối đa 20 kg hành lý ký gửi và một túi xách tay tối đa 7 kg; vali 10 kg của anh nằm trong hạn mức.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 11,
+          "customer": "Số điện thoại anh là 0912345601, em ghi giúp.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã ghi số 0912345601. Em sẽ dùng số này làm thông tin liên hệ cho mã vé.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "phone": "0912345601"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 12,
+          "customer": "Tên anh có dấu Khôi, không phải Khởi nhé, em đọc lại xem.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em đang ghi đúng là Nguyễn Minh Khôi, số 0912345601.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 13,
+          "customer": "Tổng cộng đúng ba trăm năm mươi nghìn thôi phải không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Đúng anh, 1 vé nhân đơn giá 350.000 đồng là tổng 350.000 đồng, thanh toán tiền mặt khi lên xe.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 14,
+          "customer": "Trước khi chốt, em gom ngày giờ, ghế và điểm đón trả thành một lượt cho anh nghe nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ: anh Nguyễn Minh Khôi, 0912345601; đi Hà Nội đến Nghệ An ngày 19/07/2026 lúc 21:30, xe giường nằm 34 chỗ, ghế B01; đón Bến xe Mỹ Đình, trả Bến xe Vinh; 1 hành khách; trả tiền mặt khi lên xe, tổng 350.000 đồng.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true,
+            "checkpoint_failure_type": "booking_without_confirmation"
+          }
+        },
+        {
+          "turn": 15,
+          "customer": "Anh nghe khớp hết rồi: chuyến 21:30, ghế B01. Anh đồng ý chốt đúng bản này.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em đã ghi nhận anh đồng ý với toàn bộ thông tin và sẵn sàng cấp mã vé.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "explicit_confirmation": true
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 16,
+          "customer": "Cứ tiến hành và đọc mã vé cho anh.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, vé đã được xác nhận với mã VA-CASE_001. Anh vui lòng có mặt tại Bến xe Mỹ Đình trước 21:00.",
+              "must_include_facts": [
+                "VD-260719-0001",
+                "350000"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "booking_code": "VD-260719-0001",
+              "booking_status": "confirmed"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "confirm_booking",
+                "arguments": {
+                  "trip_id": "HN-NA-20260719-2130-GN34",
+                  "passenger_name": "Nguyễn Minh Khôi",
+                  "phone": "0912345601"
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_001/turn_16_confirm_booking"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 17,
+          "customer": "Cảm ơn em, vậy là đủ rồi nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, cảm ơn anh chị đã đặt vé. Chúc anh chị có chuyến đi thuận lợi ạ.",
+              "must_include_facts": [
+                "cảm ơn"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "call_status": "ended"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "end_call",
+                "arguments": {},
+                "arguments_match": "exact"
+              }
+            ]
+          }
+        }
+      ],
+      "expect": {
+        "required_tool_sequence": [
+          "search_trips",
+          "hold_seats",
+          "confirm_booking",
+          "end_call"
+        ],
+        "forbidden_tool_calls": [],
+        "final_state": {
+          "booking_status": "confirmed",
+          "call_status": "ended",
+          "booking_code": "VD-260719-0001"
+        },
+        "final_outcome": "booking_confirmed"
+      },
+      "metadata": {
+        "difficulty": "hard",
+        "scenario_type": "challenge",
+        "customer_region": "Việt Nam",
+        "languages": [
+          "vi"
+        ],
+        "audio_conditions": [
+          "text_only"
+        ],
+        "risk_tags": [
+          "booking_without_confirmation"
+        ],
+        "what_it_tests": "Final booking must follow a recap and explicit customer confirmation.",
+        "source_cases": [
+          "CASE_001"
+        ]
+      }
+    },
+    {
+      "id": "CASE_002",
+      "phase": "B",
+      "suite": "base",
+      "title": "Gia đình bốn người đổi một phòng để ngồi gần nhau",
+      "failure_type": "wrong_arg_value",
+      "focus_turn": 2,
+      "preconditions": {
+        "call_datetime": "2026-07-18T09:00:00+07:00",
+        "timezone": "Asia/Ho_Chi_Minh",
+        "fixture_refs": [
+          "fixtures/v2/catalog.json",
+          "fixtures/v2/policies.json",
+          "fixtures/v2/case_overrides.json#/tool_results/CASE_002"
+        ],
+        "existing_bookings": []
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "customer": "Alo, chị cần đặt bốn vé từ Hà Nội về Nghệ An ngày 20, nhà chị đi cả gia đình.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em chào chị. Em ghi nhận tuyến Hà Nội đi Nghệ An ngày 20/07/2026 cho 4 hành khách. Chị cho em biết nhóm có bao nhiêu người lớn và trẻ em nhé.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "origin": "Hà Nội",
+              "destination": "Nghệ An",
+              "travel_date": "2026-07-20",
+              "passenger_count": 4
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 2,
+          "customer": "Hai vợ chồng với hai bé, một bé mười tuổi và một bé sáu tuổi. Trẻ em có tính ghế không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ có chị. Hai bé cần đi cùng người lớn, có thông tin và ghế riêng; giá mỗi ghế bằng đơn giá niêm yết của chuyến.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true,
+            "checkpoint_failure_type": "wrong_arg_value"
+          }
+        },
+        {
+          "turn": 3,
+          "customer": "Nhà chị muốn đi khoảng tám giờ tối, em tìm chuyến còn bốn phòng nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Có chuyến 20:00 ngày 20/07, Limousine 21 Phòng VIP, còn đủ 4 chỗ và giá 530.000 đồng mỗi hành khách.",
+              "must_include_facts": [
+                "20/07 20:00"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "search_trips",
+                "arguments": {
+                  "origin": "Hà Nội",
+                  "destination": "Nghệ An",
+                  "date": "2026-07-20",
+                  "passengers": 4
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_002/turn_03_search_trips"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 4,
+          "customer": "Chọn chuyến VIP tám giờ đó. Xe đến Vinh lúc mấy giờ?",
+          "expect": {
+            "agent_response": {
+              "reference": "Chuyến đến lúc 01:00 ngày hôm sau. Em đã chọn Limousine 21 Phòng VIP lúc 20:00.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "selected_trip_id": "HN-NA-20260720-2000-VIP21"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 5,
+          "customer": "Chị muốn hai vợ chồng ở tầng dưới, hai bé gần bố mẹ; bé lớn lại thích thử tầng trên.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em có thể bố trí ba phòng tầng dưới A01, A02, B01 và một phòng tầng trên C01. A01–A02 là một cặp liền nhau; chị có muốn giữ phương án đó trước không?",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 6,
+          "customer": "Ừ, giữ A01, A02, B01 với C01 trước cho chị.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã giữ bốn phòng A01, A02, B01 và C01; tổng tạm tính 2.120.000 đồng.",
+              "must_include_facts": [
+                "A01",
+                "A02",
+                "B01",
+                "C01",
+                "2120000"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "held_seats": [
+                "A01",
+                "A02",
+                "B01",
+                "C01"
+              ]
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "hold_seats",
+                "arguments": {
+                  "trip_id": "HN-NA-20260720-2000-VIP21",
+                  "passengers": 4
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_002/turn_06_hold_seats"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 7,
+          "customer": "Khoan, chồng chị bảo bé không nên ở tầng trên. Đổi đúng C01 sang B02 được không, còn các phòng kia giữ nguyên?",
+          "expect": {
+            "agent_response": {
+              "reference": "Được chị. B02 còn trống và liền B01; em đổi một phòng C01 sang B02. Phương án cuối là hai cặp tầng dưới A01–A02 và B01–B02.",
+              "must_include_facts": [
+                "A01",
+                "A02",
+                "B01",
+                "B02",
+                "2120000"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "held_seats": [
+                "A01",
+                "A02",
+                "B01",
+                "B02"
+              ]
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "hold_seats",
+                "arguments": {
+                  "trip_id": "HN-NA-20260720-2000-VIP21",
+                  "passengers": 4
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_002/turn_07_hold_seats"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 8,
+          "customer": "Tên lần lượt là Lê Thu Hà, Phạm Quốc Dũng, bé Phạm Gia An và bé Phạm Minh Anh.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã xếp chị Hà ghế A01, anh Dũng A02, bé Gia An B01 và bé Minh Anh B02; hai bé được ghi là hành khách trẻ em.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "passenger_name": "Lê Thu Hà"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 9,
+          "customer": "Điểm đón cho cả nhà ở Công viên Hòa Bình nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em chọn Công viên Hòa Bình. Gia đình cần có mặt trước 19:30.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "pickup_point": "Công viên Hòa Bình"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 10,
+          "customer": "Xuống Văn phòng Vinh cho tiện người nhà đón.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã chọn điểm trả Văn phòng Vinh.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "dropoff_point": "Văn phòng Vinh"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 11,
+          "customer": "Số chị 0923456702. Chị đứng tên đặt vé luôn.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, người đặt Lê Thu Hà, số liên hệ 0923456702.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "phone": "0923456702"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 12,
+          "customer": "Chị quét QR sau khi có mã thì được chứ?",
+          "expect": {
+            "agent_response": {
+              "reference": "Được chị. Em ghi thanh toán bằng QR và hiện đang chờ giao dịch; chỉ khi thanh toán thành công mới ghi là đã trả.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 13,
+          "customer": "Hai bé cũng 530 nghìn một người thật à em?",
+          "expect": {
+            "agent_response": {
+              "reference": "Đúng chị. Mỗi bé có một ghế riêng với giá 530.000 đồng như các ghế khác, nên tổng của 4 người là 2.120.000 đồng.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 14,
+          "customer": "Em nhắc lại xem bé nào ghế nào, chị sợ nhầm hai đứa.",
+          "expect": {
+            "agent_response": {
+              "reference": "Bé Phạm Gia An ở B01 và bé Phạm Minh Anh ở B02; bố mẹ ở A01 và A02. Cả bốn đều là phòng tầng dưới, chia thành hai cặp liền nhau.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 15,
+          "customer": "Chị muốn kiểm tra lần cuối theo từng cặp ghế, rồi em đọc luôn chuyến và tiền nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Chị Lê Thu Hà A01, anh Phạm Quốc Dũng A02, bé Phạm Gia An B01, bé Phạm Minh Anh B02; đi Hà Nội–Nghệ An ngày 20/07 lúc 20:00, Limousine 21 Phòng VIP; đón Công viên Hòa Bình, trả Văn phòng Vinh; thanh toán QR đang chờ hoàn tất; tổng 2.120.000 đồng. Số liên hệ là 0923456702.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 16,
+          "customer": "Bốn tên, bốn ghế và các điểm đều đúng; chị đồng ý chốt cho cả nhà.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em đã ghi nhận chị đồng ý với phương án hai cặp phòng tầng dưới.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "explicit_confirmation": true
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 17,
+          "customer": "Em cấp mã để chị lưu cho cả nhà nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, vé của gia đình đã được xác nhận với mã VA-CASE_002.",
+              "must_include_facts": [
+                "VD-260720-0002",
+                "2120000"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "booking_code": "VD-260720-0002",
+              "booking_status": "confirmed"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "confirm_booking",
+                "arguments": {
+                  "trip_id": "HN-NA-20260720-2000-VIP21",
+                  "passenger_name": "Lê Thu Hà",
+                  "phone": "0923456702"
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_002/turn_17_confirm_booking"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 18,
+          "customer": "Cảm ơn em, vậy là đủ rồi nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, cảm ơn anh chị đã đặt vé. Chúc anh chị có chuyến đi thuận lợi ạ.",
+              "must_include_facts": [
+                "cảm ơn"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "call_status": "ended"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "end_call",
+                "arguments": {},
+                "arguments_match": "exact"
+              }
+            ]
+          }
+        }
+      ],
+      "expect": {
+        "required_tool_sequence": [
+          "search_trips",
+          "hold_seats",
+          "hold_seats",
+          "confirm_booking",
+          "end_call"
+        ],
+        "forbidden_tool_calls": [],
+        "final_state": {
+          "booking_status": "confirmed",
+          "call_status": "ended",
+          "booking_code": "VD-260720-0002"
+        },
+        "final_outcome": "booking_confirmed"
+      },
+      "metadata": {
+        "difficulty": "hard",
+        "scenario_type": "challenge",
+        "customer_region": "Việt Nam",
+        "languages": [
+          "vi"
+        ],
+        "audio_conditions": [
+          "text_only"
+        ],
+        "risk_tags": [
+          "wrong_arg_value"
+        ],
+        "what_it_tests": "Passenger count four must survive vehicle and seat discussion.",
+        "source_cases": [
+          "CASE_002"
+        ]
+      }
+    },
+    {
+      "id": "CASE_003",
+      "phase": "B",
+      "suite": "base",
+      "title": "Trưởng nhóm miền Nam đặt năm vé cho đồng nghiệp",
+      "failure_type": "wrong_arg_value",
+      "focus_turn": 2,
+      "preconditions": {
+        "call_datetime": "2026-07-18T09:00:00+07:00",
+        "timezone": "Asia/Ho_Chi_Minh",
+        "fixture_refs": [
+          "fixtures/v2/catalog.json",
+          "fixtures/v2/policies.json",
+          "fixtures/v2/case_overrides.json#/tool_results/CASE_003"
+        ],
+        "existing_bookings": []
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "customer": "Alo em, anh cần năm vé từ Sài Gòn lên Đà Lạt tối mai cho nhóm công ty, còn chuyến không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Em chào anh. Em ghi nhận 5 hành khách, Sài Gòn đi Đà Lạt ngày 19/07/2026. Anh muốn khởi hành khoảng mấy giờ?",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "origin": "Sài Gòn",
+              "destination": "Đà Lạt",
+              "travel_date": "2026-07-19",
+              "passenger_count": 5
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 2,
+          "customer": "Tầm mười giờ đêm. Em kiểm tra kỹ coi một chuyến còn đủ năm giường nha.",
+          "expect": {
+            "agent_response": {
+              "reference": "Ngày 19/07 có chuyến giường nằm 34 chỗ lúc 22:00 còn đúng 5 ghế, và chuyến Limousine 22 Phòng lúc 23:30 cũng còn đủ. Anh muốn chuyến nào?",
+              "must_include_facts": [
+                "19/07 22:00",
+                "19/07 23:30"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "search_trips",
+                "arguments": {
+                  "origin": "Sài Gòn",
+                  "destination": "Đà Lạt",
+                  "date": "2026-07-19",
+                  "passengers": 5
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_003/turn_02_search_trips"
+              }
+            ],
+            "checkpoint_failure_type": "wrong_arg_value"
+          }
+        },
+        {
+          "turn": 3,
+          "customer": "Lấy chuyến 22:00 giường nằm cho đỡ tốn, tới Đà Lạt mấy giờ?",
+          "expect": {
+            "agent_response": {
+              "reference": "Chuyến 22:00 đến lúc 05:30 sáng hôm sau, giá 320.000 đồng mỗi người.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "selected_trip_id": "SG-DL-20260719-2200-GN34"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 4,
+          "customer": "Năm ghế còn lại có ghế tầng dưới không, hay toàn tầng trên vậy em?",
+          "expect": {
+            "agent_response": {
+              "reference": "Còn B01 và D01 ở tầng dưới; A01, A03 và C01 ở tầng trên. Vì chỉ còn đúng năm ghế nên nhóm sẽ dùng cả năm vị trí này.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 5,
+          "customer": "Vậy giữ chỗ cả năm ghế đó luôn, B01 với D01 cho hai anh lớn tuổi hơn.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã giữ A01, A03, B01, C01 và D01; tổng tiền 1.600.000 đồng.",
+              "must_include_facts": [
+                "A01",
+                "A03",
+                "B01",
+                "C01",
+                "D01",
+                "1600000"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "held_seats": [
+                "A01",
+                "A03",
+                "B01",
+                "C01",
+                "D01"
+              ]
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "hold_seats",
+                "arguments": {
+                  "trip_id": "SG-DL-20260719-2200-GN34",
+                  "passengers": 5
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_003/turn_05_hold_seats"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 6,
+          "customer": "Tên năm người là Trần Hoàng Phúc, Võ Minh Tài, Nguyễn Thanh Sơn, Lâm Quốc Bảo với Đặng Văn Hòa.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em ghi lần lượt: Phúc A01, Tài A03, Sơn B01, Bảo C01 và Hòa D01; cả năm là hành khách người lớn.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "passenger_name": "Trần Hoàng Phúc"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 7,
+          "customer": "Tụi anh lên ở Ngã tư Hàng Xanh được hông?",
+          "expect": {
+            "agent_response": {
+              "reference": "Được anh, Ngã tư Hàng Xanh là điểm đón của chuyến. Nhóm cần có mặt trước giờ xe chạy 30 phút.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "pickup_point": "Ngã tư Hàng Xanh"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 8,
+          "customer": "Xuống ngay Bến xe liên tỉnh Đà Lạt nghen.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em chọn điểm trả Bến xe liên tỉnh Đà Lạt.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "dropoff_point": "Bến xe liên tỉnh Đà Lạt"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 9,
+          "customer": "Mỗi người có một vali cỡ mười lăm ký, hành lý vậy ổn không em?",
+          "expect": {
+            "agent_response": {
+              "reference": "Ổn anh. Mỗi người được mang tối đa 20 kg hành lý ký gửi và một túi xách tay tối đa 7 kg.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 10,
+          "customer": "Có một hộp dụng cụ hơi bự, nhà xe nhận luôn được chứ?",
+          "expect": {
+            "agent_response": {
+              "reference": "Đồ cồng kềnh cần nhân viên vận hành xác nhận riêng nên em chưa thể hứa chắc qua cuộc gọi này. Anh có thể bỏ yêu cầu đó hoặc nhờ nhân viên kiểm tra riêng.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 11,
+          "customer": "Thôi hộp đó để lại công ty, chỉ mang năm vali thôi.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em giữ thông tin đặt chỗ với năm vali trong hạn mức và không ghi nhận hộp dụng cụ cồng kềnh.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 12,
+          "customer": "Anh Phúc đứng tên, số 0934567803 nha.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã ghi người đặt Trần Hoàng Phúc, số 0934567803.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "phone": "0934567803"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 13,
+          "customer": "Cho anh chuyển khoản ngân hàng, giờ mới ghi phương thức thôi chứ chưa báo đã trả nha.",
+          "expect": {
+            "agent_response": {
+              "reference": "Đúng anh. Em ghi thanh toán bằng chuyển khoản ngân hàng và hiện đang chờ giao dịch; chưa có kết quả thành công thì chưa coi là đã trả.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 14,
+          "customer": "Anh cần một bản bàn giao rõ từng người với từng ghế, kèm chuyến và tổng tiền.",
+          "expect": {
+            "agent_response": {
+              "reference": "Người đặt Trần Hoàng Phúc, số 0934567803. Ghế được xếp: Trần Hoàng Phúc A01, Võ Minh Tài A03, Nguyễn Thanh Sơn B01, Lâm Quốc Bảo C01, Đặng Văn Hòa D01. Nhóm đi Sài Gòn–Đà Lạt ngày 19/07 lúc 22:00; đón Ngã tư Hàng Xanh, trả Bến xe liên tỉnh Đà Lạt; chuyển khoản đang chờ hoàn tất; tổng 1.600.000 đồng.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 15,
+          "customer": "Anh đại diện cả nhóm đồng ý đúng danh sách và cách xếp ghế vừa đọc.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em đã ghi nhận sự đồng ý của anh cho đủ năm hành khách.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "explicit_confirmation": true
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 16,
+          "customer": "Cho anh xin mã để gửi vào nhóm công ty.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, vé nhóm đã được xác nhận với mã VA-CASE_003.",
+              "must_include_facts": [
+                "VD-260719-0003",
+                "1600000"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "booking_code": "VD-260719-0003",
+              "booking_status": "confirmed"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "confirm_booking",
+                "arguments": {
+                  "trip_id": "SG-DL-20260719-2200-GN34",
+                  "passenger_name": "Trần Hoàng Phúc",
+                  "phone": "0934567803"
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_003/turn_16_confirm_booking"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 17,
+          "customer": "Cảm ơn em, vậy là đủ rồi nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, cảm ơn anh chị đã đặt vé. Chúc anh chị có chuyến đi thuận lợi ạ.",
+              "must_include_facts": [
+                "cảm ơn"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "call_status": "ended"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "end_call",
+                "arguments": {},
+                "arguments_match": "exact"
+              }
+            ]
+          }
+        }
+      ],
+      "expect": {
+        "required_tool_sequence": [
+          "search_trips",
+          "hold_seats",
+          "confirm_booking",
+          "end_call"
+        ],
+        "forbidden_tool_calls": [],
+        "final_state": {
+          "booking_status": "confirmed",
+          "call_status": "ended",
+          "booking_code": "VD-260719-0003"
+        },
+        "final_outcome": "booking_confirmed"
+      },
+      "metadata": {
+        "difficulty": "hard",
+        "scenario_type": "challenge",
+        "customer_region": "Việt Nam",
+        "languages": [
+          "vi"
+        ],
+        "audio_conditions": [
+          "text_only"
+        ],
+        "risk_tags": [
+          "wrong_arg_value"
+        ],
+        "what_it_tests": "A five-passenger group must use five in search and hold calls.",
+        "source_cases": [
+          "CASE_003"
+        ]
+      }
+    },
+    {
+      "id": "CASE_004",
+      "phase": "B",
+      "suite": "base",
+      "title": "Cặp đôi so sánh ba loại xe rồi nâng cấp phòng VIP",
+      "failure_type": "unnecessary_tool",
+      "focus_turn": 3,
+      "preconditions": {
+        "call_datetime": "2026-07-18T09:00:00+07:00",
+        "timezone": "Asia/Ho_Chi_Minh",
+        "fixture_refs": [
+          "fixtures/v2/catalog.json",
+          "fixtures/v2/policies.json",
+          "fixtures/v2/case_overrides.json#/tool_results/CASE_004"
+        ],
+        "existing_bookings": []
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "customer": "Em ơi, anh đặt hai vé Hà Nội về Nghệ An ngày 20, buổi tối có những loại xe nào?",
+          "expect": {
+            "agent_response": {
+              "reference": "Em chào anh. Em ghi nhận 2 hành khách, ngày 20/07/2026. Em sẽ tìm các chuyến tối để anh so sánh.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "origin": "Hà Nội",
+              "destination": "Nghệ An",
+              "travel_date": "2026-07-20",
+              "passenger_count": 2
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 2,
+          "customer": "Tìm giúp anh hết các chuyến tối còn đủ hai chỗ nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Có ba chuyến: 20:00 Limousine 21 Phòng VIP giá 530.000 đồng; 21:30 giường nằm 34 chỗ giá 350.000 đồng; 22:15 giường nằm 38 chỗ giá 340.000 đồng.",
+              "must_include_facts": [
+                "20/07 20:00",
+                "20/07 21:30"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "search_trips",
+                "arguments": {
+                  "origin": "Hà Nội",
+                  "destination": "Nghệ An",
+                  "date": "2026-07-20",
+                  "passengers": 2
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_004/turn_02_search_trips"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "customer": "Em nói luôn giờ tới của từng chuyến để anh cân nhắc.",
+          "expect": {
+            "agent_response": {
+              "reference": "VIP 20:00 đến 01:00; giường nằm 34 chỗ lúc 21:30 đến 02:30; giường nằm 38 chỗ lúc 22:15 đến 03:15.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true,
+            "checkpoint_failure_type": "unnecessary_tool"
+          }
+        },
+        {
+          "turn": 4,
+          "customer": "Ban đầu lấy chuyến rẻ nhất 22:15, xe 38 chỗ cho hai đứa anh.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em chọn chuyến 22:15, giường nằm 38 chỗ, đơn giá 340.000 đồng.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "selected_trip_id": "HN-NA-20260720-2215-GN38"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 5,
+          "customer": "Chuyến đó còn cặp ghế tầng dưới liền nhau không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Còn B01 và B02, đều tầng dưới phía trước và liền nhau. Em có thể giữ cặp này.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 6,
+          "customer": "Giữ B01 với B02 tạm cho anh.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã giữ B01, B02 trên chuyến 22:15; tổng 680.000 đồng.",
+              "must_include_facts": [
+                "B01",
+                "B02",
+                "680000"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "held_seats": [
+                "B01",
+                "B02"
+              ]
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "hold_seats",
+                "arguments": {
+                  "trip_id": "HN-NA-20260720-2215-GN38",
+                  "passengers": 2
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_004/turn_06_hold_seats"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 7,
+          "customer": "À khoan, bạn gái anh muốn đến sớm hơn. Nâng cấp sang chuyến phòng VIP 20:00 đi, bỏ cặp ghế cũ nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em đổi sang Limousine 21 Phòng VIP lúc 20:00 và bỏ giữ ghế của chuyến 22:15. Giá mới là 530.000 đồng mỗi người.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "selected_trip_id": "HN-NA-20260720-2000-VIP21"
+            },
+            "state_clear": [
+              "held_seats"
+            ],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 8,
+          "customer": "Phòng VIP còn hai phòng tầng dưới liền nhau thì giữ giúp anh.",
+          "expect": {
+            "agent_response": {
+              "reference": "Còn A01 và A02, cùng tầng dưới phía trước và liền nhau. Em giữ hai phòng này, tổng 1.060.000 đồng.",
+              "must_include_facts": [
+                "A01",
+                "A02",
+                "1060000"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "held_seats": [
+                "A01",
+                "A02"
+              ]
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "hold_seats",
+                "arguments": {
+                  "trip_id": "HN-NA-20260720-2000-VIP21",
+                  "passengers": 2
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_004/turn_08_hold_seats"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 9,
+          "customer": "Người đi là Đỗ Thành Nam ghế A01 và Nguyễn Ngọc Mai ghế A02.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã ghi hai hành khách người lớn: Đỗ Thành Nam A01 và Nguyễn Ngọc Mai A02.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "passenger_name": "Đỗ Thành Nam"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 10,
+          "customer": "Bọn anh đón ở Văn phòng Hà Nội.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em chọn điểm đón Văn phòng Hà Nội; anh chị cần có mặt trước 19:30.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "pickup_point": "Văn phòng Hà Nội"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 11,
+          "customer": "Điểm trả là Văn phòng Vinh luôn nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã chọn Văn phòng Vinh làm điểm trả.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "dropoff_point": "Văn phòng Vinh"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 12,
+          "customer": "Số anh Nam là 0945678904, anh đứng tên đặt.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em ghi người đặt Đỗ Thành Nam, số 0945678904.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "phone": "0945678904"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 13,
+          "customer": "Anh trả QR, nhưng hiện tại cứ để chờ thanh toán.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em ghi thanh toán bằng QR và hiện đang chờ giao dịch hoàn tất; chưa có kết quả thành công thì chưa coi là đã trả.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 14,
+          "customer": "Phòng VIP có những tiện ích gì, có chắc riêng tư hơn không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Thông tin hiện có chỉ xác nhận loại xe Limousine 21 Phòng VIP, giờ chạy và giá; em không đủ căn cứ để hứa thêm tiện ích hay mức riêng tư cụ thể.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 15,
+          "customer": "Vậy em đọc lại phương án cuối, đừng lẫn với chuyến 22:15 lúc đầu.",
+          "expect": {
+            "agent_response": {
+              "reference": "Phương án cuối là VIP 20:00 ngày 20/07, đến 01:00; Đỗ Thành Nam A01, Nguyễn Ngọc Mai A02; đón Văn phòng Hà Nội, trả Văn phòng Vinh; thanh toán QR đang chờ hoàn tất; tổng 1.060.000 đồng. Chuyến 22:15 cùng ghế B01, B02 đã được bỏ khỏi yêu cầu cuối.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 16,
+          "customer": "Anh chọn đúng phương án nâng cấp 20:00 và đồng ý bỏ hẳn lựa chọn 22:15.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em đã ghi nhận anh đồng ý với phương án VIP 20:00.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "explicit_confirmation": true
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 17,
+          "customer": "Khóa phương án nâng cấp và cấp mã cho anh.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, vé đã được xác nhận với mã VA-CASE_004.",
+              "must_include_facts": [
+                "VD-260720-0004",
+                "1060000"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "booking_code": "VD-260720-0004",
+              "booking_status": "confirmed"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "confirm_booking",
+                "arguments": {
+                  "trip_id": "HN-NA-20260720-2000-VIP21",
+                  "passenger_name": "Đỗ Thành Nam",
+                  "phone": "0945678904"
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_004/turn_17_confirm_booking"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 18,
+          "customer": "Cảm ơn em, vậy là đủ rồi nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, cảm ơn anh chị đã đặt vé. Chúc anh chị có chuyến đi thuận lợi ạ.",
+              "must_include_facts": [
+                "cảm ơn"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "call_status": "ended"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "end_call",
+                "arguments": {},
+                "arguments_match": "exact"
+              }
+            ]
+          }
+        }
+      ],
+      "expect": {
+        "required_tool_sequence": [
+          "search_trips",
+          "hold_seats",
+          "hold_seats",
+          "confirm_booking",
+          "end_call"
+        ],
+        "forbidden_tool_calls": [],
+        "final_state": {
+          "booking_status": "confirmed",
+          "call_status": "ended",
+          "booking_code": "VD-260720-0004"
+        },
+        "final_outcome": "booking_confirmed"
+      },
+      "metadata": {
+        "difficulty": "hard",
+        "scenario_type": "challenge",
+        "customer_region": "Việt Nam",
+        "languages": [
+          "vi"
+        ],
+        "audio_conditions": [
+          "text_only"
+        ],
+        "risk_tags": [
+          "unnecessary_tool"
+        ],
+        "what_it_tests": "Vehicle comparison is answered from the latest search result without an extra tool call.",
+        "source_cases": [
+          "CASE_004"
+        ]
+      }
+    },
+    {
+      "id": "CASE_005",
+      "phase": "B",
+      "suite": "base",
+      "title": "Khách say xe chọn ghế thay thế khi B01 không còn",
+      "failure_type": "hallucinated_inventory",
+      "focus_turn": 5,
+      "preconditions": {
+        "call_datetime": "2026-07-18T09:00:00+07:00",
+        "timezone": "Asia/Ho_Chi_Minh",
+        "fixture_refs": [
+          "fixtures/v2/catalog.json",
+          "fixtures/v2/policies.json",
+          "fixtures/v2/case_overrides.json#/tool_results/CASE_005"
+        ],
+        "existing_bookings": []
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "customer": "Alo em, cô cần một vé Hà Nội đi Nghệ An tối ngày 20, cô hay say xe lắm.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em chào cô. Em ghi nhận 1 hành khách đi Hà Nội–Nghệ An ngày 20/07/2026. Cô muốn giờ khởi hành khoảng nào?",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "origin": "Hà Nội",
+              "destination": "Nghệ An",
+              "travel_date": "2026-07-20",
+              "passenger_count": 1
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 2,
+          "customer": "Khoảng chín rưỡi tối có chuyến giường nằm không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Có chuyến giường nằm 34 chỗ lúc 21:30, đến 02:30, giá 350.000 đồng.",
+              "must_include_facts": [
+                "20/07 21:30"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "search_trips",
+                "arguments": {
+                  "origin": "Hà Nội",
+                  "destination": "Nghệ An",
+                  "date": "2026-07-20",
+                  "passengers": 1
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_005/turn_02_search_trips"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "customer": "Chọn chuyến đó cho cô.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em chọn chuyến 21:30 ngày 20/07, giường nằm 34 chỗ.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "selected_trip_id": "HN-NA-20260720-2130-GN34"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 4,
+          "customer": "Cô muốn đúng B01, ghế tầng dưới phía trước, còn không em?",
+          "expect": {
+            "agent_response": {
+              "reference": "B01 không nằm trong danh sách ghế còn của chuyến này. Chuyến vẫn còn chỗ; các ghế tầng dưới phía trước khả dụng là B02 và B03.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 5,
+          "customer": "Vậy giữ B02 cho cô, đừng chuyển lên tầng trên nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em giữ B02, đúng tầng dưới phía trước; tổng 350.000 đồng.",
+              "must_include_facts": [
+                "B02",
+                "350000"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "held_seats": [
+                "B02"
+              ]
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "hold_seats",
+                "arguments": {
+                  "trip_id": "HN-NA-20260720-2130-GN34",
+                  "passengers": 1
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_005/turn_05_hold_seats"
+              }
+            ],
+            "checkpoint_failure_type": "hallucinated_inventory"
+          }
+        },
+        {
+          "turn": 6,
+          "customer": "Chân cô yếu, lúc lên xuống xe có ai hỗ trợ được không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Nhà xe có thể hỗ trợ cô lên xuống khi được báo trước; em đã bổ sung nhu cầu này vào lựa chọn chỗ. Em không thể hứa dịch vụ y tế hay thiết bị chưa được xác nhận.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 7,
+          "customer": "Người đi là cô Hoàng Thị Hạnh, người lớn, ghế B02.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã ghi hành khách Hoàng Thị Hạnh, người lớn, ghế B02.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "passenger_name": "Hoàng Thị Hạnh"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 8,
+          "customer": "Điểm đón ở Bến xe Mỹ Đình cho dễ tìm.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em chọn Bến xe Mỹ Đình. Cô cần có mặt trước 21:00.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "pickup_point": "Bến xe Mỹ Đình"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 9,
+          "customer": "Cho cô xuống Văn phòng Vinh nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã chọn điểm trả Văn phòng Vinh.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "dropoff_point": "Văn phòng Vinh"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 10,
+          "customer": "Số điện thoại của cô là 0956789015.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em ghi số 0956789015 cho người đặt Hoàng Thị Hạnh.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "phone": "0956789015"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 11,
+          "customer": "Cô trả tiền mặt khi lên xe cho đơn giản.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em ghi cô sẽ trả tiền mặt khi lên xe; khoản này đang chờ thanh toán.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 12,
+          "customer": "Giá vé vẫn ba trăm năm mươi nghìn dù đổi từ B01 sang B02 chứ?",
+          "expect": {
+            "agent_response": {
+              "reference": "Đúng cô, đơn giá chuyến là 350.000 đồng; đổi sang B02 không làm thay đổi giá.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 13,
+          "customer": "Em kiểm tra lần nữa, mã ghế là B02 chứ không phải B01 nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Đúng cô, ghế được giữ là B02. B01 không còn chỗ và không xuất hiện trong phương án cuối.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 14,
+          "customer": "Cô cần nghe bản cuối có cả ghế thay thế và yêu cầu hỗ trợ lên xe.",
+          "expect": {
+            "agent_response": {
+              "reference": "Cô Hoàng Thị Hạnh, 0956789015; đi Hà Nội–Nghệ An ngày 20/07 lúc 21:30, giường nằm 34 chỗ, ghế B02 tầng dưới phía trước; có yêu cầu hỗ trợ lên xuống xe; đón Bến xe Mỹ Đình, trả Văn phòng Vinh; trả tiền mặt khi lên xe; tổng 350.000 đồng.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 15,
+          "customer": "Cô đồng ý ghế B02 cùng phần hỗ trợ và toàn bộ hành trình vừa đọc.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em đã ghi nhận cô đồng ý với phương án cuối.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "explicit_confirmation": true
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 16,
+          "customer": "Phát hành mã để cô ghi lại nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, vé đã được xác nhận với mã VA-CASE_005.",
+              "must_include_facts": [
+                "VD-260720-0005",
+                "350000"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "booking_code": "VD-260720-0005",
+              "booking_status": "confirmed"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "confirm_booking",
+                "arguments": {
+                  "trip_id": "HN-NA-20260720-2130-GN34",
+                  "passenger_name": "Hoàng Thị Hạnh",
+                  "phone": "0956789015"
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_005/turn_16_confirm_booking"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 17,
+          "customer": "Cảm ơn em, vậy là đủ rồi nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, cảm ơn anh chị đã đặt vé. Chúc anh chị có chuyến đi thuận lợi ạ.",
+              "must_include_facts": [
+                "cảm ơn"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "call_status": "ended"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "end_call",
+                "arguments": {},
+                "arguments_match": "exact"
+              }
+            ]
+          }
+        }
+      ],
+      "expect": {
+        "required_tool_sequence": [
+          "search_trips",
+          "hold_seats",
+          "confirm_booking",
+          "end_call"
+        ],
+        "forbidden_tool_calls": [],
+        "final_state": {
+          "booking_status": "confirmed",
+          "call_status": "ended",
+          "booking_code": "VD-260720-0005"
+        },
+        "final_outcome": "booking_confirmed"
+      },
+      "metadata": {
+        "difficulty": "hard",
+        "scenario_type": "challenge",
+        "customer_region": "Việt Nam",
+        "languages": [
+          "vi"
+        ],
+        "audio_conditions": [
+          "text_only"
+        ],
+        "risk_tags": [
+          "hallucinated_inventory"
+        ],
+        "what_it_tests": "The agent may offer only seats returned by the hold result.",
+        "source_cases": [
+          "CASE_005"
+        ]
+      }
+    },
+    {
+      "id": "CASE_006",
+      "phase": "B",
+      "suite": "base",
+      "title": "Cặp đôi đổi sang tiền mặt sau chuyển khoản thất bại",
+      "failure_type": "unsupported_policy_claim",
+      "focus_turn": 11,
+      "preconditions": {
+        "call_datetime": "2026-07-18T09:00:00+07:00",
+        "timezone": "Asia/Ho_Chi_Minh",
+        "fixture_refs": [
+          "fixtures/v2/catalog.json",
+          "fixtures/v2/policies.json",
+          "fixtures/v2/case_overrides.json#/tool_results/CASE_006"
+        ],
+        "existing_bookings": []
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "customer": "Alo em, anh với vợ muốn đặt hai vé Sài Gòn lên Đà Lạt đêm ngày 20.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em chào anh. Em ghi nhận Sài Gòn đi Đà Lạt ngày 20/07/2026, 2 hành khách. Anh muốn giờ nào?",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "origin": "Sài Gòn",
+              "destination": "Đà Lạt",
+              "travel_date": "2026-07-20",
+              "passenger_count": 2
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 2,
+          "customer": "Chuyến trễ nhất còn phòng là mấy giờ vậy?",
+          "expect": {
+            "agent_response": {
+              "reference": "Có chuyến giường nằm 22:00 và Limousine 22 Phòng lúc 23:30; cả hai còn đủ 2 chỗ.",
+              "must_include_facts": [
+                "20/07 22:00",
+                "20/07 23:30"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "search_trips",
+                "arguments": {
+                  "origin": "Sài Gòn",
+                  "destination": "Đà Lạt",
+                  "date": "2026-07-20",
+                  "passengers": 2
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_006/turn_02_search_trips"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "customer": "Lấy chuyến 23:30 limousine cho anh, sáng tới lúc nào?",
+          "expect": {
+            "agent_response": {
+              "reference": "Chuyến 23:30 đến Đà Lạt lúc 07:00, đơn giá 450.000 đồng mỗi người.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "selected_trip_id": "SG-DL-20260720-2330-LIMO"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 4,
+          "customer": "Còn hai phòng tầng dưới liền nhau thì chọn giùm anh.",
+          "expect": {
+            "agent_response": {
+              "reference": "Còn P01 và P02, cùng tầng dưới phía trước và liền nhau.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 5,
+          "customer": "Giữ P01, P02 luôn nha em.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã giữ P01 và P02; tổng 900.000 đồng.",
+              "must_include_facts": [
+                "P01",
+                "P02",
+                "900000"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "held_seats": [
+                "P01",
+                "P02"
+              ]
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "hold_seats",
+                "arguments": {
+                  "trip_id": "SG-DL-20260720-2330-LIMO",
+                  "passengers": 2
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_006/turn_05_hold_seats"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 6,
+          "customer": "Tên anh Bùi Đức Long ghế P01, vợ anh Trương Ngọc Lan ghế P02.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã ghi hai hành khách người lớn: Bùi Đức Long P01 và Trương Ngọc Lan P02.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "passenger_name": "Bùi Đức Long"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 7,
+          "customer": "Tụi anh đón ở Văn phòng Phạm Ngũ Lão nghen.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em chọn Văn phòng Phạm Ngũ Lão; anh chị cần có mặt trước 23:00.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "pickup_point": "Văn phòng Phạm Ngũ Lão"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 8,
+          "customer": "Xuống Chợ Đà Lạt luôn cho tiện lấy phòng.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã chọn Chợ Đà Lạt làm điểm trả.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "dropoff_point": "Chợ Đà Lạt"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 9,
+          "customer": "Số liên hệ anh là 0967890126.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em ghi người đặt Bùi Đức Long, số 0967890126.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "phone": "0967890126"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 10,
+          "customer": "Anh chọn chuyển khoản ngân hàng, trước mắt để chờ thanh toán nha.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em ghi anh chọn chuyển khoản ngân hàng; khoản thanh toán đang chờ kết quả và chỉ được coi là đã trả khi giao dịch thành công.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 11,
+          "customer": "Anh vừa thử mà ứng dụng báo giao dịch thất bại rồi, em đừng ghi là đã trả tiền.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em đã bỏ phương thức chuyển khoản khỏi yêu cầu và đưa phần thanh toán về trạng thái chưa bắt đầu để anh chọn lại.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true,
+            "checkpoint_failure_type": "unsupported_policy_claim"
+          }
+        },
+        {
+          "turn": 12,
+          "customer": "Giờ có thể đổi qua cách nào để vẫn giữ chỗ hai phòng?",
+          "expect": {
+            "agent_response": {
+              "reference": "Anh có thể chọn QR, chuyển khoản lại hoặc trả tiền mặt khi lên xe. Hai phòng vẫn đang được giữ; anh chọn cách thay thế nhé.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 13,
+          "customer": "Đổi hẳn sang tiền mặt lúc lên xe đi em.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em đổi sang trả tiền mặt khi lên xe; khoản thanh toán sẽ chờ đến lúc anh lên xe.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 14,
+          "customer": "Tổng cuối vẫn chín trăm nghìn, không phát sinh do đổi cách trả chứ?",
+          "expect": {
+            "agent_response": {
+              "reference": "Đúng anh, 2 người nhân 450.000 đồng là 900.000 đồng; đổi phương thức không làm đổi giá.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 15,
+          "customer": "Đọc bản cuối sau sự cố chuyển khoản, nhớ nói rõ cách trả tiền mới giúp anh.",
+          "expect": {
+            "agent_response": {
+              "reference": "Anh Bùi Đức Long P01 và chị Trương Ngọc Lan P02, số liên hệ 0967890126; đi Sài Gòn–Đà Lạt ngày 20/07 lúc 23:30, đón Văn phòng Phạm Ngũ Lão, trả Chợ Đà Lạt; trả tiền mặt khi lên xe; tổng 900.000 đồng. Phương thức chuyển khoản cũ đã được bỏ.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 16,
+          "customer": "Anh chọn đúng bản sau cùng này và đồng ý trả tiền mặt lúc lên xe.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em đã ghi nhận lựa chọn cuối; phần đặt chỗ không còn dùng chuyển khoản.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "explicit_confirmation": true
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 17,
+          "customer": "Xong phần thanh toán rồi, em cấp mã vé nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, vé đã được xác nhận với mã VA-CASE_006.",
+              "must_include_facts": [
+                "VD-260720-0006",
+                "900000"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "booking_code": "VD-260720-0006",
+              "booking_status": "confirmed"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "confirm_booking",
+                "arguments": {
+                  "trip_id": "SG-DL-20260720-2330-LIMO",
+                  "passenger_name": "Bùi Đức Long",
+                  "phone": "0967890126"
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_006/turn_17_confirm_booking"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 18,
+          "customer": "Cảm ơn em, vậy là đủ rồi nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, cảm ơn anh chị đã đặt vé. Chúc anh chị có chuyến đi thuận lợi ạ.",
+              "must_include_facts": [
+                "cảm ơn"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "call_status": "ended"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "end_call",
+                "arguments": {},
+                "arguments_match": "exact"
+              }
+            ]
+          }
+        }
+      ],
+      "expect": {
+        "required_tool_sequence": [
+          "search_trips",
+          "hold_seats",
+          "confirm_booking",
+          "end_call"
+        ],
+        "forbidden_tool_calls": [],
+        "final_state": {
+          "booking_status": "confirmed",
+          "call_status": "ended",
+          "booking_code": "VD-260720-0006"
+        },
+        "final_outcome": "booking_confirmed"
+      },
+      "metadata": {
+        "difficulty": "hard",
+        "scenario_type": "challenge",
+        "customer_region": "Việt Nam",
+        "languages": [
+          "vi"
+        ],
+        "audio_conditions": [
+          "text_only"
+        ],
+        "risk_tags": [
+          "unsupported_policy_claim"
+        ],
+        "what_it_tests": "Payment conversation must not invent verification or a paid state.",
+        "source_cases": [
+          "CASE_006"
+        ]
+      }
+    },
+    {
+      "id": "CASE_007",
+      "phase": "B",
+      "suite": "base",
+      "title": "Khách đổi ngày và giờ sau recap rồi xác nhận lại",
+      "failure_type": "stale_state_after_correction",
+      "focus_turn": 13,
+      "preconditions": {
+        "call_datetime": "2026-07-18T09:00:00+07:00",
+        "timezone": "Asia/Ho_Chi_Minh",
+        "fixture_refs": [
+          "fixtures/v2/catalog.json",
+          "fixtures/v2/policies.json",
+          "fixtures/v2/case_overrides.json#/tool_results/CASE_007"
+        ],
+        "existing_bookings": []
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "customer": "Alo em, anh cần hai vé từ Nghệ An ra Hà Nội tối ngày 22.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em chào anh. Em ghi nhận Nghệ An đi Hà Nội ngày 22/07/2026, 2 hành khách. Anh muốn khoảng mấy giờ?",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "origin": "Nghệ An",
+              "destination": "Hà Nội",
+              "travel_date": "2026-07-22",
+              "passenger_count": 2
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 2,
+          "customer": "Khoảng tám rưỡi tối, có chuyến phòng VIP không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Có chuyến Limousine 21 Phòng VIP lúc 20:30 ngày 22/07, còn đủ hai chỗ, giá 530.000 đồng mỗi người.",
+              "must_include_facts": [
+                "22/07 20:30"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "search_trips",
+                "arguments": {
+                  "origin": "Nghệ An",
+                  "destination": "Hà Nội",
+                  "date": "2026-07-22",
+                  "passengers": 2
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_007/turn_02_search_trips"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "customer": "Chọn chuyến 20:30 đó, tới Hà Nội mấy giờ?",
+          "expect": {
+            "agent_response": {
+              "reference": "Chuyến đến lúc 01:30. Em đã chọn chuyến VIP 20:30 ngày 22/07.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "selected_trip_id": "NA-HN-20260722-2030-VIP21"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 4,
+          "customer": "Giữ hai phòng tầng dưới liền nhau cho anh.",
+          "expect": {
+            "agent_response": {
+              "reference": "Còn A01 và A02, cùng tầng dưới phía trước và liền nhau; tổng 1.060.000 đồng.",
+              "must_include_facts": [
+                "A01",
+                "A02",
+                "1060000"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "held_seats": [
+                "A01",
+                "A02"
+              ]
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "hold_seats",
+                "arguments": {
+                  "trip_id": "NA-HN-20260722-2030-VIP21",
+                  "passengers": 2
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_007/turn_04_hold_seats"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 5,
+          "customer": "Người đi là Nguyễn Công Thành ghế A01 và Lê Văn Khoa ghế A02.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã ghi hai hành khách người lớn Nguyễn Công Thành A01 và Lê Văn Khoa A02.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "passenger_name": "Nguyễn Công Thành"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 6,
+          "customer": "Điểm đón ở Bến xe Vinh nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em chọn Bến xe Vinh; anh cần có mặt trước giờ khởi hành 30 phút.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "pickup_point": "Bến xe Vinh"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 7,
+          "customer": "Ra tới Hà Nội thì xuống Bến xe Mỹ Đình.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã chọn Bến xe Mỹ Đình làm điểm trả.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "dropoff_point": "Bến xe Mỹ Đình"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 8,
+          "customer": "Số anh Thành là 0978901237.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em ghi người đặt Nguyễn Công Thành, số 0978901237.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "phone": "0978901237"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 9,
+          "customer": "Hai anh em trả tiền mặt lúc lên xe.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em ghi hai anh sẽ trả tiền mặt khi lên xe; khoản này đang chờ thanh toán.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 10,
+          "customer": "Nếu lịch công tác đổi thì anh có đổi ngày giờ trước lúc xe chạy được không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Có thể đổi nếu chuyến mới còn chỗ và anh chấp nhận chênh lệch giá. Khi đổi, em phải tìm chuyến và giữ ghế lại, rồi lấy xác nhận mới.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 11,
+          "customer": "Hiện tại tổng của phương án ngày 22 là bao nhiêu?",
+          "expect": {
+            "agent_response": {
+              "reference": "Phương án hiện tại là 2 người nhân 530.000 đồng, tổng 1.060.000 đồng.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 12,
+          "customer": "Em recap toàn bộ phương án ngày 22 cho anh trước nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Anh Nguyễn Công Thành A01 và anh Lê Văn Khoa A02, số liên hệ 0978901237; đi Nghệ An–Hà Nội ngày 22/07 lúc 20:30, xe VIP; đón Bến xe Vinh, trả Bến xe Mỹ Đình; trả tiền mặt khi lên xe; tổng 1.060.000 đồng.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 13,
+          "customer": "Đúng là ngày 22 lúc 20:30 và hai phòng A01, A02 phải không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Đúng anh, đó là phương án hiện tại trước khi cấp mã vé.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true,
+            "checkpoint_failure_type": "stale_state_after_correction"
+          }
+        },
+        {
+          "turn": 14,
+          "customer": "Anh xác nhận phương án vừa đọc.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã ghi nhận xác nhận của anh cho phương án ngày 22.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "explicit_confirmation": true
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 15,
+          "customer": "Khoan, công ty vừa báo đổi lịch. Bỏ ngày 22, chuyển sang ngày 21 và phải sau mười giờ đêm nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em xóa xác nhận, chuyến và ghế cũ; giữ nguyên tuyến, hai hành khách, điểm đón/trả và thông tin liên hệ để tìm lại ngày 21 sau 22:00.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "travel_date": "2026-07-21"
+            },
+            "state_clear": [
+              "selected_trip_id",
+              "held_seats",
+              "explicit_confirmation"
+            ],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 16,
+          "customer": "Em tìm chuyến ngày 21 muộn hơn 22 giờ còn đủ hai ghế đi.",
+          "expect": {
+            "agent_response": {
+              "reference": "Có chuyến giường nằm 38 chỗ lúc 22:15 ngày 21/07, còn đủ hai chỗ, giá 340.000 đồng mỗi người.",
+              "must_include_facts": [
+                "21/07 22:15"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "search_trips",
+                "arguments": {
+                  "origin": "Nghệ An",
+                  "destination": "Hà Nội",
+                  "date": "2026-07-21",
+                  "passengers": 2
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_007/turn_16_search_trips"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 17,
+          "customer": "Chọn chuyến 22:15 đó, xe 38 chỗ.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em chọn chuyến 22:15 ngày 21/07, giường nằm 38 chỗ, đến 03:15.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "selected_trip_id": "NA-HN-20260721-2215-GN38"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 18,
+          "customer": "Giữ lại hai ghế tầng dưới liền nhau cho anh, tên hai người vẫn như cũ.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em giữ B01 và B02, tầng dưới phía trước, liền nhau; gán lại anh Thành B01 và anh Khoa B02. Tổng mới 680.000 đồng.",
+              "must_include_facts": [
+                "B01",
+                "B02",
+                "680000"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "held_seats": [
+                "B01",
+                "B02"
+              ]
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "hold_seats",
+                "arguments": {
+                  "trip_id": "NA-HN-20260721-2215-GN38",
+                  "passengers": 2
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_007/turn_18_hold_seats"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 19,
+          "customer": "Đọc lại bản cuối sau khi đổi, nhất là ngày giờ và tổng tiền.",
+          "expect": {
+            "agent_response": {
+              "reference": "Bản cuối sau khi đổi: Nguyễn Công Thành B01 và Lê Văn Khoa B02, số 0978901237; đi Nghệ An–Hà Nội ngày 21/07 lúc 22:15, giường nằm 38 chỗ; đón Bến xe Vinh, trả Bến xe Mỹ Đình; trả tiền mặt khi lên xe; tổng 680.000 đồng.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 20,
+          "customer": "Anh hủy hẳn bản ngày 22 và xác nhận lại bản ngày 21 lúc 22:15 vừa đọc.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em đã ghi nhận lần xác nhận mới; phương án ngày 22 không còn hiệu lực.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "explicit_confirmation": true
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 21,
+          "customer": "Bây giờ mới cấp mã theo bản đã đổi nhé em.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, vé theo lịch mới đã được xác nhận với mã VA-CASE_007.",
+              "must_include_facts": [
+                "VD-260721-0007",
+                "680000"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "booking_code": "VD-260721-0007",
+              "booking_status": "confirmed"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "confirm_booking",
+                "arguments": {
+                  "trip_id": "NA-HN-20260721-2215-GN38",
+                  "passenger_name": "Nguyễn Công Thành",
+                  "phone": "0978901237"
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_007/turn_21_confirm_booking"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 22,
+          "customer": "Cảm ơn em, vậy là đủ rồi nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, cảm ơn anh chị đã đặt vé. Chúc anh chị có chuyến đi thuận lợi ạ.",
+              "must_include_facts": [
+                "cảm ơn"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "call_status": "ended"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "end_call",
+                "arguments": {},
+                "arguments_match": "exact"
+              }
+            ]
+          }
+        }
+      ],
+      "expect": {
+        "required_tool_sequence": [
+          "search_trips",
+          "hold_seats",
+          "search_trips",
+          "hold_seats",
+          "confirm_booking",
+          "end_call"
+        ],
+        "forbidden_tool_calls": [],
+        "final_state": {
+          "booking_status": "confirmed",
+          "call_status": "ended",
+          "booking_code": "VD-260721-0007"
+        },
+        "final_outcome": "booking_confirmed"
+      },
+      "metadata": {
+        "difficulty": "hard",
+        "scenario_type": "challenge",
+        "customer_region": "Việt Nam",
+        "languages": [
+          "vi"
+        ],
+        "audio_conditions": [
+          "text_only"
+        ],
+        "risk_tags": [
+          "stale_state_after_correction"
+        ],
+        "what_it_tests": "Changing date and time invalidates the old trip, hold, and confirmation.",
+        "source_cases": [
+          "CASE_007"
+        ]
+      }
+    },
+    {
+      "id": "CASE_008",
+      "phase": "B",
+      "suite": "base",
+      "title": "Phụ huynh đổi điểm đón trả và hỏi về xe đẩy",
+      "failure_type": "unsupported_policy_claim",
+      "focus_turn": 7,
+      "preconditions": {
+        "call_datetime": "2026-07-18T09:00:00+07:00",
+        "timezone": "Asia/Ho_Chi_Minh",
+        "fixture_refs": [
+          "fixtures/v2/catalog.json",
+          "fixtures/v2/policies.json",
+          "fixtures/v2/case_overrides.json#/tool_results/CASE_008"
+        ],
+        "existing_bookings": []
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "customer": "Alo em, chị đặt ba vé Hà Nội vào Hà Tĩnh ngày 20 cho chị với hai con.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em chào chị. Em ghi nhận Hà Nội đi Hà Tĩnh ngày 20/07/2026, 3 hành khách. Chị muốn chuyến nào?",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "origin": "Hà Nội",
+              "destination": "Hà Tĩnh",
+              "travel_date": "2026-07-20",
+              "passenger_count": 3
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 2,
+          "customer": "Khoảng bảy giờ tối có chuyến giường nằm không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Có chuyến giường nằm 34 chỗ lúc 19:00, đến Hà Tĩnh lúc 01:00, giá 390.000 đồng mỗi người.",
+              "must_include_facts": [
+                "20/07 19:00"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "search_trips",
+                "arguments": {
+                  "origin": "Hà Nội",
+                  "destination": "Hà Tĩnh",
+                  "date": "2026-07-20",
+                  "passengers": 3
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_008/turn_02_search_trips"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "customer": "Chọn chuyến 19:00 đó nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em chọn chuyến 19:00 ngày 20/07, giường nằm 34 chỗ.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "selected_trip_id": "HN-HT-20260720-1900-GN34"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 4,
+          "customer": "Ba mẹ con cần ba ghế gần nhau để chị trông hai bé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Còn A01, A02, A03 cùng tầng trên phía trước và nối liền thành một dãy gần nhau.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 5,
+          "customer": "Vậy giữ A01, A02, A03 cho ba mẹ con.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã giữ A01, A02, A03; tổng 1.170.000 đồng.",
+              "must_include_facts": [
+                "A01",
+                "A02",
+                "A03",
+                "1170000"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "held_seats": [
+                "A01",
+                "A02",
+                "A03"
+              ]
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "hold_seats",
+                "arguments": {
+                  "trip_id": "HN-HT-20260720-1900-GN34",
+                  "passengers": 3
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_008/turn_05_hold_seats"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 6,
+          "customer": "Tên là Vũ Mai Phương A01, bé Vũ Gia Bảo A02 và bé Vũ Hà My A03.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã ghi chị Vũ Mai Phương là người lớn; hai bé Gia Bảo và Hà My là trẻ em, mỗi bé có ghế riêng.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "passenger_name": "Vũ Mai Phương"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 7,
+          "customer": "Ban đầu chị định lên ở Bến xe Mỹ Đình.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em tạm chọn Bến xe Mỹ Đình; gia đình cần có mặt trước 18:30.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "pickup_point": "Bến xe Mỹ Đình"
+            },
+            "state_clear": [],
+            "no_tool": true,
+            "checkpoint_failure_type": "unsupported_policy_claim"
+          }
+        },
+        {
+          "turn": 8,
+          "customer": "Điểm trả trước mắt là Bến xe Hà Tĩnh nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã tạm chọn Bến xe Hà Tĩnh.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "dropoff_point": "Bến xe Hà Tĩnh"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 9,
+          "customer": "Chị có xe đẩy trẻ em gấp gọn, hành lý đó mang theo được không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Xe đẩy gấp gọn được tính trong hạn mức hành lý ký gửi. Mỗi người có tối đa 20 kg ký gửi và một túi xách tay tối đa 7 kg.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 10,
+          "customer": "Người nhà vừa bảo ra Công viên Hòa Bình tiện hơn, đổi điểm đón sang đó giúp chị.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em đổi điểm đón từ Bến xe Mỹ Đình sang Công viên Hòa Bình.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "pickup_point": "Công viên Hòa Bình"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 11,
+          "customer": "Điểm trả cũng đổi luôn, cho ba mẹ con xuống Ngã ba Đồng Lộc.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã đổi điểm trả sang Ngã ba Đồng Lộc, là điểm hợp lệ của chuyến.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "dropoff_point": "Ngã ba Đồng Lộc"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 12,
+          "customer": "Số chị Phương là 0989012348.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em ghi người đặt Vũ Mai Phương, số 0989012348.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "phone": "0989012348"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 13,
+          "customer": "Chị trả QR, cứ để trạng thái chờ nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em ghi thanh toán bằng QR và hiện đang chờ giao dịch hoàn tất.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 14,
+          "customer": "Chị vừa quét QR đủ 1.170.000 đồng, mã giao dịch SYN-QR-008-1170A; em kiểm tra giúp chị đã vào chưa.",
+          "expect": {
+            "agent_response": {
+              "reference": "Cổng thanh toán đã xác nhận giao dịch thành công, mã đối soát SYN-GW-008-OK-01. Khoản 1.170.000 đồng đã được thanh toán đủ.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 15,
+          "customer": "Em nhắc lại điểm đón trả cuối, đừng lấy hai chỗ ban đầu nha.",
+          "expect": {
+            "agent_response": {
+              "reference": "Điểm cuối là đón Công viên Hòa Bình và trả Ngã ba Đồng Lộc; Bến xe Mỹ Đình và Bến xe Hà Tĩnh đã được thay thế.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 16,
+          "customer": "Em xếp tên từng người với ghế rồi đọc cùng hành trình để chị đối chiếu nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Chị Vũ Mai Phương ghế A01, bé Vũ Gia Bảo ghế A02 và bé Vũ Hà My ghế A03; số liên hệ 0989012348. Ba mẹ con đi Hà Nội–Hà Tĩnh ngày 20/07 lúc 19:00; đón Công viên Hòa Bình, trả Ngã ba Đồng Lộc; thanh toán QR đã hoàn tất; tổng 1.170.000 đồng.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 17,
+          "customer": "Ba mẹ con đúng tên, đúng ghế và đúng hai điểm mới; chị đồng ý chốt.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em đã ghi nhận chị đồng ý với hành trình cuối của ba mẹ con.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "explicit_confirmation": true
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 18,
+          "customer": "Gửi mã để chị lưu cùng giấy tờ của các bé nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, vé của ba mẹ con đã được xác nhận với mã VA-CASE_008.",
+              "must_include_facts": [
+                "VD-260720-0008",
+                "1170000"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "booking_code": "VD-260720-0008",
+              "booking_status": "confirmed"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "confirm_booking",
+                "arguments": {
+                  "trip_id": "HN-HT-20260720-1900-GN34",
+                  "passenger_name": "Vũ Mai Phương",
+                  "phone": "0989012348"
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_008/turn_18_confirm_booking"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 19,
+          "customer": "Cảm ơn em, vậy là đủ rồi nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, cảm ơn anh chị đã đặt vé. Chúc anh chị có chuyến đi thuận lợi ạ.",
+              "must_include_facts": [
+                "cảm ơn"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "call_status": "ended"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "end_call",
+                "arguments": {},
+                "arguments_match": "exact"
+              }
+            ]
+          }
+        }
+      ],
+      "expect": {
+        "required_tool_sequence": [
+          "search_trips",
+          "hold_seats",
+          "confirm_booking",
+          "end_call"
+        ],
+        "forbidden_tool_calls": [],
+        "final_state": {
+          "booking_status": "confirmed",
+          "call_status": "ended",
+          "booking_code": "VD-260720-0008"
+        },
+        "final_outcome": "booking_confirmed"
+      },
+      "metadata": {
+        "difficulty": "hard",
+        "scenario_type": "challenge",
+        "customer_region": "Việt Nam",
+        "languages": [
+          "vi"
+        ],
+        "audio_conditions": [
+          "text_only"
+        ],
+        "risk_tags": [
+          "unsupported_policy_claim"
+        ],
+        "what_it_tests": "Accessibility and stroller answers stay within fixture policy facts.",
+        "source_cases": [
+          "CASE_008"
+        ]
+      }
+    },
+    {
+      "id": "CASE_009",
+      "phase": "B",
+      "suite": "base",
+      "title": "Ba khách chỉ giữ được hai phòng và chấp nhận giảm số vé",
+      "failure_type": "seat_shortfall_mishandled",
+      "focus_turn": 3,
+      "preconditions": {
+        "call_datetime": "2026-07-18T09:00:00+07:00",
+        "timezone": "Asia/Ho_Chi_Minh",
+        "fixture_refs": [
+          "fixtures/v2/catalog.json",
+          "fixtures/v2/policies.json",
+          "fixtures/v2/case_overrides.json#/tool_results/CASE_009"
+        ],
+        "existing_bookings": []
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "customer": "Alo em, anh cần ba vé Sài Gòn đi Đà Lạt tối 19 tháng 7, còn chuyến muộn không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ có chuyến Limousine 23:30, còn đủ chỗ theo kết quả kiểm tra.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "đã giữ ghế"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "origin": "Sài Gòn",
+              "destination": "Đà Lạt",
+              "travel_date": "2026-07-19",
+              "passenger_count": 3
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "search_trips",
+                "arguments": {
+                  "origin": "Sài Gòn",
+                  "destination": "Đà Lạt",
+                  "date": "2026-07-19",
+                  "passengers": 3
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_009/turn_01_search_trips"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "customer": "Chuyến đó là phòng riêng và tới khoảng 7 giờ sáng đúng không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ đúng, xe Limousine 22 Phòng chạy 23:30 và tới khoảng 07:00.",
+              "must_include_facts": [
+                "23:30",
+                "07:00"
+              ],
+              "must_not_claim": [
+                "đã giữ ghế"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 3,
+          "customer": "Vậy giữ ba phòng gần nhau cho anh nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ lúc giữ chỗ chỉ còn hai phòng P01 và P02; đang thiếu một phòng. Anh có đồng ý lấy hai phòng này không ạ?",
+              "must_include_facts": [
+                "P01",
+                "P02",
+                "thiếu một"
+              ],
+              "must_not_claim": [
+                "đủ ba phòng"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "selected_trip_id": "SG-DL-20260719-2330-LIMO",
+              "held_seats": [
+                "P01",
+                "P02"
+              ]
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "hold_seats",
+                "arguments": {
+                  "trip_id": "SG-DL-20260719-2330-LIMO",
+                  "passengers": 3
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_009/turn_03_hold_seats"
+              }
+            ],
+            "checkpoint_failure_type": "seat_shortfall_mishandled"
+          }
+        },
+        {
+          "turn": 4,
+          "customer": "Có chắc lát nữa thêm được phòng thứ ba không em?",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ em không thể hứa thêm phòng. Hiện hệ thống chỉ giữ được đúng hai phòng ạ.",
+              "must_include_facts": [
+                "chỉ giữ được đúng hai"
+              ],
+              "must_not_claim": [
+                "sẽ có phòng thứ ba"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 5,
+          "customer": "Thôi hai người đi trước, anh đồng ý giảm còn hai vé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em cập nhật nhu cầu còn hai hành khách và giữ nguyên P01, P02.",
+              "must_include_facts": [],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "passenger_count": 2,
+              "explicit_confirmation": false
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 6,
+          "customer": "Tổng tiền hai phòng là bao nhiêu?",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ tổng hai phòng là 900.000 đồng theo kết quả giữ chỗ.",
+              "must_include_facts": [
+                "900.000"
+              ],
+              "must_not_claim": [
+                "1.350.000"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 7,
+          "customer": "Người đứng tên Nguyễn Văn Nam, số 0901000009.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em ghi nhận Nguyễn Văn Nam và số 0901000009.",
+              "must_include_facts": [
+                "Nguyễn Văn Nam",
+                "0901000009"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "passenger_name": "Nguyễn Văn Nam",
+              "phone": "0901000009"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 8,
+          "customer": "Anh trả tiền mặt khi lên xe được không?",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em ghi nhận mong muốn trả tiền mặt; em không xác nhận trạng thái thanh toán trong cuộc gọi này.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "đã thanh toán",
+                "đã thu tiền"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 9,
+          "customer": "Đọc lại giúp anh chuyến, hai phòng và tổng tiền.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, chuyến 23:30 ngày 19 tháng 7, hai phòng P01, P02, tổng 900.000 đồng, đứng tên Nguyễn Văn Nam, số 0901000009.",
+              "must_include_facts": [
+                "23:30",
+                "P01",
+                "P02",
+                "900.000"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 10,
+          "customer": "Số đúng là 0901000009, em đừng nghe thành 0901000090 nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, số cuối cùng là 0901000009; xác nhận trước đó được đặt lại để anh duyệt bản cuối.",
+              "must_include_facts": [
+                "0901000009"
+              ],
+              "must_not_claim": [
+                "0901000090"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "phone": "0901000009",
+              "explicit_confirmation": false
+            },
+            "state_clear": [
+              "explicit_confirmation"
+            ],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 11,
+          "customer": "Anh xác nhận đúng hai vé, P01 P02, tổng 900.000 và số 0901000009.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em đã chốt vé. Mã vé VD-260719-0009, hai phòng P01 và P02, tổng 900.000 đồng.",
+              "must_include_facts": [
+                "VD-260719-0009",
+                "P01",
+                "P02"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "explicit_confirmation": true,
+              "booking_code": "VD-260719-0009",
+              "booking_status": "confirmed"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "confirm_booking",
+                "arguments": {
+                  "trip_id": "SG-DL-20260719-2330-LIMO",
+                  "passenger_name": "Nguyễn Văn Nam",
+                  "phone": "0901000009"
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_009/turn_11_confirm_booking"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 12,
+          "customer": "Cảm ơn em, vậy là xong.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, cảm ơn anh. Chúc anh có chuyến đi thuận lợi.",
+              "must_include_facts": [],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "call_status": "ended"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "end_call",
+                "arguments": {},
+                "arguments_match": "exact"
+              }
+            ]
+          }
+        }
+      ],
+      "expect": {
+        "required_tool_sequence": [
+          "search_trips",
+          "hold_seats",
+          "confirm_booking",
+          "end_call"
+        ],
+        "forbidden_tool_calls": [],
+        "final_state": {
+          "booking_status": "confirmed",
+          "booking_code": "VD-260719-0009",
+          "call_status": "ended"
+        },
+        "final_outcome": "booking_confirmed"
+      },
+      "metadata": {
+        "difficulty": "hard",
+        "scenario_type": "challenge",
+        "customer_region": "Việt Nam",
+        "languages": [
+          "vi"
+        ],
+        "audio_conditions": [
+          "text_only"
+        ],
+        "risk_tags": [
+          "seat_shortfall_mishandled"
+        ],
+        "what_it_tests": "A partial hold is reported honestly and confirmed only after the customer accepts fewer seats.",
+        "source_cases": [
+          "CASE_009"
+        ]
+      }
+    },
+    {
+      "id": "CASE_010",
+      "phase": "B",
+      "suite": "base",
+      "title": "Khách sửa tên dễ nhầm và một số điện thoại trước recap",
+      "failure_type": "wrong_arg_value",
+      "focus_turn": 10,
+      "preconditions": {
+        "call_datetime": "2026-07-18T09:00:00+07:00",
+        "timezone": "Asia/Ho_Chi_Minh",
+        "fixture_refs": [
+          "fixtures/v2/catalog.json",
+          "fixtures/v2/policies.json",
+          "fixtures/v2/case_overrides.json#/tool_results/CASE_010"
+        ],
+        "existing_bookings": []
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "customer": "Alo em, anh cần một vé từ Sài Gòn lên Đà Lạt tối ngày 20.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em chào anh. Em ghi nhận 1 hành khách đi Sài Gòn–Đà Lạt ngày 20/07/2026. Anh muốn khởi hành lúc nào?",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "origin": "Sài Gòn",
+              "destination": "Đà Lạt",
+              "travel_date": "2026-07-20",
+              "passenger_count": 1
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 2,
+          "customer": "Khoảng mười giờ đêm, em tìm chuyến giường nằm giúp.",
+          "expect": {
+            "agent_response": {
+              "reference": "Có chuyến giường nằm 34 chỗ lúc 22:00, đến 05:30, giá 320.000 đồng.",
+              "must_include_facts": [
+                "20/07 22:00"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "search_trips",
+                "arguments": {
+                  "origin": "Sài Gòn",
+                  "destination": "Đà Lạt",
+                  "date": "2026-07-20",
+                  "passengers": 1
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_010/turn_02_search_trips"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "customer": "Chọn chuyến 22:00 đó.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em chọn chuyến 22:00 ngày 20/07, giường nằm 34 chỗ.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "selected_trip_id": "SG-DL-20260720-2200-GN34"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 4,
+          "customer": "Còn ghế tầng dưới phía trước thì giữ cho anh.",
+          "expect": {
+            "agent_response": {
+              "reference": "Còn B01 ở tầng dưới phía trước. Em giữ B01, tổng 320.000 đồng.",
+              "must_include_facts": [
+                "B01",
+                "320000"
+              ],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "held_seats": [
+                "B01"
+              ]
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "hold_seats",
+                "arguments": {
+                  "trip_id": "SG-DL-20260720-2200-GN34",
+                  "passengers": 1
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_010/turn_04_hold_seats"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 5,
+          "customer": "Tên người đi anh nói nhanh là Trần Gia Huy, ghế B01 nha.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đang ghi Trần Gia Huy, hành khách người lớn, ghế B01. Anh kiểm tra cách viết giúp em trước khi chốt.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "passenger_name": "Trần Gia Huy"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 6,
+          "customer": "Số điện thoại anh là 0934567812.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã ghi số 0934567812.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "phone": "0934567812"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 7,
+          "customer": "Khoan, tên anh là Hy, H-y thôi, không có chữ u. Sửa thành Trần Gia Hy nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em sửa cả người đặt và hành khách thành Trần Gia Hy; tên Trần Gia Huy ban đầu được thay thế.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "passenger_name": "Trần Gia Hy"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 8,
+          "customer": "Với số điện thoại lúc nãy anh đọc nhầm số cuối, phải là 0934567813.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã sửa số liên hệ thành 0934567813; số kết thúc bằng 12 không còn dùng.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "phone": "0934567813"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 9,
+          "customer": "Điểm đón ở Ngã tư Hàng Xanh.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, em chọn Ngã tư Hàng Xanh; anh cần có mặt trước 21:30.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "pickup_point": "Ngã tư Hàng Xanh"
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 10,
+          "customer": "Cho anh xuống Chợ Đà Lạt.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã chọn Chợ Đà Lạt làm điểm trả.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [
+              "confirm_booking"
+            ],
+            "state_set": {
+              "dropoff_point": "Chợ Đà Lạt"
+            },
+            "state_clear": [],
+            "no_tool": true,
+            "checkpoint_failure_type": "wrong_arg_value"
+          }
+        },
+        {
+          "turn": 11,
+          "customer": "Anh thanh toán QR, hiện giờ để chờ thanh toán.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em ghi thanh toán bằng QR và hiện đang chờ giao dịch; chưa có kết quả thành công thì chưa coi là đã trả.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 12,
+          "customer": "Giá một vé ba trăm hai chục nghìn đúng không em?",
+          "expect": {
+            "agent_response": {
+              "reference": "Đúng anh, đơn giá và tổng cho 1 hành khách đều là 320.000 đồng.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 13,
+          "customer": "Em đánh vần lại tên đang lưu cho chắc.",
+          "expect": {
+            "agent_response": {
+              "reference": "Tên đang lưu là Trần Gia Hy, phần tên là H-y; không phải Huy.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 14,
+          "customer": "Đọc lại số điện thoại, nhất là hai số cuối.",
+          "expect": {
+            "agent_response": {
+              "reference": "Số liên hệ cuối là 0934567813, kết thúc bằng 13.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 15,
+          "customer": "Chuyến này tới Đà Lạt lúc nào và điểm trả ở đâu?",
+          "expect": {
+            "agent_response": {
+              "reference": "Chuyến đến lúc 05:30 và điểm trả đã chọn là Chợ Đà Lạt.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 16,
+          "customer": "Em đọc chậm bản cuối, nhấn rõ tên Hy và số điện thoại đã sửa giúp anh.",
+          "expect": {
+            "agent_response": {
+              "reference": "Anh Trần Gia Hy, viết H-y, số 0934567813; đi Sài Gòn–Đà Lạt ngày 20/07 lúc 22:00, giường nằm 34 chỗ, ghế B01; đón Ngã tư Hàng Xanh, trả Chợ Đà Lạt; thanh toán QR đang chờ hoàn tất; tổng 320.000 đồng.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {},
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 17,
+          "customer": "Anh xác nhận tên Hy không có chữ u, số đuôi 13 và toàn bộ hành trình vừa đọc.",
+          "expect": {
+            "agent_response": {
+              "reference": "Em đã ghi nhận xác nhận cuối theo đúng tên và số điện thoại đã sửa.",
+              "must_include_facts": [],
+              "must_not_claim": [
+                "vé đã được xác nhận"
+              ]
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "explicit_confirmation": true
+            },
+            "state_clear": [],
+            "no_tool": true
+          }
+        },
+        {
+          "turn": 18,
+          "customer": "Chốt bằng thông tin mới và cho anh xin mã vé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, vé đã được xác nhận với mã VA-CASE_010.",
+              "must_include_facts": [
+                "VD-260720-0010",
+                "320000"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "booking_code": "VD-260720-0010",
+              "booking_status": "confirmed"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "confirm_booking",
+                "arguments": {
+                  "trip_id": "SG-DL-20260720-2200-GN34",
+                  "passenger_name": "Trần Gia Hy",
+                  "phone": "0934567813"
+                },
+                "arguments_match": "exact",
+                "result_ref": "fixtures/v2/case_overrides.json#/tool_results/CASE_010/turn_18_confirm_booking"
+              }
+            ]
+          }
+        },
+        {
+          "turn": 19,
+          "customer": "Cảm ơn em, vậy là đủ rồi nhé.",
+          "expect": {
+            "agent_response": {
+              "reference": "Dạ, cảm ơn anh chị đã đặt vé. Chúc anh chị có chuyến đi thuận lợi ạ.",
+              "must_include_facts": [
+                "cảm ơn"
+              ],
+              "must_not_claim": []
+            },
+            "forbidden_tool_calls": [],
+            "state_set": {
+              "call_status": "ended"
+            },
+            "state_clear": [],
+            "tool_calls": [
+              {
+                "name": "end_call",
+                "arguments": {},
+                "arguments_match": "exact"
+              }
+            ]
+          }
+        }
+      ],
+      "expect": {
+        "required_tool_sequence": [
+          "search_trips",
+          "hold_seats",
+          "confirm_booking",
+          "end_call"
+        ],
+        "forbidden_tool_calls": [],
+        "final_state": {
+          "booking_status": "confirmed",
+          "call_status": "ended",
+          "booking_code": "VD-260720-0010"
+        },
+        "final_outcome": "booking_confirmed"
+      },
+      "metadata": {
+        "difficulty": "hard",
+        "scenario_type": "challenge",
+        "customer_region": "Việt Nam",
+        "languages": [
+          "vi"
+        ],
+        "audio_conditions": [
+          "text_only"
+        ],
+        "risk_tags": [
+          "wrong_arg_value"
+        ],
+        "what_it_tests": "The corrected name and phone are used in the confirmation call.",
+        "source_cases": [
+          "CASE_010"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,1497 @@
+{
+  "schema_version": "2.0",
+  "fixture_version": "2.0",
+  "case_isolation": true,
+  "tool_results": {
+    "CASE_001": {
+      "turn_03_search_trips": {
+        "trips": [
+          {
+            "tripId": "HN-NA-20260719-2130-GN34",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-19T21:30:00+07:00",
+            "departureLabel": "19/07 21:30",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 350000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_05_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "B01"
+        ],
+        "seatsHeld": 1,
+        "shortfall": 0,
+        "priceVnd": 350000,
+        "totalVnd": 350000,
+        "seatNoun": "giường"
+      },
+      "turn_16_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260719-0001",
+        "seatCodes": [
+          "B01"
+        ],
+        "totalVnd": 350000,
+        "departureLabel": "19/07 21:30",
+        "pickupPoint": "Bến xe Mỹ Đình"
+      }
+    },
+    "CASE_002": {
+      "turn_03_search_trips": {
+        "trips": [
+          {
+            "tripId": "HN-NA-20260720-2000-VIP21",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-20T20:00:00+07:00",
+            "departureLabel": "20/07 20:00",
+            "vehicleType": "Limousine 21 Phòng VIP",
+            "priceVnd": 530000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_06_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "A01",
+          "A02",
+          "B01",
+          "C01"
+        ],
+        "seatsHeld": 4,
+        "shortfall": 0,
+        "priceVnd": 530000,
+        "totalVnd": 2120000,
+        "seatNoun": "phòng"
+      },
+      "turn_07_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "A01",
+          "A02",
+          "B01",
+          "B02"
+        ],
+        "seatsHeld": 4,
+        "shortfall": 0,
+        "priceVnd": 530000,
+        "totalVnd": 2120000,
+        "seatNoun": "phòng"
+      },
+      "turn_17_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260720-0002",
+        "seatCodes": [
+          "A01",
+          "A02",
+          "B01",
+          "B02"
+        ],
+        "totalVnd": 2120000,
+        "departureLabel": "20/07 20:00",
+        "pickupPoint": "Bến xe Mỹ Đình"
+      }
+    },
+    "CASE_003": {
+      "turn_02_search_trips": {
+        "trips": [
+          {
+            "tripId": "SG-DL-20260719-2200-GN34",
+            "originCity": "Sài Gòn",
+            "destinationCity": "Đà Lạt",
+            "departsAt": "2026-07-19T22:00:00+07:00",
+            "departureLabel": "19/07 22:00",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 320000,
+            "pickupPoint": "Bến xe Miền Đông mới",
+            "dropoffPoint": "Bến xe liên tỉnh Đà Lạt",
+            "seatsAvailable": 5,
+            "seatNoun": "giường"
+          },
+          {
+            "tripId": "SG-DL-20260719-2330-LIMO",
+            "originCity": "Sài Gòn",
+            "destinationCity": "Đà Lạt",
+            "departsAt": "2026-07-19T23:30:00+07:00",
+            "departureLabel": "19/07 23:30",
+            "vehicleType": "Limousine 22 Phòng",
+            "priceVnd": 450000,
+            "pickupPoint": "Bến xe Miền Đông mới",
+            "dropoffPoint": "Bến xe liên tỉnh Đà Lạt",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_05_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "A01",
+          "A03",
+          "B01",
+          "C01",
+          "D01"
+        ],
+        "seatsHeld": 5,
+        "shortfall": 0,
+        "priceVnd": 320000,
+        "totalVnd": 1600000,
+        "seatNoun": "giường"
+      },
+      "turn_16_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260719-0003",
+        "seatCodes": [
+          "A01",
+          "A03",
+          "B01",
+          "C01",
+          "D01"
+        ],
+        "totalVnd": 1600000,
+        "departureLabel": "19/07 22:00",
+        "pickupPoint": "Bến xe Miền Đông mới"
+      }
+    },
+    "CASE_004": {
+      "turn_02_search_trips": {
+        "trips": [
+          {
+            "tripId": "HN-NA-20260720-2000-VIP21",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-20T20:00:00+07:00",
+            "departureLabel": "20/07 20:00",
+            "vehicleType": "Limousine 21 Phòng VIP",
+            "priceVnd": 530000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          },
+          {
+            "tripId": "HN-NA-20260720-2130-GN34",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-20T21:30:00+07:00",
+            "departureLabel": "20/07 21:30",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 350000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          },
+          {
+            "tripId": "HN-NA-20260720-2215-GN38",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-20T22:15:00+07:00",
+            "departureLabel": "20/07 22:15",
+            "vehicleType": "Giường nằm 38 chỗ",
+            "priceVnd": 340000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_06_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "B01",
+          "B02"
+        ],
+        "seatsHeld": 2,
+        "shortfall": 0,
+        "priceVnd": 340000,
+        "totalVnd": 680000,
+        "seatNoun": "giường"
+      },
+      "turn_08_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "A01",
+          "A02"
+        ],
+        "seatsHeld": 2,
+        "shortfall": 0,
+        "priceVnd": 530000,
+        "totalVnd": 1060000,
+        "seatNoun": "phòng"
+      },
+      "turn_17_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260720-0004",
+        "seatCodes": [
+          "A01",
+          "A02"
+        ],
+        "totalVnd": 1060000,
+        "departureLabel": "20/07 20:00",
+        "pickupPoint": "Bến xe Mỹ Đình"
+      }
+    },
+    "CASE_005": {
+      "turn_02_search_trips": {
+        "trips": [
+          {
+            "tripId": "HN-NA-20260720-2130-GN34",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-20T21:30:00+07:00",
+            "departureLabel": "20/07 21:30",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 350000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_05_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "B02"
+        ],
+        "seatsHeld": 1,
+        "shortfall": 0,
+        "priceVnd": 350000,
+        "totalVnd": 350000,
+        "seatNoun": "giường"
+      },
+      "turn_16_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260720-0005",
+        "seatCodes": [
+          "B02"
+        ],
+        "totalVnd": 350000,
+        "departureLabel": "20/07 21:30",
+        "pickupPoint": "Bến xe Mỹ Đình"
+      }
+    },
+    "CASE_006": {
+      "turn_02_search_trips": {
+        "trips": [
+          {
+            "tripId": "SG-DL-20260720-2200-GN34",
+            "originCity": "Sài Gòn",
+            "destinationCity": "Đà Lạt",
+            "departsAt": "2026-07-20T22:00:00+07:00",
+            "departureLabel": "20/07 22:00",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 320000,
+            "pickupPoint": "Bến xe Miền Đông mới",
+            "dropoffPoint": "Bến xe liên tỉnh Đà Lạt",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          },
+          {
+            "tripId": "SG-DL-20260720-2330-LIMO",
+            "originCity": "Sài Gòn",
+            "destinationCity": "Đà Lạt",
+            "departsAt": "2026-07-20T23:30:00+07:00",
+            "departureLabel": "20/07 23:30",
+            "vehicleType": "Limousine 22 Phòng",
+            "priceVnd": 450000,
+            "pickupPoint": "Bến xe Miền Đông mới",
+            "dropoffPoint": "Bến xe liên tỉnh Đà Lạt",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_05_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "P01",
+          "P02"
+        ],
+        "seatsHeld": 2,
+        "shortfall": 0,
+        "priceVnd": 450000,
+        "totalVnd": 900000,
+        "seatNoun": "phòng"
+      },
+      "turn_17_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260720-0006",
+        "seatCodes": [
+          "P01",
+          "P02"
+        ],
+        "totalVnd": 900000,
+        "departureLabel": "20/07 23:30",
+        "pickupPoint": "Bến xe Miền Đông mới"
+      }
+    },
+    "CASE_007": {
+      "turn_02_search_trips": {
+        "trips": [
+          {
+            "tripId": "NA-HN-20260722-2030-VIP21",
+            "originCity": "Nghệ An",
+            "destinationCity": "Hà Nội",
+            "departsAt": "2026-07-22T20:30:00+07:00",
+            "departureLabel": "22/07 20:30",
+            "vehicleType": "Limousine 21 Phòng VIP",
+            "priceVnd": 530000,
+            "pickupPoint": "Bến xe Vinh",
+            "dropoffPoint": "Bến xe Mỹ Đình",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_04_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "A01",
+          "A02"
+        ],
+        "seatsHeld": 2,
+        "shortfall": 0,
+        "priceVnd": 530000,
+        "totalVnd": 1060000,
+        "seatNoun": "phòng"
+      },
+      "turn_16_search_trips": {
+        "trips": [
+          {
+            "tripId": "NA-HN-20260721-2215-GN38",
+            "originCity": "Nghệ An",
+            "destinationCity": "Hà Nội",
+            "departsAt": "2026-07-21T22:15:00+07:00",
+            "departureLabel": "21/07 22:15",
+            "vehicleType": "Giường nằm 38 chỗ",
+            "priceVnd": 340000,
+            "pickupPoint": "Bến xe Vinh",
+            "dropoffPoint": "Bến xe Mỹ Đình",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_18_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "B01",
+          "B02"
+        ],
+        "seatsHeld": 2,
+        "shortfall": 0,
+        "priceVnd": 340000,
+        "totalVnd": 680000,
+        "seatNoun": "giường"
+      },
+      "turn_21_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260721-0007",
+        "seatCodes": [
+          "B01",
+          "B02"
+        ],
+        "totalVnd": 680000,
+        "departureLabel": "21/07 22:15",
+        "pickupPoint": "Bến xe Vinh"
+      }
+    },
+    "CASE_008": {
+      "turn_02_search_trips": {
+        "trips": [
+          {
+            "tripId": "HN-HT-20260720-1900-GN34",
+            "originCity": "Hà Nội",
+            "destinationCity": "Hà Tĩnh",
+            "departsAt": "2026-07-20T19:00:00+07:00",
+            "departureLabel": "20/07 19:00",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 390000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Hà Tĩnh",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_05_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "A01",
+          "A02",
+          "A03"
+        ],
+        "seatsHeld": 3,
+        "shortfall": 0,
+        "priceVnd": 390000,
+        "totalVnd": 1170000,
+        "seatNoun": "giường"
+      },
+      "turn_18_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260720-0008",
+        "seatCodes": [
+          "A01",
+          "A02",
+          "A03"
+        ],
+        "totalVnd": 1170000,
+        "departureLabel": "20/07 19:00",
+        "pickupPoint": "Bến xe Mỹ Đình"
+      }
+    },
+    "CASE_009": {
+      "turn_01_search_trips": {
+        "trips": [
+          {
+            "tripId": "SG-DL-20260719-2330-LIMO",
+            "originCity": "Sài Gòn",
+            "destinationCity": "Đà Lạt",
+            "departsAt": "2026-07-19T23:30:00+07:00",
+            "departureLabel": "19/07 23:30",
+            "vehicleType": "Limousine 22 Phòng",
+            "priceVnd": 450000,
+            "pickupPoint": "Bến xe Miền Đông mới",
+            "dropoffPoint": "Bến xe liên tỉnh Đà Lạt",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_03_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "P01",
+          "P02"
+        ],
+        "seatsHeld": 2,
+        "shortfall": 1,
+        "priceVnd": 450000,
+        "totalVnd": 900000,
+        "seatNoun": "phòng"
+      },
+      "turn_11_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260719-0009",
+        "seatCodes": [
+          "P01",
+          "P02"
+        ],
+        "totalVnd": 900000,
+        "departureLabel": "19/07 23:30",
+        "pickupPoint": "Bến xe Miền Đông mới"
+      }
+    },
+    "CASE_010": {
+      "turn_02_search_trips": {
+        "trips": [
+          {
+            "tripId": "SG-DL-20260720-2200-GN34",
+            "originCity": "Sài Gòn",
+            "destinationCity": "Đà Lạt",
+            "departsAt": "2026-07-20T22:00:00+07:00",
+            "departureLabel": "20/07 22:00",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 320000,
+            "pickupPoint": "Bến xe Miền Đông mới",
+            "dropoffPoint": "Bến xe liên tỉnh Đà Lạt",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_04_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "B01"
+        ],
+        "seatsHeld": 1,
+        "shortfall": 0,
+        "priceVnd": 320000,
+        "totalVnd": 320000,
+        "seatNoun": "giường"
+      },
+      "turn_18_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260720-0010",
+        "seatCodes": [
+          "B01"
+        ],
+        "totalVnd": 320000,
+        "departureLabel": "20/07 22:00",
+        "pickupPoint": "Bến xe Miền Đông mới"
+      }
+    },
+    "CASE_012": {
+      "turn_05_search_trips": {
+        "trips": [
+          {
+            "tripId": "HN-NA-20260721-2000-VIP21",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-21T20:00:00+07:00",
+            "departureLabel": "21/07 20:00",
+            "vehicleType": "Limousine 21 Phòng VIP",
+            "priceVnd": 530000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          },
+          {
+            "tripId": "HN-NA-20260721-2130-GN34",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-21T21:30:00+07:00",
+            "departureLabel": "21/07 21:30",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 350000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_11_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "B02"
+        ],
+        "seatsHeld": 1,
+        "shortfall": 0,
+        "priceVnd": 350000,
+        "totalVnd": 350000,
+        "seatNoun": "giường"
+      },
+      "turn_16_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260721-0012",
+        "seatCodes": [
+          "B02"
+        ],
+        "totalVnd": 350000,
+        "departureLabel": "21/07 21:30",
+        "pickupPoint": "Bến xe Mỹ Đình"
+      }
+    },
+    "CASE_013": {
+      "turn_02_search_trips": {
+        "trips": [
+          {
+            "tripId": "HN-NA-20260721-2000-VIP21",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-21T20:00:00+07:00",
+            "departureLabel": "21/07 20:00",
+            "vehicleType": "Limousine 21 Phòng VIP",
+            "priceVnd": 530000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          },
+          {
+            "tripId": "HN-NA-20260721-2130-GN34",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-21T21:30:00+07:00",
+            "departureLabel": "21/07 21:30",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 350000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_09_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "A01",
+          "A02"
+        ],
+        "seatsHeld": 2,
+        "shortfall": 0,
+        "priceVnd": 530000,
+        "totalVnd": 1060000,
+        "seatNoun": "phòng"
+      },
+      "turn_15_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260721-0013",
+        "seatCodes": [
+          "A01",
+          "A02"
+        ],
+        "totalVnd": 1060000,
+        "departureLabel": "21/07 20:00",
+        "pickupPoint": "Bến xe Mỹ Đình"
+      }
+    },
+    "CASE_014": {
+      "turn_02_search_trips": {
+        "trips": [
+          {
+            "tripId": "SG-DL-20260721-2200-GN34",
+            "originCity": "Sài Gòn",
+            "destinationCity": "Đà Lạt",
+            "departsAt": "2026-07-21T22:00:00+07:00",
+            "departureLabel": "21/07 22:00",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 320000,
+            "pickupPoint": "Bến xe Miền Đông mới",
+            "dropoffPoint": "Bến xe liên tỉnh Đà Lạt",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          },
+          {
+            "tripId": "SG-DL-20260721-2330-LIMO",
+            "originCity": "Sài Gòn",
+            "destinationCity": "Đà Lạt",
+            "departsAt": "2026-07-21T23:30:00+07:00",
+            "departureLabel": "21/07 23:30",
+            "vehicleType": "Limousine 22 Phòng",
+            "priceVnd": 450000,
+            "pickupPoint": "Bến xe Miền Đông mới",
+            "dropoffPoint": "Bến xe liên tỉnh Đà Lạt",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_06_search_trips": {
+        "trips": [
+          {
+            "tripId": "SG-DL-20260721-2330-LIMO",
+            "originCity": "Sài Gòn",
+            "destinationCity": "Đà Lạt",
+            "departsAt": "2026-07-21T23:30:00+07:00",
+            "departureLabel": "21/07 23:30",
+            "vehicleType": "Limousine 22 Phòng",
+            "priceVnd": 450000,
+            "pickupPoint": "Bến xe Miền Đông mới",
+            "dropoffPoint": "Bến xe liên tỉnh Đà Lạt",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_12_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "P01",
+          "P02",
+          "P03"
+        ],
+        "seatsHeld": 3,
+        "shortfall": 0,
+        "priceVnd": 450000,
+        "totalVnd": 1350000,
+        "seatNoun": "phòng"
+      },
+      "turn_17_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260721-0014",
+        "seatCodes": [
+          "P01",
+          "P02",
+          "P03"
+        ],
+        "totalVnd": 1350000,
+        "departureLabel": "21/07 23:30",
+        "pickupPoint": "Bến xe Miền Đông mới"
+      }
+    },
+    "CASE_015": {
+      "turn_05_search_trips": {
+        "trips": [
+          {
+            "tripId": "HN-NA-20260721-2130-GN34",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-21T21:30:00+07:00",
+            "departureLabel": "21/07 21:30",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 350000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      }
+    },
+    "CASE_016": {
+      "turn_02_search_trips": {
+        "trips": [
+          {
+            "tripId": "HN-NA-20260721-2000-VIP21",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-21T20:00:00+07:00",
+            "departureLabel": "21/07 20:00",
+            "vehicleType": "Limousine 21 Phòng VIP",
+            "priceVnd": 530000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          },
+          {
+            "tripId": "HN-NA-20260721-2130-GN34",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-21T21:30:00+07:00",
+            "departureLabel": "21/07 21:30",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 350000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_09_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "B03"
+        ],
+        "seatsHeld": 1,
+        "shortfall": 0,
+        "priceVnd": 350000,
+        "totalVnd": 350000,
+        "seatNoun": "giường"
+      },
+      "turn_15_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260721-0016",
+        "seatCodes": [
+          "B03"
+        ],
+        "totalVnd": 350000,
+        "departureLabel": "21/07 21:30",
+        "pickupPoint": "Bến xe Mỹ Đình"
+      }
+    },
+    "CASE_017": {
+      "turn_02_search_trips": {
+        "trips": [
+          {
+            "tripId": "NA-HN-20260721-2030-VIP21",
+            "originCity": "Nghệ An",
+            "destinationCity": "Hà Nội",
+            "departsAt": "2026-07-21T20:30:00+07:00",
+            "departureLabel": "21/07 20:30",
+            "vehicleType": "Limousine 21 Phòng VIP",
+            "priceVnd": 530000,
+            "pickupPoint": "Bến xe Vinh",
+            "dropoffPoint": "Bến xe Mỹ Đình",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          },
+          {
+            "tripId": "NA-HN-20260721-2215-GN38",
+            "originCity": "Nghệ An",
+            "destinationCity": "Hà Nội",
+            "departsAt": "2026-07-21T22:15:00+07:00",
+            "departureLabel": "21/07 22:15",
+            "vehicleType": "Giường nằm 38 chỗ",
+            "priceVnd": 340000,
+            "pickupPoint": "Bến xe Vinh",
+            "dropoffPoint": "Bến xe Mỹ Đình",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_09_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "B01"
+        ],
+        "seatsHeld": 1,
+        "shortfall": 0,
+        "priceVnd": 530000,
+        "totalVnd": 530000,
+        "seatNoun": "phòng"
+      },
+      "turn_16_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260721-0017",
+        "seatCodes": [
+          "B01"
+        ],
+        "totalVnd": 530000,
+        "departureLabel": "21/07 20:30",
+        "pickupPoint": "Bến xe Vinh"
+      }
+    },
+    "CASE_018": {
+      "turn_02_search_trips": {
+        "trips": [
+          {
+            "tripId": "HT-HN-20260722-1900-GN34",
+            "originCity": "Hà Tĩnh",
+            "destinationCity": "Hà Nội",
+            "departsAt": "2026-07-22T19:00:00+07:00",
+            "departureLabel": "22/07 19:00",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 390000,
+            "pickupPoint": "Bến xe Hà Tĩnh",
+            "dropoffPoint": "Bến xe Mỹ Đình",
+            "seatsAvailable": 10,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_09_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "B02"
+        ],
+        "seatsHeld": 1,
+        "shortfall": 0,
+        "priceVnd": 390000,
+        "totalVnd": 390000,
+        "seatNoun": "giường"
+      },
+      "turn_15_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260722-0018",
+        "seatCodes": [
+          "B02"
+        ],
+        "totalVnd": 390000,
+        "departureLabel": "22/07 19:00",
+        "pickupPoint": "Bến xe Hà Tĩnh"
+      }
+    },
+    "CASE_019": {
+      "turn_03_search_trips": {
+        "trips": [
+          {
+            "tripId": "SG-DL-20260721-2200-GN34",
+            "originCity": "Sài Gòn",
+            "destinationCity": "Đà Lạt",
+            "departsAt": "2026-07-21T22:00:00+07:00",
+            "departureLabel": "21/07 22:00",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 320000,
+            "pickupPoint": "Bến xe Miền Đông mới",
+            "dropoffPoint": "Bến xe liên tỉnh Đà Lạt",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          },
+          {
+            "tripId": "SG-DL-20260721-2330-LIMO",
+            "originCity": "Sài Gòn",
+            "destinationCity": "Đà Lạt",
+            "departsAt": "2026-07-21T23:30:00+07:00",
+            "departureLabel": "21/07 23:30",
+            "vehicleType": "Limousine 22 Phòng",
+            "priceVnd": 450000,
+            "pickupPoint": "Bến xe Miền Đông mới",
+            "dropoffPoint": "Bến xe liên tỉnh Đà Lạt",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_09_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "P01",
+          "P02",
+          "P03"
+        ],
+        "seatsHeld": 3,
+        "shortfall": 0,
+        "priceVnd": 450000,
+        "totalVnd": 1350000,
+        "seatNoun": "phòng"
+      },
+      "turn_15_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260721-0019",
+        "seatCodes": [
+          "P01",
+          "P02",
+          "P03"
+        ],
+        "totalVnd": 1350000,
+        "departureLabel": "21/07 23:30",
+        "pickupPoint": "Bến xe Miền Đông mới"
+      }
+    },
+    "CASE_020": {
+      "turn_02_search_trips": {
+        "trips": [
+          {
+            "tripId": "HN-NA-20260722-2000-VIP21",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-22T20:00:00+07:00",
+            "departureLabel": "22/07 20:00",
+            "vehicleType": "Limousine 21 Phòng VIP",
+            "priceVnd": 530000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          },
+          {
+            "tripId": "HN-NA-20260722-2130-GN34",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-22T21:30:00+07:00",
+            "departureLabel": "22/07 21:30",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 350000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          },
+          {
+            "tripId": "HN-NA-20260722-2215-GN38",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-22T22:15:00+07:00",
+            "departureLabel": "22/07 22:15",
+            "vehicleType": "Giường nằm 38 chỗ",
+            "priceVnd": 340000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_10_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "A01",
+          "A02"
+        ],
+        "seatsHeld": 2,
+        "shortfall": 0,
+        "priceVnd": 530000,
+        "totalVnd": 1060000,
+        "seatNoun": "phòng"
+      },
+      "turn_16_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260722-0020",
+        "seatCodes": [
+          "A01",
+          "A02"
+        ],
+        "totalVnd": 1060000,
+        "departureLabel": "22/07 20:00",
+        "pickupPoint": "Bến xe Mỹ Đình"
+      }
+    },
+    "CASE_021": {
+      "turn_02_search_trips": {
+        "trips": [
+          {
+            "tripId": "SG-DL-20260721-2200-GN34",
+            "originCity": "Sài Gòn",
+            "destinationCity": "Đà Lạt",
+            "departsAt": "2026-07-21T22:00:00+07:00",
+            "departureLabel": "21/07 22:00",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 320000,
+            "pickupPoint": "Bến xe Miền Đông mới",
+            "dropoffPoint": "Bến xe liên tỉnh Đà Lạt",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          },
+          {
+            "tripId": "SG-DL-20260721-2330-LIMO",
+            "originCity": "Sài Gòn",
+            "destinationCity": "Đà Lạt",
+            "departsAt": "2026-07-21T23:30:00+07:00",
+            "departureLabel": "21/07 23:30",
+            "vehicleType": "Limousine 22 Phòng",
+            "priceVnd": 450000,
+            "pickupPoint": "Bến xe Miền Đông mới",
+            "dropoffPoint": "Bến xe liên tỉnh Đà Lạt",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_05_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "B01",
+          "B02"
+        ],
+        "seatsHeld": 2,
+        "shortfall": 0,
+        "priceVnd": 320000,
+        "totalVnd": 640000,
+        "seatNoun": "giường"
+      },
+      "turn_16_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260721-0021",
+        "seatCodes": [
+          "B01",
+          "B02"
+        ],
+        "totalVnd": 640000,
+        "departureLabel": "21/07 22:00",
+        "pickupPoint": "Bến xe Miền Đông mới"
+      }
+    },
+    "CASE_022": {
+      "turn_02_search_trips": {
+        "trips": [
+          {
+            "tripId": "HN-NA-20260722-2000-VIP21",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-22T20:00:00+07:00",
+            "departureLabel": "22/07 20:00",
+            "vehicleType": "Limousine 21 Phòng VIP",
+            "priceVnd": 530000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          },
+          {
+            "tripId": "HN-NA-20260722-2130-GN34",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-22T21:30:00+07:00",
+            "departureLabel": "22/07 21:30",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 350000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          },
+          {
+            "tripId": "HN-NA-20260722-2215-GN38",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-22T22:15:00+07:00",
+            "departureLabel": "22/07 22:15",
+            "vehicleType": "Giường nằm 38 chỗ",
+            "priceVnd": 340000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_07_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "A01",
+          "A02"
+        ],
+        "seatsHeld": 2,
+        "shortfall": 0,
+        "priceVnd": 530000,
+        "totalVnd": 1060000,
+        "seatNoun": "phòng"
+      },
+      "turn_17_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260722-0022",
+        "seatCodes": [
+          "A01",
+          "A02"
+        ],
+        "totalVnd": 1060000,
+        "departureLabel": "22/07 20:00",
+        "pickupPoint": "Bến xe Mỹ Đình"
+      }
+    },
+    "CASE_023": {
+      "turn_03_search_trips": {
+        "trips": [
+          {
+            "tripId": "HN-NA-20260722-2215-GN38",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-22T22:15:00+07:00",
+            "departureLabel": "22/07 22:15",
+            "vehicleType": "Giường nằm 38 chỗ",
+            "priceVnd": 340000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_06_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "B01"
+        ],
+        "seatsHeld": 1,
+        "shortfall": 0,
+        "priceVnd": 340000,
+        "totalVnd": 340000,
+        "seatNoun": "giường"
+      },
+      "turn_17_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260722-0023",
+        "seatCodes": [
+          "B01"
+        ],
+        "totalVnd": 340000,
+        "departureLabel": "22/07 22:15",
+        "pickupPoint": "Bến xe Mỹ Đình"
+      }
+    },
+    "CASE_024": {
+      "turn_02_search_trips": {
+        "trips": [
+          {
+            "tripId": "SG-DL-20260722-2200-GN34",
+            "originCity": "Sài Gòn",
+            "destinationCity": "Đà Lạt",
+            "departsAt": "2026-07-22T22:00:00+07:00",
+            "departureLabel": "22/07 22:00",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 320000,
+            "pickupPoint": "Bến xe Miền Đông mới",
+            "dropoffPoint": "Bến xe liên tỉnh Đà Lạt",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          },
+          {
+            "tripId": "SG-DL-20260722-2330-LIMO",
+            "originCity": "Sài Gòn",
+            "destinationCity": "Đà Lạt",
+            "departsAt": "2026-07-22T23:30:00+07:00",
+            "departureLabel": "22/07 23:30",
+            "vehicleType": "Limousine 22 Phòng",
+            "priceVnd": 450000,
+            "pickupPoint": "Bến xe Miền Đông mới",
+            "dropoffPoint": "Bến xe liên tỉnh Đà Lạt",
+            "seatsAvailable": 8,
+            "seatNoun": "phòng"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_05_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "P04"
+        ],
+        "seatsHeld": 1,
+        "shortfall": 0,
+        "priceVnd": 450000,
+        "totalVnd": 450000,
+        "seatNoun": "phòng"
+      },
+      "turn_16_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260722-0024",
+        "seatCodes": [
+          "P04"
+        ],
+        "totalVnd": 450000,
+        "departureLabel": "22/07 23:30",
+        "pickupPoint": "Bến xe Miền Đông mới"
+      }
+    },
+    "CASE_025": {
+      "turn_04_search_trips": {
+        "trips": [],
+        "routeServed": true,
+        "reason": "no_trip_on_date",
+        "otherDates": [
+          {
+            "tripId": "HN-NA-20260722-2130-GN34",
+            "originCity": "Hà Nội",
+            "destinationCity": "Nghệ An",
+            "departsAt": "2026-07-22T21:30:00+07:00",
+            "departureLabel": "22/07 21:30",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 350000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Vinh",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          }
+        ],
+        "suggestedRoutes": []
+      }
+    },
+    "CASE_026": {
+      "turn_04_search_trips": {
+        "trips": [],
+        "routeServed": false,
+        "reason": "route_not_served",
+        "otherDates": [],
+        "suggestedRoutes": [
+          {
+            "origin": "Sài Gòn",
+            "destination": "Đà Lạt"
+          }
+        ]
+      }
+    },
+    "CASE_027": {
+      "turn_03_search_trips": {
+        "trips": [
+          {
+            "tripId": "HT-HN-20260722-1900-GN34",
+            "originCity": "Hà Tĩnh",
+            "destinationCity": "Hà Nội",
+            "departsAt": "2026-07-22T19:00:00+07:00",
+            "departureLabel": "22/07 19:00",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 390000,
+            "pickupPoint": "Bến xe Hà Tĩnh",
+            "dropoffPoint": "Bến xe Mỹ Đình",
+            "seatsAvailable": 10,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_05_hold_seats": {
+        "held": false,
+        "reason": "no_seats"
+      }
+    },
+    "CASE_028": {
+      "turn_02_find_booking": {
+        "bookings": [
+          {
+            "code": "VD-260721-9028",
+            "passengerName": "Nguyễn Văn Hòa",
+            "phone": "0914000028",
+            "seatCodes": [
+              "B01",
+              "B02"
+            ],
+            "totalVnd": 680000,
+            "status": "confirmed",
+            "departureLabel": "21/07 22:15",
+            "originCity": "Nghệ An",
+            "destinationCity": "Hà Nội",
+            "pickupPoint": "Bến xe Vinh"
+          }
+        ]
+      }
+    },
+    "CASE_029": {
+      "turn_02_find_booking": {
+        "bookings": [
+          {
+            "code": "VD-260722-9029",
+            "passengerName": "Phan Đức Thắng",
+            "phone": "0915000029",
+            "seatCodes": [
+              "A01",
+              "A02",
+              "A03",
+              "B01"
+            ],
+            "totalVnd": 1560000,
+            "status": "confirmed",
+            "departureLabel": "22/07 19:00",
+            "originCity": "Hà Tĩnh",
+            "destinationCity": "Hà Nội",
+            "pickupPoint": "Bến xe Hà Tĩnh"
+          }
+        ]
+      },
+      "turn_05_cancel_booking": {
+        "cancelled": true,
+        "code": "VD-260722-9029",
+        "seatCodes": [
+          "A01",
+          "A02",
+          "A03",
+          "B01"
+        ]
+      },
+      "turn_06_search_trips": {
+        "trips": [
+          {
+            "tripId": "HN-HT-20260720-1900-GN34",
+            "originCity": "Hà Nội",
+            "destinationCity": "Hà Tĩnh",
+            "departsAt": "2026-07-20T19:00:00+07:00",
+            "departureLabel": "20/07 19:00",
+            "vehicleType": "Giường nằm 34 chỗ",
+            "priceVnd": 390000,
+            "pickupPoint": "Bến xe Mỹ Đình",
+            "dropoffPoint": "Bến xe Hà Tĩnh",
+            "seatsAvailable": 8,
+            "seatNoun": "giường"
+          }
+        ],
+        "routeServed": true
+      },
+      "turn_08_hold_seats": {
+        "held": true,
+        "seatCodes": [
+          "A01",
+          "A02",
+          "A03",
+          "B01"
+        ],
+        "seatsHeld": 4,
+        "shortfall": 0,
+        "priceVnd": 390000,
+        "totalVnd": 1560000,
+        "seatNoun": "giường"
+      },
+      "turn_15_confirm_booking": {
+        "confirmed": true,
+        "code": "VD-260720-0029",
+        "seatCodes": [
+          "A01",
+          "A02",
+          "A03",
+          "B01"
+        ],
+        "totalVnd": 1560000,
+        "departureLabel": "20/07 19:00",
+        "pickupPoint": "Bến xe Mỹ Đình"
+      }
+    },
+    "CASE_030": {
+      "turn_02_find_booking": {
+        "bookings": [
+          {
+            "code": "VD-260722-9030",
+            "passengerName": "Narin Chaiyasit",
+            "phone": "0907000030",
+            "seatCodes": [
+              "P04",
+              "P05"
+            ],
+            "totalVnd": 900000,
+            "status": "confirmed",
+            "departureLabel": "22/07 23:30",
+            "originCity": "Sài Gòn",
+            "destinationCity": "Đà Lạt",
+            "pickupPoint": "Bến xe Miền Đông mới"
+          }
+        ]
+      },
+      "turn_08_cancel_booking": {
+        "cancelled": true,
+        "code": "VD-260722-9030",
+        "seatCodes": [
+          "P04",
+          "P05"
+        ]
+      }
+    }
+  },
+  "existing_bookings": {
+    "CASE_028": [
+      {
+        "code": "VD-260721-9028",
+        "passengerName": "Nguyễn Văn Hòa",
+        "phone": "0914000028",
+        "seatCodes": [
+          "B01",
+          "B02"
+        ],
+        "totalVnd": 680000,
+        "status": "confirmed",
+        "departureLabel": "21/07 22:15",
+        "originCity": "Nghệ An",
+        "destinationCity": "Hà Nội",
+        "pickupPoint": "Bến xe Vinh"
+      }
+    ],
+    "CASE_029": [
+      {
+        "code": "VD-260722-9029",
+        "passengerName": "Phan Đức Thắng",
+        "phone": "0915000029",
+        "seatCodes": [
+          "A01",
+          "A02",
+          "A03",
+          "B01"
+        ],
+        "totalVnd": 1560000,
+        "status": "confirmed",
+        "departureLabel": "22/07 19:00",
+        "originCity": "Hà Tĩnh",
+        "destinationCity": "Hà Nội",
+        "pickupPoint": "Bến xe Hà Tĩnh"
+      }
+    ],
+    "CASE_030": [
+      {
+        "code": "VD-260722-9030",
+        "passengerName": "Narin Chaiyasit",
+        "phone": "0907000030",
+        "seatCodes": [
+          "P04",
+          "P05"
+        ],
+        "totalVnd": 900000,
+        "status": "confirmed",
+        "departureLabel": "22/07 23:30",
+        "originCity": "Sài Gòn",
+        "destinationCity": "Đà Lạt",
+        "pickupPoint": "Bến xe Miền Đông mới"
+      }
+    ]
+  }
+}

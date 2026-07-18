@@ -1,0 +1,410 @@
+{
+  "schema_version": "1.0",
+  "case_id": "CASE_005",
+  "title": "Khách say xe chọn ghế thay thế khi B01 không còn",
+  "metadata": {
+    "scenario_type": "core_booking",
+    "customer_region": "Hà Nội",
+    "audio_conditions": [
+      "clean_hotline"
+    ],
+    "languages": [
+      "vi"
+    ],
+    "difficulty": "medium",
+    "call_datetime": "2026-07-18T16:10:00+07:00",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "coverage_tags": [
+      "seat_selection",
+      "sold_out_recovery",
+      "accessibility_policy"
+    ]
+  },
+  "turn_expectations": [
+    {
+      "turn": 1,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "GREET_AND_DISCOVER",
+        "missing_fields": [
+          "departure_time"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "origin": "Hà Nội",
+          "destination": "Nghệ An",
+          "travel_date": "2026-07-20",
+          "passenger_count": 1
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 2,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "SEARCH_TRIPS",
+        "missing_fields": [],
+        "arguments": {
+          "origin": "Hà Nội",
+          "destination": "Nghệ An",
+          "travel_date": "2026-07-20",
+          "passenger_count": 1
+        },
+        "expected_result": {
+          "trip_ids": [
+            "HN-NA-20260720-2130-GN34"
+          ]
+        }
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 3,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "seat_preference"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "departure_time": "21:30",
+          "trip_id": "HN-NA-20260720-2130-GN34",
+          "vehicle_type": "Giường nằm 34 chỗ"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 4,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "PRESENT_TRIP_OPTIONS",
+        "missing_fields": [
+          "assigned_seats"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "seat_preference": "Tầng dưới, phía trước; thay B01 bằng ghế khả dụng gần nhất"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 5,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "HOLD_SEATS",
+        "missing_fields": [],
+        "arguments": {
+          "trip_id": "HN-NA-20260720-2130-GN34",
+          "passenger_count": 1,
+          "seat_preference": "Tầng dưới, phía trước; thay B01 bằng ghế khả dụng gần nhất"
+        },
+        "expected_result": {
+          "assigned_seats": [
+            "B02"
+          ],
+          "unit_fare_vnd": 350000,
+          "total_fare_vnd": 350000
+        }
+      },
+      "state_update": {
+        "set": {
+          "assigned_seats": [
+            "B02"
+          ]
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 6,
+      "action": {
+        "intent": "ASK_INFORMATION",
+        "action": "ANSWER_AND_REDIRECT",
+        "missing_fields": [
+          "passenger_details"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "seat_preference": "Tầng dưới, phía trước; chấp nhận B02 thay B01; cần hỗ trợ lên xuống xe"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 7,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PASSENGER_DETAILS",
+        "missing_fields": [
+          "pickup_location"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "customer_name": "Hoàng Thị Hạnh",
+          "passenger_details": [
+            {
+              "name": "Hoàng Thị Hạnh",
+              "type": "ADULT",
+              "seat": "B02"
+            }
+          ]
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 8,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "dropoff_location"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "pickup_location": "Bến xe Mỹ Đình"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 9,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "customer_phone",
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "dropoff_location": "Văn phòng Vinh"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 10,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PASSENGER_DETAILS",
+        "missing_fields": [
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "customer_phone": "0956789015"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 11,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PAYMENT_PREFERENCE",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "payment_method": "CASH_ON_BOARDING",
+          "payment_status": "PENDING"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 12,
+      "action": {
+        "intent": "ASK_INFORMATION",
+        "action": "ANSWER_AND_REDIRECT",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 13,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 14,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 15,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "explicit_confirmation": true
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 16,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_BOOKING",
+        "missing_fields": [],
+        "arguments": {
+          "trip_id": "HN-NA-20260720-2130-GN34",
+          "customer_name": "Hoàng Thị Hạnh",
+          "customer_phone": "0956789015"
+        },
+        "expected_result": {
+          "booking_id": "VA-CASE_005",
+          "booking_status": "CONFIRMED"
+        }
+      },
+      "state_update": {
+        "set": {
+          "booking_id": "VA-CASE_005",
+          "booking_status": "CONFIRMED"
+        },
+        "clear": []
+      }
+    }
+  ],
+  "final_state": {
+    "origin": "Hà Nội",
+    "destination": "Nghệ An",
+    "travel_date": "2026-07-20",
+    "departure_time": "21:30",
+    "trip_id": "HN-NA-20260720-2130-GN34",
+    "passenger_count": 1,
+    "vehicle_type": "Giường nằm 34 chỗ",
+    "seat_preference": "Tầng dưới, phía trước; chấp nhận B02 thay B01; cần hỗ trợ lên xuống xe",
+    "assigned_seats": [
+      "B02"
+    ],
+    "pickup_location": "Bến xe Mỹ Đình",
+    "dropoff_location": "Văn phòng Vinh",
+    "customer_name": "Hoàng Thị Hạnh",
+    "customer_phone": "0956789015",
+    "passenger_details": [
+      {
+        "name": "Hoàng Thị Hạnh",
+        "type": "ADULT",
+        "seat": "B02"
+      }
+    ],
+    "payment_method": "CASH_ON_BOARDING",
+    "payment_status": "PENDING",
+    "booking_id": "VA-CASE_005",
+    "booking_status": "CONFIRMED",
+    "explicit_confirmation": true
+  },
+  "final_workflow_output": {
+    "customer": {
+      "name": "Hoàng Thị Hạnh",
+      "phone": "0956789015"
+    },
+    "passengers": {
+      "count": 1,
+      "details": [
+        {
+          "name": "Hoàng Thị Hạnh",
+          "type": "ADULT",
+          "seat": "B02"
+        }
+      ]
+    },
+    "trip": {
+      "trip_id": "HN-NA-20260720-2130-GN34",
+      "origin": "Hà Nội",
+      "destination": "Nghệ An",
+      "travel_date": "2026-07-20",
+      "departure_time": "21:30",
+      "arrival_time": "02:30"
+    },
+    "vehicle": {
+      "type": "Giường nằm 34 chỗ",
+      "seat_preference": "Tầng dưới, phía trước; chấp nhận B02 thay B01; cần hỗ trợ lên xuống xe",
+      "assigned_seats": [
+        "B02"
+      ]
+    },
+    "pickup_dropoff": {
+      "pickup_location": "Bến xe Mỹ Đình",
+      "dropoff_location": "Văn phòng Vinh"
+    },
+    "payment": {
+      "method": "CASH_ON_BOARDING",
+      "status": "PENDING",
+      "unit_fare_vnd": 350000,
+      "total_fare_vnd": 350000
+    },
+    "booking": {
+      "booking_id": "VA-CASE_005",
+      "booking_status": "CONFIRMED"
+    },
+    "outcome": {
+      "completed_goal": true,
+      "confirmation_turn": 15
+    }
+  }
+}

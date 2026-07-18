@@ -1,0 +1,32 @@
+{
+  "schema_version": "2.0",
+  "fixture_version": "2.0",
+  "synthetic": true,
+  "side_effect_free": true,
+  "policies": {
+    "child_passenger": {
+      "answer": "Trẻ em đi cùng người lớn và có chỗ riêng; không suy đoán tuổi khi khách chưa nói rõ."
+    },
+    "luggage": {
+      "answer": "Tối đa 20 kg ký gửi và 7 kg xách tay; đồ cồng kềnh cần nhân viên xác nhận."
+    },
+    "accessibility": {
+      "answer": "Có thể ghi nhận nhu cầu hỗ trợ; không hứa thiết bị hoặc dịch vụ ngoài dữ liệu."
+    },
+    "pet": {
+      "answer": "Thú cưng trong lồng kín vẫn cần nhân viên vận hành duyệt."
+    },
+    "pickup": {
+      "answer": "Chỉ báo điểm đón và trả do kết quả chuyến trả về; không tự ánh xạ địa danh mơ hồ."
+    },
+    "change": {
+      "answer": "Thay đổi tuyến, ngày hoặc số người phải tìm và giữ lại; mọi xác nhận cũ bị xóa."
+    },
+    "payment_context": {
+      "answer": "Có thể ghi nhận mong muốn của khách nhưng không xác minh hoặc gán trạng thái thanh toán."
+    },
+    "cancellation": {
+      "answer": "Vé cũ phải được nhận diện bằng mã hoặc số điện thoại trước khi hủy; không hứa điều khoản hoàn tiền."
+    }
+  }
+}

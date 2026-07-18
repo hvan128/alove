@@ -1,0 +1,494 @@
+{
+  "schema_version": "1.0",
+  "case_id": "CASE_008",
+  "title": "Phụ huynh đổi điểm đón trả và hỏi về xe đẩy",
+  "metadata": {
+    "scenario_type": "core_booking",
+    "customer_region": "Hà Nội",
+    "audio_conditions": [
+      "clean_hotline"
+    ],
+    "languages": [
+      "vi"
+    ],
+    "difficulty": "medium",
+    "call_datetime": "2026-07-18T19:10:00+07:00",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "coverage_tags": [
+      "multiple_passengers",
+      "pickup_change",
+      "luggage_policy"
+    ]
+  },
+  "turn_expectations": [
+    {
+      "turn": 1,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "GREET_AND_DISCOVER",
+        "missing_fields": [
+          "departure_time"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "origin": "Hà Nội",
+          "destination": "Hà Tĩnh",
+          "travel_date": "2026-07-20",
+          "passenger_count": 3
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 2,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "SEARCH_TRIPS",
+        "missing_fields": [],
+        "arguments": {
+          "origin": "Hà Nội",
+          "destination": "Hà Tĩnh",
+          "travel_date": "2026-07-20",
+          "passenger_count": 3
+        },
+        "expected_result": {
+          "trip_ids": [
+            "HN-HT-20260720-1900-GN34"
+          ]
+        }
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 3,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "seat_preference"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "departure_time": "19:00",
+          "trip_id": "HN-HT-20260720-1900-GN34",
+          "vehicle_type": "Giường nằm 34 chỗ"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 4,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "PRESENT_TRIP_OPTIONS",
+        "missing_fields": [
+          "assigned_seats"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "seat_preference": "Ba ghế gần nhau cùng khu vực"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 5,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "HOLD_SEATS",
+        "missing_fields": [],
+        "arguments": {
+          "trip_id": "HN-HT-20260720-1900-GN34",
+          "passenger_count": 3,
+          "seat_preference": "Ba ghế gần nhau cùng khu vực"
+        },
+        "expected_result": {
+          "assigned_seats": [
+            "A01",
+            "A02",
+            "A03"
+          ],
+          "unit_fare_vnd": 390000,
+          "total_fare_vnd": 1170000
+        }
+      },
+      "state_update": {
+        "set": {
+          "assigned_seats": [
+            "A01",
+            "A02",
+            "A03"
+          ]
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 6,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PASSENGER_DETAILS",
+        "missing_fields": [
+          "pickup_location"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "customer_name": "Vũ Mai Phương",
+          "passenger_details": [
+            {
+              "name": "Vũ Mai Phương",
+              "type": "ADULT",
+              "seat": "A01"
+            },
+            {
+              "name": "Vũ Gia Bảo",
+              "type": "CHILD",
+              "seat": "A02"
+            },
+            {
+              "name": "Vũ Hà My",
+              "type": "CHILD",
+              "seat": "A03"
+            }
+          ]
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 7,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "dropoff_location"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "pickup_location": "Bến xe Mỹ Đình"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 8,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "customer_phone",
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "dropoff_location": "Bến xe Hà Tĩnh"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 9,
+      "action": {
+        "intent": "ASK_INFORMATION",
+        "action": "ANSWER_AND_REDIRECT",
+        "missing_fields": [
+          "customer_phone",
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 10,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "customer_phone",
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "pickup_location": "Công viên Hòa Bình"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 11,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "customer_phone",
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "dropoff_location": "Ngã ba Đồng Lộc"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 12,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PASSENGER_DETAILS",
+        "missing_fields": [
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "customer_phone": "0989012348"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 13,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PAYMENT_PREFERENCE",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "payment_method": "QR",
+          "payment_status": "PENDING"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 14,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "VERIFY_PAYMENT",
+        "missing_fields": [],
+        "arguments": {
+          "payment_method": "QR",
+          "payment_reference": "SYN-QR-008-1170A"
+        },
+        "expected_result": {
+          "payment_status": "PAID",
+          "provider_reference": "SYN-GW-008-OK-01"
+        }
+      },
+      "state_update": {
+        "set": {
+          "payment_method": "QR",
+          "payment_status": "PAID"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 15,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 16,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 17,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "explicit_confirmation": true
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 18,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_BOOKING",
+        "missing_fields": [],
+        "arguments": {
+          "trip_id": "HN-HT-20260720-1900-GN34",
+          "customer_name": "Vũ Mai Phương",
+          "customer_phone": "0989012348"
+        },
+        "expected_result": {
+          "booking_id": "VA-CASE_008",
+          "booking_status": "CONFIRMED"
+        }
+      },
+      "state_update": {
+        "set": {
+          "booking_id": "VA-CASE_008",
+          "booking_status": "CONFIRMED"
+        },
+        "clear": []
+      }
+    }
+  ],
+  "final_state": {
+    "origin": "Hà Nội",
+    "destination": "Hà Tĩnh",
+    "travel_date": "2026-07-20",
+    "departure_time": "19:00",
+    "trip_id": "HN-HT-20260720-1900-GN34",
+    "passenger_count": 3,
+    "vehicle_type": "Giường nằm 34 chỗ",
+    "seat_preference": "Ba ghế gần nhau cùng khu vực",
+    "assigned_seats": [
+      "A01",
+      "A02",
+      "A03"
+    ],
+    "pickup_location": "Công viên Hòa Bình",
+    "dropoff_location": "Ngã ba Đồng Lộc",
+    "customer_name": "Vũ Mai Phương",
+    "customer_phone": "0989012348",
+    "passenger_details": [
+      {
+        "name": "Vũ Mai Phương",
+        "type": "ADULT",
+        "seat": "A01"
+      },
+      {
+        "name": "Vũ Gia Bảo",
+        "type": "CHILD",
+        "seat": "A02"
+      },
+      {
+        "name": "Vũ Hà My",
+        "type": "CHILD",
+        "seat": "A03"
+      }
+    ],
+    "payment_method": "QR",
+    "payment_status": "PAID",
+    "booking_id": "VA-CASE_008",
+    "booking_status": "CONFIRMED",
+    "explicit_confirmation": true
+  },
+  "final_workflow_output": {
+    "customer": {
+      "name": "Vũ Mai Phương",
+      "phone": "0989012348"
+    },
+    "passengers": {
+      "count": 3,
+      "details": [
+        {
+          "name": "Vũ Mai Phương",
+          "type": "ADULT",
+          "seat": "A01"
+        },
+        {
+          "name": "Vũ Gia Bảo",
+          "type": "CHILD",
+          "seat": "A02"
+        },
+        {
+          "name": "Vũ Hà My",
+          "type": "CHILD",
+          "seat": "A03"
+        }
+      ]
+    },
+    "trip": {
+      "trip_id": "HN-HT-20260720-1900-GN34",
+      "origin": "Hà Nội",
+      "destination": "Hà Tĩnh",
+      "travel_date": "2026-07-20",
+      "departure_time": "19:00",
+      "arrival_time": "01:00"
+    },
+    "vehicle": {
+      "type": "Giường nằm 34 chỗ",
+      "seat_preference": "Ba ghế gần nhau cùng khu vực",
+      "assigned_seats": [
+        "A01",
+        "A02",
+        "A03"
+      ]
+    },
+    "pickup_dropoff": {
+      "pickup_location": "Công viên Hòa Bình",
+      "dropoff_location": "Ngã ba Đồng Lộc"
+    },
+    "payment": {
+      "method": "QR",
+      "status": "PAID",
+      "unit_fare_vnd": 390000,
+      "total_fare_vnd": 1170000
+    },
+    "booking": {
+      "booking_id": "VA-CASE_008",
+      "booking_status": "CONFIRMED"
+    },
+    "outcome": {
+      "completed_goal": true,
+      "confirmation_turn": 17
+    }
+  }
+}
