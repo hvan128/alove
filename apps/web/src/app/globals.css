@@ -109,6 +109,19 @@
   --warning: var(--color-warning);
   --danger: var(--color-destructive);
   --violet: var(--color-accent);
+  --surface-sunken: var(--color-surface-sunken);
+  /* Màu chuỗi dữ liệu. chart-1 bám --action để biểu đồ nối liền mạch với hệ
+     màu; bốn chuỗi còn lại chọn theo trục xanh–vàng (chàm → lam ngọc → hồng
+     tím → hổ phách → xám) nên KHÔNG có cặp đỏ/xanh lá cạnh nhau, an toàn cho
+     mù màu đỏ-lục. */
+  --chart-1: var(--action);
+  --chart-2: oklch(0.63 0.105 178);
+  --chart-3: oklch(0.58 0.2 345);
+  --chart-4: oklch(0.66 0.145 68);
+  --chart-5: oklch(0.62 0.028 258);
+  /* Lưới mờ hơn cả hairline: nó là thước đo, không phải đường viền. */
+  --chart-grid: oklch(0.95 0 0);
+  --chart-track: oklch(0.925 0 0);
   --elevation-card: var(--shadow-card);
   --elevation-panel: var(--shadow-pop);
   color-scheme: light;
