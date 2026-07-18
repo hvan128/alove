@@ -8,6 +8,7 @@ Behavior:
 - Human mode transcribes but raises `StopResponse`, so no spontaneous reply is generated.
 - `staff.speak` is synthesized with VALSEA TTS in either mode.
 - Auto mode uses OpenAI for the reply text and VALSEA for Vietnamese speech.
+- English display mode translates finalized caller turns with OpenAI Responses, uses `store=false`, and falls back to the source text on timeout or provider error.
 - Final booking confirmation remains a staff action in the web app.
 
 ## Local setup

@@ -29,6 +29,7 @@ from livekit.agents import (
     stt,
 )
 from livekit.plugins import noise_cancellation, openai, silero
+from openai import AsyncOpenAI
 
 from booking_policy import (
     AgentMode,
@@ -36,6 +37,7 @@ from booking_policy import (
     caller_identity_for_session,
     session_code_from_dispatch,
 )
+from transcript_translation import OpenAITranscriptTranslator
 from valsea_stt import DEFAULT_HINT_TEXT, ValseaRealtimeClient
 
 load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -119,6 +121,7 @@ class RoomEventPublisher:
         confidence: float | None,
         channel: str = "voice",
         ended_at_ms: int | None = None,
+        translations: dict[str, str] | None = None,
     ) -> None:
         event_id = new_id(f"{kind}-{role}")
         message_id = (
@@ -133,7 +136,7 @@ class RoomEventPublisher:
                 "role": role,
                 "text": text,
                 "language": "vi",
-                "translations": {},
+                "translations": translations or {},
                 "confidence": confidence,
                 "startedAtMs": 0,
                 "endedAtMs": ended_at_ms if ended_at_ms is not None else self.elapsed_ms(),
@@ -160,12 +163,14 @@ class VediBookingAgent(Agent):
         valsea_api_key: str,
         publisher: RoomEventPublisher,
         auto_available: bool,
+        translator: OpenAITranscriptTranslator | None,
     ) -> None:
         super().__init__(instructions=BOOKING_INSTRUCTIONS)
         self.policy = BookingVoicePolicy()
         self.publisher = publisher
         self.valsea_api_key = valsea_api_key
         self.auto_available = auto_available
+        self.translator = translator
         self._valsea_client: ValseaRealtimeClient | None = None
         self._approved_staff_texts: list[str] = []
         self._auto_unavailable_reported = False
@@ -276,12 +281,18 @@ class VediBookingAgent(Agent):
                     else None
                 )
                 ended_at_ms = int(provider_event.get("timestamp_ms") or self.publisher.elapsed_ms())
+                translations = (
+                    await self.translator.translate(text, self.policy.transcript_language)
+                    if kind == "final" and self.translator is not None
+                    else {}
+                )
                 await self.publisher.transcript(
                     kind=kind,
                     role="caller",
                     text=text,
                     confidence=confidence,
                     ended_at_ms=ended_at_ms,
+                    translations=translations,
                 )
                 yield stt.SpeechEvent(
                     type=(
@@ -351,13 +362,24 @@ class VediBookingAgent(Agent):
         await client.commit()
 
 
-def build_session(valsea_api_key: str) -> tuple[AgentSession, bool]:
+def build_session(
+    valsea_api_key: str,
+) -> tuple[AgentSession, bool, OpenAITranscriptTranslator | None]:
     openai_api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    openai_model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
     llm_provider = (
         openai.LLM(
-            model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+            model=openai_model,
             api_key=openai_api_key,
             temperature=0.2,
+        )
+        if openai_api_key
+        else None
+    )
+    translator = (
+        OpenAITranscriptTranslator(
+            AsyncOpenAI(api_key=openai_api_key).responses,
+            model=openai_model,
         )
         if openai_api_key
         else None
@@ -381,6 +403,7 @@ def build_session(valsea_api_key: str) -> tuple[AgentSession, bool]:
             },
         ),
         llm_provider is not None,
+        translator,
     )
 
 
@@ -417,11 +440,12 @@ async def entrypoint(ctx: JobContext) -> None:
     )
     caller_identity = caller_identity_for_session(session_code)
     publisher = RoomEventPublisher(ctx.room, session_code)
-    session, auto_available = build_session(valsea_api_key)
+    session, auto_available, translator = build_session(valsea_api_key)
     agent = VediBookingAgent(
         valsea_api_key=valsea_api_key,
         publisher=publisher,
         auto_available=auto_available,
+        translator=translator,
     )
     auto_greeted = False
 

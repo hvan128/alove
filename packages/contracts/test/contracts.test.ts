@@ -241,6 +241,7 @@ describe('staff live-call contracts', () => {
 
     expect(partial.type).toBe('transcript.partial')
     expect(final.type).toBe('transcript.final')
+    if (final.type !== 'transcript.final') throw new Error('Expected a final transcript event.')
     expect(final.message.translations.en).toContain('Da Lat')
   })
 
@@ -278,12 +279,14 @@ describe('staff live-call contracts', () => {
   })
 
   it('accepts staff preferences and approved speech but rejects invalid modes', () => {
-    expect(staffCommandSchema.parse({
+    const preferences = staffCommandSchema.parse({
       ...envelope,
       type: 'staff.preferences',
       mode: 'human',
       transcriptLanguage: 'original',
-    }).mode).toBe('human')
+    })
+    if (preferences.type !== 'staff.preferences') throw new Error('Expected staff preferences.')
+    expect(preferences.mode).toBe('human')
 
     expect(staffCommandSchema.parse({
       ...envelope,

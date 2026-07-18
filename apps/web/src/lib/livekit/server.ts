@@ -37,6 +37,7 @@ type IntegrationEnvironment = {
   LIVEKIT_AGENT_NAME?: string
   VOICE_AGENT_ENABLED?: string
   VALSEA_API_KEY?: string
+  VALSEA_ENABLED?: string
   DATABASE_URL?: string
   [key: string]: string | undefined
 }
@@ -66,7 +67,7 @@ export function getPublicIntegrationStatus(
     && nonEmpty(environment.LIVEKIT_API_KEY)
     && nonEmpty(environment.LIVEKIT_API_SECRET),
   )
-  const valsea = Boolean(nonEmpty(environment.VALSEA_API_KEY))
+  const valsea = isValseaConfigured(environment)
   const voiceAgent = livekit
     && valsea
     && environment.VOICE_AGENT_ENABLED?.toLocaleLowerCase('en-US') === 'true'
@@ -119,7 +120,8 @@ export async function createLiveKitToken(
     canPublishData: true,
   })
 
-  const agentEnabled = environment.VOICE_AGENT_ENABLED?.toLocaleLowerCase('en-US') === 'true'
+  const agentEnabled = isValseaConfigured(environment)
+    && environment.VOICE_AGENT_ENABLED?.toLocaleLowerCase('en-US') === 'true'
   if (request.role === 'caller' && agentEnabled) {
     token.roomConfig = new RoomConfiguration({
       name: roomName,
@@ -147,4 +149,9 @@ function normalizeDisplayName(value: string, role: CallParticipantRole): string 
 function nonEmpty(value: string | undefined): string | undefined {
   const normalized = value?.trim()
   return normalized ? normalized : undefined
+}
+
+function isValseaConfigured(environment: IntegrationEnvironment): boolean {
+  return Boolean(nonEmpty(environment.VALSEA_API_KEY))
+    || environment.VALSEA_ENABLED?.toLocaleLowerCase('en-US') === 'true'
 }

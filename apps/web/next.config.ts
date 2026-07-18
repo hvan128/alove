@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@ordervoice/contracts'],
+  transpilePackages: ['@ordervoice/contracts', '@ordervoice/db'],
   allowedDevOrigins: ['127.0.0.1'],
 }
 

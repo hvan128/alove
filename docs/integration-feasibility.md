@@ -1,69 +1,43 @@
-# Khả năng tích hợp third party cho VéĐi
+# Đánh giá third party cho VéĐi
 
-**Kiểm tra lại:** 2026-07-18
+**Cập nhật:** 2026-07-18
 
-Bảng này tách rõ code seam, anonymous connectivity và live credential test. Bản Web Call public không cần third party và không mô phỏng thành công provider.
-
-| Tích hợp | Đã có | Chưa chứng minh live | Quyết định |
-|---|---|---|---|
-| Browser Web Call | Hai phía, preset/text, optional STT/TTS | Hai thiết bị qua mạng | Dùng cho demo public |
-| LiveKit | Kiến trúc/token/room pattern đã review từ project-4 | Thiếu project credentials và Agent worker | Pilot recommended cho multi-device |
-| VALSEA | Realtime adapter + fixture protocol tests | Thiếu sandbox key | Giữ VALSEA-first theo đề bài |
-| OpenAI | Adapter fallback phát triển | Key dán trong chat không được dùng | Chỉ opt-in fallback |
-| Twilio | Media Streams μ-law adapter + hooks | Thiếu account, number, public WSS | Pilot PSTN nếu cần số thật |
-| Stringee | Đã đánh giá là lựa chọn Việt Nam | Raw server media stream chưa xác minh công khai | Hỏi commercial/support trước khi đổi |
-| Zalo | Replay file có consent trong code cũ | Không có entitlement raw call audio | Không claim live Zalo call |
-| Neon | Drizzle boundary | Thiếu `DATABASE_URL` | Bật cho pilot persistence |
-| Vercel | Next.js deploy | Không dùng làm Agent worker dài hạn | Host public web/token route |
+| Tích hợp | Phù hợp | Quyết định |
+|---|---|---|
+| LiveKit Cloud | WebRTC hai thiết bị, named agent, TURN managed | Chọn cho pilot; worker đã implement |
+| VALSEA | Tiếng Việt RTT STT và TTS, đúng yêu cầu đề bài | Bắt buộc ở worker production |
+| OpenAI | Dịch final transcript và LLM tạo câu trả lời ngắn | Downstream có timeout; không thay VALSEA STT |
+| Neon | Serverless Postgres hợp Vercel | Lưu final/snapshot/audit; không lưu audio/partial |
+| Twilio | PSTN Media Streams có protocol rõ | Để sau Web Call; cần số và account thật |
+| Stringee | Hướng thị trường Việt Nam | Chỉ đổi khi xác minh raw media egress và SLA |
+| Zalo | Kênh người dùng phổ biến | Không claim live call vì chưa có raw audio entitlement |
 
 ## LiveKit
 
-LiveKit phù hợp khi khách và nhân viên cần tham gia từ hai browser. Token phải được ký server-side. Agent worker là process riêng kết nối outbound WebSocket và giữ job sống; self-host media server cần TLS/TURN/network setup. Không có credentials nên không thể test room hoặc deploy Agent thành công trong lần này.
+LiveKit đáp ứng đúng demo điện thoại ↔ nhân viên: token server-side, room audio/data và explicit dispatch tới `vedi-booking-agent`. Cloud được ưu tiên cho pilot để tránh tự vận hành TLS, UDP/TURN và NAT. Nếu phải self-host, cần một deployment riêng; Vercel chỉ phục vụ web/token.
 
-Recommended: LiveKit Cloud cho pilot, Next.js token endpoint trên Vercel, Agent worker trên host container lâu dài. Chi tiết: [`livekit-bus-pilot.md`](livekit-bus-pilot.md).
+Nguồn: [authentication endpoint](https://docs.livekit.io/frontends/build/authentication/endpoint/), [agent dispatch](https://docs.livekit.io/agents/server/agent-dispatch/), [self-hosting](https://docs.livekit.io/transport/self-hosting/).
 
-Nguồn: [LiveKit authentication endpoint](https://docs.livekit.io/frontends/build/authentication/endpoint/), [self-hosting](https://docs.livekit.io/transport/self-hosting/), [Agent deployments](https://docs.livekit.io/deploy/custom/deployments/).
+## VALSEA
 
-## VALSEA và OpenAI
+RTT dùng `wss://api.valsea.ai/v1/realtime`, Bearer auth, `session.start` với `valsea-rtt`/`vietnamese`, PCM16 mono 16 kHz, `audio.commit`, partial/final và `session.stop`. Worker đợi `session.created` rồi `session.ready` trước khi gửi audio. TTS dùng OpenAI-compatible `/v1/audio/speech`, model `valsea-tts` và voice alias `valsea-neutral`.
 
-VALSEA vẫn là provider ASR/TTS bắt buộc của pilot theo đề bài. Adapter hiện có xử lý PCM16 16 kHz mono và partial/final event fixture. Anonymous request chỉ chứng minh endpoint có auth boundary, không chứng minh transcript. Cần `VALSEA_API_KEY` sandbox để chạy live smoke với audio có consent.
+Chưa có key nên chưa claim accuracy/latency live. Browser recognition trong fallback được gắn nhãn không phải VALSEA.
 
-OpenAI là fallback phát triển, không được dùng để claim VALSEA compliance. Credential từng xuất hiện trong chat không được copy vào source, command, env hoặc Vercel. Chủ key cần revoke/rotate.
+Nguồn: [VALSEA RTT](https://valsea.ai/docs/realtime), [VALSEA TTS](https://valsea.ai/docs/api/speech).
 
-Nguồn: [VALSEA Realtime](https://valsea.ai/docs/realtime), [OpenAI voice agents](https://platform.openai.com/docs/guides/voice-agents).
+## Điện thoại Việt Nam
 
-## Điện thoại tại Việt Nam
+Twilio Media Streams rõ về μ-law 8 kHz và WebSocket, nhưng cần account, số được phép gọi, webhook HTTPS/WSS và kiểm tra giá/khả năng gọi Việt Nam. Stringee có lợi thế thị trường Việt Nam nhưng chỉ nên thay khi vendor xác nhận raw bidirectional audio stream phù hợp voice agent, codec, latency và consent/recording policy.
 
-### Twilio
+Nguồn: [Twilio Media Streams](https://www.twilio.com/docs/voice/media-streams), [Twilio Vietnam pricing](https://www.twilio.com/en-us/voice/pricing/vn), [Stringee Call API](https://developer.stringee.com/docs/call-api-overview).
 
-Twilio Media Streams có protocol rõ, base64 μ-law 8 kHz qua secure WebSocket, và adapter cũ đã có fixture tests. Live PSTN cần account SID/token, số được provision/verified, webhook HTTPS và public WSS. Test credentials không chứng minh được Media Streams audio callback.
+## Zalo
 
-Nguồn: [Twilio Media Streams](https://www.twilio.com/docs/voice/media-streams), [test credentials](https://www.twilio.com/docs/iam/test-credentials), [Vietnam Voice pricing](https://www.twilio.com/en-us/voice/pricing/vn).
-
-### Stringee
-
-Stringee có Call API/Web SDK hướng thị trường Việt Nam và có thể thuận lợi hơn về số/gọi nội địa. Tài liệu public đã review chưa xác lập một raw server audio stream tương đương Twilio Media Streams cho voice-agent pipeline. Vì vậy chưa thay adapter chỉ dựa trên giả định. Cần xác nhận entitlement, audio egress format, latency, recording consent và pricing với Stringee trước pilot.
-
-Nguồn: [Stringee Call API overview](https://developer.stringee.com/docs/call-api-overview).
-
-## Zalo audio
-
-Không tìm thấy public contract đảm bảo app được truy cập raw audio của cuộc gọi Zalo tùy ý. Hướng an toàn vẫn là file replay do người vận hành chọn và có consent, hoặc chương trình partner/OA được xác nhận bằng văn bản. Không dùng chữ “live Zalo” cho replay.
+Không có public contract chứng minh một app tùy ý được lấy raw audio từ cuộc gọi Zalo. Vì vậy chỉ giữ hướng replay file có consent hoặc partner program đã xác nhận bằng văn bản. Không dùng nhãn “live Zalo” cho file replay.
 
 Nguồn: [Zalo Developers](https://developers.zalo.me/docs/).
 
-## Neon
+## Bảo mật key
 
-Demo hiện tại dùng state trong browser để không phụ thuộc credential. Neon nên lưu final transcript, booking snapshot và audit transition trong pilot; không lưu partial transcript hoặc raw audio mặc định. Live database test bị chặn vì chưa có `DATABASE_URL`.
-
-Nguồn: [Neon serverless driver](https://neon.com/docs/serverless/serverless-driver).
-
-## Checklist khi có credentials
-
-1. Rotate mọi key từng chia sẻ ngoài secret manager.
-2. Cấp LiveKit project và VALSEA sandbox credentials trong encrypted environment.
-3. Deploy token endpoint và Agent worker; test room giữa hai thiết bị thật.
-4. Chạy Vietnamese STT/TTS sample có consent, đo transcript final latency và barge-in.
-5. Chọn Twilio hoặc Stringee sau một cuộc gọi Việt Nam thật và kiểm chứng media access.
-6. Bật Neon migration; xác nhận duplicate final/confirm không tạo booking thứ hai.
-7. Ghi ngày, account mode, region, latency và outcome vào file này trước khi đổi nhãn UI.
+Credential từng dán vào chat không được đưa vào source, log, shell history, `.env` hoặc Vercel. Revoke/rotate trước khi cấp key mới qua secret manager. Web không cần VALSEA/OpenAI secret; hai key đó chỉ đặt ở voice worker.

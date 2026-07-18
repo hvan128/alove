@@ -63,14 +63,14 @@ export function CallToolbar({
                 <span className="font-mono text-xs text-[var(--muted)]">{sessionCode}</span>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                <StatusPill tone={integrationStatus.livekit ? 'success' : 'demo'}>
-                  {integrationStatus.livekit ? 'LiveKit sẵn sàng' : 'Mô phỏng cục bộ'}
+                <StatusPill tone={state.connection.state === 'connected' ? 'success' : integrationStatus.livekit ? 'neutral' : 'demo'}>
+                  {transportLabel(state, integrationStatus.livekit)}
                 </StatusPill>
-                <StatusPill tone={integrationStatus.valsea ? 'success' : 'warning'}>
-                  {integrationStatus.valsea ? 'VALSEA đã cấu hình' : 'Chưa dùng VALSEA'}
+                <StatusPill tone={state.connection.valsea === 'live' ? 'success' : state.connection.valsea === 'error' ? 'danger' : 'warning'}>
+                  {valseaLabel(state, integrationStatus.valsea)}
                 </StatusPill>
-                <StatusPill tone={integrationStatus.voiceAgent ? 'success' : 'neutral'}>
-                  {integrationStatus.voiceAgent ? 'Agent sẵn sàng' : 'Agent chưa cấu hình'}
+                <StatusPill tone={state.connection.agent === 'ready' || state.connection.agent === 'speaking' ? 'success' : state.connection.agent === 'error' ? 'danger' : 'neutral'}>
+                  {agentLabel(state, integrationStatus.voiceAgent)}
                 </StatusPill>
               </div>
             </div>
@@ -144,4 +144,35 @@ export function CallToolbar({
       </div>
     </header>
   )
+}
+
+function transportLabel(state: CallSessionState, configured: boolean): string {
+  if (!configured) return 'Mô phỏng cục bộ'
+  if (state.connection.state === 'connected') return 'LiveKit đã kết nối'
+  if (state.connection.state === 'error') return 'Lỗi LiveKit'
+  if (state.connection.state === 'ended') return 'LiveKit đã ngắt'
+  return 'LiveKit đang kết nối'
+}
+
+function valseaLabel(state: CallSessionState, configured: boolean): string {
+  if (!configured) return 'Chưa dùng VALSEA'
+  const labels: Record<CallSessionState['connection']['valsea'], string> = {
+    unconfigured: 'VALSEA chờ người gọi',
+    connecting: 'VALSEA đang kết nối',
+    live: 'VALSEA đang nghe',
+    error: 'Lỗi VALSEA',
+  }
+  return labels[state.connection.valsea]
+}
+
+function agentLabel(state: CallSessionState, configured: boolean): string {
+  if (!configured) return 'Agent chưa cấu hình'
+  const labels: Record<CallSessionState['connection']['agent'], string> = {
+    unconfigured: 'Agent chờ dispatch',
+    dispatching: 'Đang dispatch Agent',
+    ready: 'Agent đang nghe',
+    speaking: 'Agent đang nói',
+    error: 'Lỗi Agent',
+  }
+  return labels[state.connection.agent]
 }

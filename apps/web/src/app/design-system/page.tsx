@@ -23,7 +23,7 @@ export default function DesignSystemPage() {
           <p className="text-sm font-semibold text-[var(--action)]">VéĐi foundations</p>
           <h1 className="mt-2 text-4xl font-semibold tracking-[-0.05em]">VéĐi design system</h1>
           <p className="mt-4 text-base leading-7 text-[var(--muted)]">
-            Một bề mặt Apple-like calm, rõ ràng và đáng tin cho hành trình đặt vé. Màu xanh hành trình dẫn hướng, semantic colors chỉ báo trạng thái, light và dark mode đi theo thiết bị.
+            Một bề mặt Apple-like rõ ràng và đáng tin cho bàn vận hành đặt vé. Action Blue dẫn hướng, semantic colors chỉ báo trạng thái và mọi control chính có vùng chạm tối thiểu 44px.
           </p>
         </header>
 
@@ -43,20 +43,20 @@ export default function DesignSystemPage() {
         <section className="mt-10 grid gap-5 lg:grid-cols-2">
           <Panel title="Hành động và trạng thái" eyebrow="Components">
             <div className="flex flex-wrap items-start gap-3">
-              <Button>Bắt đầu Web Call</Button>
-              <Button variant="secondary">Chuyển nhân viên</Button>
-              <Button variant="quiet">Phát lại giọng</Button>
+              <Button>Bật mic nhân viên</Button>
+              <Button variant="secondary">Mở trang người gọi</Button>
+              <Button variant="quiet">Nói câu gợi ý</Button>
               <Button disabled disabledReason="Cần đủ thông tin hành khách">Xác nhận vé</Button>
             </div>
             <div className="mt-6 flex flex-wrap gap-3">
-              <StatusPill tone="success">Đã giữ vé</StatusPill>
+              <StatusPill tone="success">VALSEA đang nghe</StatusPill>
               <StatusPill tone="warning">Chờ xác nhận</StatusPill>
               <StatusPill tone="demo">Demo Web Call</StatusPill>
               <StatusDot tone="info" label="Agent đang nghe" />
             </div>
           </Panel>
           <Panel title="Form đặt vé" eyebrow="Input">
-            <TextInput label="Lời khách hàng" placeholder="Tôi cần hai vé đi Đà Lạt..." hint="Label luôn liên kết với input và có trạng thái focus rõ." />
+            <TextInput label="Điểm đến" placeholder="Đà Lạt" hint="Mỗi trường hiển thị nguồn, độ tin cậy và trạng thái nhân viên khóa." />
             <div className="mt-5 rounded-xl border border-[var(--divider)] bg-[var(--pearl)] p-4">
               <p className="text-xs font-medium text-[var(--muted)]">Thông tin đã nghe</p>
               <p className="mt-2 text-sm font-medium">Sài Gòn → Đà Lạt · 2 hành khách · tối thứ Sáu</p>
@@ -79,7 +79,7 @@ export default function DesignSystemPage() {
             </div>
           </Panel>
           <Panel title="Quy tắc responsive">
-            <p className="text-sm leading-6 text-[var(--muted)]">Hai phía đặt cạnh nhau ở desktop và xếp dọc trên màn hình nhỏ. Trạng thái cuộc gọi, chế độ trả lời và nút bắt đầu luôn đứng trước nội dung hội thoại. Mọi control chính giữ vùng chạm tối thiểu 44px.</p>
+            <p className="text-sm leading-6 text-[var(--muted)]">Desktop ưu tiên ba cột: transcript, phiếu đặt vé, trợ lý nhân viên. Route người gọi dùng một cột để thao tác tốt trên điện thoại; bàn nhân viên xếp dọc khi màn hình hẹp.</p>
           </Panel>
         </section>
       </main>

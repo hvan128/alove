@@ -96,9 +96,27 @@ describe('LiveKit server boundary', () => {
     expect(claims.roomConfig?.agents ?? []).toHaveLength(0)
   })
 
+  it('does not dispatch a caller agent before VALSEA readiness is configured', async () => {
+    const environmentWithoutValsea: Partial<typeof env> = { ...env }
+    delete environmentWithoutValsea.VALSEA_API_KEY
+    const details = await createLiveKitToken({
+      sessionCode: 'DEMO42',
+      role: 'caller',
+      displayName: 'Khách',
+    }, environmentWithoutValsea, () => 'caller-a')
+    const claims = await new TokenVerifier(
+      env.LIVEKIT_API_KEY,
+      env.LIVEKIT_API_SECRET,
+    ).verify(details.participantToken)
+
+    expect(claims.roomConfig?.agents ?? []).toHaveLength(0)
+  })
+
   it('returns boolean integration readiness without exposing secret values', () => {
     const status = getPublicIntegrationStatus(env)
     const serialized = JSON.stringify(status)
+    const environmentWithoutValseaSecret: Partial<typeof env> = { ...env }
+    delete environmentWithoutValseaSecret.VALSEA_API_KEY
 
     expect(status).toEqual({
       transport: 'livekit',
@@ -117,6 +135,10 @@ describe('LiveKit server boundary', () => {
       voiceAgent: false,
       persistence: false,
     })
+    expect(getPublicIntegrationStatus({
+      ...environmentWithoutValseaSecret,
+      VALSEA_ENABLED: 'true',
+    })).toMatchObject({ valsea: true, voiceAgent: true })
   })
 
   it('fails with a typed configuration error when signing values are incomplete', async () => {

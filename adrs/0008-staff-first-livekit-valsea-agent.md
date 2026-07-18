@@ -17,7 +17,7 @@ Use:
 - LiveKit Cloud for two-sided WebRTC audio and room data.
 - A named Python LiveKit agent worker linked explicitly to the caller participant.
 - A custom streaming VALSEA RTT adapter for STT.
-- A cascade voice path for optional replies, using VALSEA-compatible chat/TTS first and OpenAI only as an explicit downstream fallback.
+- A cascade voice path for optional replies, using OpenAI as the guarded downstream LLM and VALSEA TTS for spoken audio.
 - Deterministic incremental booking extraction and validation as the guaranteed workflow layer.
 - Same-origin BroadcastChannel, text presets, and device speech only as a clearly labeled no-key fallback.
 

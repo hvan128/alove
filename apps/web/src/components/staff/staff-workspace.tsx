@@ -7,7 +7,6 @@ import type { CallEventTransport } from '@/lib/call/demo-channel'
 import { LiveKitEventTransport } from '@/lib/call/livekit-adapter'
 import type { PublicIntegrationStatus } from '@/lib/livekit/server'
 import { useCallSession } from '@/hooks/use-call-session'
-import { speakVietnamese } from '@/lib/device-speech'
 import type { LiveKitConnectionPhase } from '@/components/livekit/live-call-room'
 import { AssistantRail } from './assistant-rail'
 import { BookingForm } from './booking-form'
@@ -41,6 +40,8 @@ export function StaffWorkspace({ sessionCode, integrationStatus, transportFactor
     role: 'staff',
     transport: integrationStatus.livekit ? 'livekit' : 'local',
     persistence: integrationStatus.persistence,
+    valseaEnabled: integrationStatus.valsea,
+    voiceAgentEnabled: integrationStatus.voiceAgent,
     ...(effectiveFactory ? { transportFactory: effectiveFactory } : {}),
   })
   const handledCaller = useRef<string | null>(null)
@@ -48,7 +49,7 @@ export function StaffWorkspace({ sessionCode, integrationStatus, transportFactor
   const { messages, mode, suggestion, transcriptLanguage } = state
 
   useEffect(() => {
-    if (mode !== 'auto') return
+    if (mode !== 'auto' || integrationStatus.voiceAgent) return
     const lastCaller = [...messages].reverse().find((message) => message.role === 'caller')
     if (!lastCaller || handledCaller.current === lastCaller.id) return
     handledCaller.current = lastCaller.id
@@ -72,8 +73,7 @@ export function StaffWorkspace({ sessionCode, integrationStatus, transportFactor
       },
     }
     sendEvent(event)
-    speakVietnamese(suggestion.text)
-  }, [messages, mode, sendEvent, sessionCode, suggestion.text])
+  }, [integrationStatus.voiceAgent, messages, mode, sendEvent, sessionCode, suggestion.text])
 
   const changeMode = (mode: 'human' | 'auto') => {
     if (mode === 'auto') {
@@ -84,12 +84,10 @@ export function StaffWorkspace({ sessionCode, integrationStatus, transportFactor
 
   const speakSuggestion = () => {
     sendStaffSpeech(suggestion.text)
-    speakVietnamese(suggestion.text)
   }
 
   const sendCustomReply = (text: string) => {
     sendStaffSpeech(text)
-    speakVietnamese(text)
   }
 
   const handleLiveKitPhase = useCallback((phase: LiveKitConnectionPhase, detail?: string) => {
@@ -144,7 +142,7 @@ export function StaffWorkspace({ sessionCode, integrationStatus, transportFactor
           sessionCode={sessionCode}
           role="staff"
           displayName="Nhân viên VéĐi"
-          connect
+          connect={state.connection.state !== 'ended'}
           microphone={microphone}
           transport={liveTransport}
           onConnectionChange={handleLiveKitPhase}

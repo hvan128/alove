@@ -4,7 +4,7 @@
 
 **Goal:** Rebuild VéĐi as a staff-first bus-booking call console with realtime transcript, incremental evidence-backed field filling, reply suggestions, a Human/Auto voice-agent mode, and a simple mobile caller route that works both through LiveKit and through an explicitly labeled local demo fallback.
 
-**Architecture:** Next.js 16 serves `/staff`, `/call`, narrow route handlers, and a Neon-backed session repository. LiveKit carries remote audio/data. A separately deployed Python LiveKit Agents worker listens only to the caller, streams audio to mandatory VALSEA RTT STT, emits shared events, and optionally uses VALSEA-compatible LLM/TTS in Auto mode. The deterministic TypeScript reducer remains the guaranteed demo path and the source of truth for booking patches, evidence, suggestions, and the human confirmation gate.
+**Architecture:** Next.js 16 serves `/staff`, `/call`, narrow route handlers, and a Neon-backed session repository. LiveKit carries remote audio/data. A separately deployed Python LiveKit Agents worker listens only to the caller, streams audio to mandatory VALSEA RTT STT, emits shared events, and uses an optional OpenAI LLM plus VALSEA TTS in Auto mode. The deterministic TypeScript reducer remains the guaranteed demo path and the source of truth for booking patches, evidence, suggestions, and the human confirmation gate.
 
 **Tech stack:** TypeScript, React 19, Next.js 16 App Router, Zod, Vitest/Testing Library, Playwright, LiveKit JS/server SDKs, Python 3.11, LiveKit Agents, VALSEA realtime WebSocket, Neon Postgres/Drizzle, Vercel.
 
@@ -334,7 +334,7 @@ Expected: FAIL because the worker modules do not exist.
 
 **Step 3: Implement custom streaming STT and policy**
 
-Adapt the proven project-4 LiveKit `AgentSession` lifecycle. Explicitly link to `caller-<session>`. Implement a custom VALSEA streaming STT adapter, publish normalized event envelopes, use VALSEA-compatible LLM/TTS by default, and keep OpenAI only as an optional downstream fallback. Human mode must transcribe/suggest without spontaneous speech.
+Adapt the proven project-4 LiveKit `AgentSession` lifecycle. Explicitly link to `caller-<session>`. Implement a custom VALSEA streaming STT adapter, publish normalized event envelopes, use OpenAI only as the optional downstream LLM and VALSEA TTS for spoken replies. Human mode must transcribe/suggest without spontaneous speech.
 
 **Step 4: Add deploy artifacts and validation command**
 
@@ -502,4 +502,3 @@ Re-run fresh deterministic gates, inspect git diff/status, and update the task a
 **Step 6: Integrate according to delegated recommendation**
 
 Use `superpowers:finishing-a-development-branch`. Because the user delegated the choice, prefer a local merge into `dev` after all gates pass and preserve the feature commit history. Do not push when no remote exists.
-

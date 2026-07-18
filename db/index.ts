@@ -1,6 +1,6 @@
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
-import * as schema from './schema.js'
+import * as schema from './schema'
 
 function createDb() {
   const connectionString = process.env.DATABASE_URL
@@ -22,4 +22,4 @@ export function resetDbForTests(): void {
   database = undefined
 }
 
-export * from './schema.js'
+export * from './schema'

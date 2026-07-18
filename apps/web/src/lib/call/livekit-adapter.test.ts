@@ -20,7 +20,7 @@ const event: RoomEvent = {
 describe('LiveKit call adapter', () => {
   it('queues validated events until the data publisher is bound', async () => {
     const transport = new LiveKitEventTransport('DEMO42')
-    const publish = vi.fn(async () => undefined)
+    const publish = vi.fn(async (_payload: Uint8Array) => undefined)
 
     transport.publish(event)
     await transport.bindPublisher(publish)

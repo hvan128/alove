@@ -35,6 +35,8 @@ export type UseCallSessionOptions = {
   transport?: 'local' | 'livekit'
   transportFactory?: (sessionCode: string) => CallEventTransport
   persistence?: boolean
+  valseaEnabled?: boolean
+  voiceAgentEnabled?: boolean
 }
 
 export type CallSessionController = {
@@ -57,6 +59,8 @@ export function useCallSession(options: UseCallSessionOptions): CallSessionContr
   const transportKind = options.transport ?? 'local'
   const transportFactory = options.transportFactory
   const persistence = options.persistence ?? false
+  const valseaEnabled = options.valseaEnabled ?? false
+  const voiceAgentEnabled = options.voiceAgentEnabled ?? false
   const reducer = useCallback((state: CallSessionState, action: SessionAction): CallSessionState => {
     if (action.kind === 'event') return reduceCallSession(state, action.event)
     if (action.kind === 'confirm') return confirmCallSession(state)
@@ -215,11 +219,11 @@ export function useCallSession(options: UseCallSessionOptions): CallSessionContr
       transport: transportKind,
       state: present ? 'connected' : 'waiting',
       callerPresent: present,
-      valsea: transportKind === 'local' ? 'unconfigured' : 'connecting',
-      agent: transportKind === 'local' ? 'unconfigured' : 'dispatching',
+      valsea: transportKind === 'livekit' && valseaEnabled ? 'connecting' : 'unconfigured',
+      agent: transportKind === 'livekit' && voiceAgentEnabled ? 'dispatching' : 'unconfigured',
       detail: transportKind === 'local' ? 'Mô phỏng cục bộ, chưa dùng VALSEA.' : null,
     })
-  }, [sendEvent, sessionCode, transportKind])
+  }, [sendEvent, sessionCode, transportKind, valseaEnabled, voiceAgentEnabled])
 
   const endCall = useCallback(() => {
     sendEvent({

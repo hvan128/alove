@@ -25,19 +25,26 @@ type Props = {
 }
 
 export function LiveCallRoom({
+  connect,
+  ...props
+}: Props) {
+  return connect ? <ConnectedLiveCallRoom {...props} /> : null
+}
+
+type ConnectedProps = Omit<Props, 'connect'>
+
+function ConnectedLiveCallRoom({
   sessionCode,
   role,
   displayName,
-  connect,
   microphone,
   transport,
   onConnectionChange,
-}: Props) {
+}: ConnectedProps) {
   const [access, setAccess] = useState<Awaited<ReturnType<typeof fetchLiveKitAccessDetails>> | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!connect) return
     const controller = new AbortController()
     onConnectionChange('requesting')
     void fetchLiveKitAccessDetails({ sessionCode, role, displayName }, fetch, controller.signal)
@@ -52,9 +59,8 @@ export function LiveCallRoom({
         onConnectionChange('error', message)
       })
     return () => controller.abort()
-  }, [connect, displayName, onConnectionChange, role, sessionCode])
+  }, [displayName, onConnectionChange, role, sessionCode])
 
-  if (!connect) return null
   if (error) return <p className="sr-only" role="alert">{error}</p>
   if (!access) return <p className="sr-only" aria-live="polite">Đang cấp quyền LiveKit</p>
 

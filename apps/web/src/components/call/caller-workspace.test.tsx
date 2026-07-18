@@ -1,5 +1,5 @@
 import type { RoomEvent } from '@ordervoice/contracts'
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DemoCallChannel } from '@/lib/call/demo-channel'
@@ -107,4 +107,77 @@ describe('mobile caller workspace', () => {
     expect(screen.getByRole('button', { name: 'Gửi câu mẫu hành trình' })).toBeEnabled()
     channel.close()
   })
+
+  it('publishes one partial event for one browser interim result', async () => {
+    let recognition: FakeRecognition | null = null
+    class BrowserRecognition extends FakeRecognition {
+      constructor() {
+        super()
+        recognition = this
+      }
+    }
+    vi.stubGlobal('webkitSpeechRecognition', BrowserRecognition)
+    const user = userEvent.setup()
+    const channel = renderCaller('CALL45')
+    const received: RoomEvent[] = []
+    channel.subscribe((event) => received.push(event))
+
+    await user.click(screen.getByRole('button', { name: 'Bắt đầu cuộc gọi' }))
+    await user.click(screen.getByRole('button', { name: 'Bật microphone' }))
+    act(() => recognition?.emitInterim('Tôi muốn đi Đà Lạt'))
+
+    await waitFor(() => {
+      expect(received.filter((event) => event.type === 'transcript.partial')).toHaveLength(1)
+    })
+    await act(async () => Promise.resolve())
+    expect(received.filter((event) => event.type === 'transcript.partial')).toHaveLength(1)
+    channel.close()
+  })
+
+  it('hangs up locally when the staff ends the shared call', async () => {
+    const user = userEvent.setup()
+    const channel = renderCaller('CALL46')
+    await user.click(screen.getByRole('button', { name: 'Bắt đầu cuộc gọi' }))
+
+    act(() => channel.publish({
+      version: 1,
+      eventId: 'staff-end-001',
+      sessionCode: 'CALL46',
+      occurredAt: '2026-07-18T04:00:00.000Z',
+      type: 'staff.end_call',
+      reason: 'ended_by_staff',
+    }))
+
+    expect(await screen.findByRole('button', { name: 'Bắt đầu cuộc gọi' })).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Bật microphone' })).not.toBeInTheDocument()
+    channel.close()
+  })
 })
+
+class FakeRecognition {
+  lang = ''
+  continuous = false
+  interimResults = false
+  onstart: (() => void) | null = null
+  onend: (() => void) | null = null
+  onerror: ((event: { error: string }) => void) | null = null
+  onresult: ((event: {
+    resultIndex: number
+    results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }>
+  }) => void) | null = null
+
+  start() {
+    this.onstart?.()
+  }
+
+  stop() {
+    this.onend?.()
+  }
+
+  abort() {}
+
+  emitInterim(text: string) {
+    const result = Object.assign([{ transcript: text }], { isFinal: false })
+    this.onresult?.({ resultIndex: 0, results: [result] })
+  }
+}

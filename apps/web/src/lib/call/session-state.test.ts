@@ -12,7 +12,10 @@ const base = {
   occurredAt: '2026-07-18T04:00:00.000Z',
 }
 
-function finalEvent(text: string, eventId = 'event-final-001'): RoomEvent {
+function finalEvent(
+  text: string,
+  eventId = 'event-final-001',
+): Extract<RoomEvent, { type: 'transcript.final' }> {
   return {
     ...base,
     eventId,

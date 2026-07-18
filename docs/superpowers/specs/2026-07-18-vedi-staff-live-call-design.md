@@ -232,7 +232,7 @@ The custom STT adapter follows the current official RTT protocol:
 5. Map `transcript.final` to LiveKit final events.
 6. Send `audio.commit` at end of utterance and `session.stop` during shutdown.
 
-The worker can use VALSEA's OpenAI-compatible `POST /v1/chat/completions` with model `valsea-fast` and `POST /v1/audio/speech` with model `valsea-tts`. OpenAI LLM/TTS remain explicit fallbacks, never ASR fallbacks.
+The worker uses VALSEA's OpenAI-compatible `POST /v1/audio/speech` endpoint with model `valsea-tts` for spoken replies. VALSEA's public API does not currently expose a general chat-completions endpoint, so OpenAI is the optional downstream LLM for Auto-mode reasoning and reply generation. OpenAI is never an ASR fallback: configured remote transcription always uses VALSEA RTT.
 
 ## Demo fallback
 
@@ -276,10 +276,10 @@ This fallback is for UI and workflow validation only. A phone on a different dev
 ## Required credentials after implementation
 
 - LiveKit Cloud URL, API key, and API secret.
-- VALSEA API key with RTT, chat, and TTS access.
+- VALSEA API key with RTT and TTS access.
 - A worker deployment target or LiveKit Cloud Agents access token.
 - Neon `DATABASE_URL` for persistence.
-- Optional fresh OpenAI key only if VALSEA chat/TTS is unavailable.
+- Optional fresh OpenAI key for Auto-mode LLM reasoning; it is never used for STT.
 
 ## Sources
 
@@ -296,4 +296,3 @@ This fallback is for UI and workflow validation only. A phone on a different dev
 - https://docs.livekit.io/agents/multimodality/text/
 - https://docs.livekit.io/frontends/build/authentication/endpoint/
 - https://docs.livekit.io/deploy/custom/deployments/
-

@@ -117,7 +117,7 @@ describe('staff live booking cockpit', () => {
     channel.close()
   })
 
-  it('never speaks automatically in Human mode and speaks one answer in Auto mode', async () => {
+  it('never answers in Human mode and creates one local Agent answer in Auto mode', async () => {
     const speak = vi.fn()
     vi.stubGlobal('speechSynthesis', { cancel: vi.fn(), speak })
     vi.stubGlobal('SpeechSynthesisUtterance', class {
@@ -133,7 +133,7 @@ describe('staff live booking cockpit', () => {
     await user.click(screen.getByRole('button', { name: 'Agent tự động' }))
     publishFinal(channel, 'STAFF4', 'Tôi đi từ Sài Gòn và cần 2 vé ngày 24/07.', { eventId: 'auto-001' })
 
-    expect(speak).toHaveBeenCalledOnce()
+    expect(speak).not.toHaveBeenCalled()
     expect(screen.getByTestId('message-agent')).toBeVisible()
     channel.close()
   })

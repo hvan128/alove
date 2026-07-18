@@ -1,5 +1,7 @@
 # LiveKit bus-ticket pilot và review project-4
 
+> Tài liệu lịch sử của TASK-002. Worker và hai route đã được implement trong TASK-003; hướng deploy hiện hành nằm tại [`livekit-valsea-deployment.md`](livekit-valsea-deployment.md).
+
 **Ngày review:** 2026-07-18  
 **Trạng thái public demo:** Web Call cùng trình duyệt, không claim LiveKit live.
 

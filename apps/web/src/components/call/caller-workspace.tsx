@@ -41,6 +41,7 @@ export function CallerWorkspace({ sessionCode, integrationStatus, transportFacto
   const [typedText, setTypedText] = useState('')
   const [phase, setPhase] = useState<LiveKitConnectionPhase | 'idle'>('idle')
   const heardMessage = useRef<string | null>(null)
+  const endedRef = useRef(false)
   const liveTransport = useMemo(
     () => integrationStatus.livekit ? new LiveKitEventTransport(sessionCode) : null,
     [integrationStatus.livekit, sessionCode],
@@ -55,30 +56,48 @@ export function CallerWorkspace({ sessionCode, integrationStatus, transportFacto
     role: 'caller',
     transport: integrationStatus.livekit ? 'livekit' : 'local',
     persistence: integrationStatus.persistence,
+    valseaEnabled: integrationStatus.valsea,
+    voiceAgentEnabled: integrationStatus.voiceAgent,
     ...(effectiveFactory ? { transportFactory: effectiveFactory } : {}),
   })
+  const {
+    state,
+    receiveEvent,
+    sendCallerText,
+    sendPartial,
+    setCallerPresence,
+  } = session
   const recognition = useSpeechRecognition({
-    onFinal: (text) => session.sendCallerText(text, 'voice'),
+    onFinal: (text) => sendCallerText(text, 'voice'),
   })
+  const stopRecognition = recognition.stop
+  const callEnded = state.connection.state === 'ended'
+  const activeJoined = joined && !callEnded
 
   useEffect(() => {
-    if (joined && recognition.interimText) session.sendPartial(recognition.interimText)
-  }, [joined, recognition.interimText, session])
+    if (activeJoined && recognition.interimText) sendPartial(recognition.interimText)
+  }, [activeJoined, recognition.interimText, sendPartial])
 
   useEffect(() => {
-    if (!joined) return
-    const incoming = [...session.state.messages].reverse().find((message) => message.role === 'staff' || message.role === 'agent')
+    if (!activeJoined) return
+    const incoming = [...state.messages].reverse().find((message) => message.role === 'staff' || message.role === 'agent')
     if (!incoming || heardMessage.current === incoming.id) return
     heardMessage.current = incoming.id
-    speakVietnamese(incoming.text)
-  }, [joined, session.state.messages])
+    if (!integrationStatus.voiceAgent) speakVietnamese(incoming.text)
+  }, [activeJoined, integrationStatus.voiceAgent, state.messages])
+
+  useEffect(() => {
+    endedRef.current = callEnded
+    if (joined && callEnded) stopRecognition()
+  }, [callEnded, joined, stopRecognition])
 
   const handleLiveKitPhase = useCallback((next: LiveKitConnectionPhase, detail?: string) => {
+    if (endedRef.current && (next === 'disconnected' || next === 'error')) return
     setPhase(next)
-    if (next === 'connected') session.setCallerPresence(true)
-    if (next === 'disconnected' || next === 'error') session.setCallerPresence(false)
+    if (next === 'connected') setCallerPresence(true)
+    if (next === 'disconnected' || next === 'error') setCallerPresence(false)
     if (detail && next === 'error') {
-      session.receiveEvent({
+      receiveEvent({
         version: 1,
         eventId: `caller-livekit-error-${Date.now()}`,
         sessionCode,
@@ -89,19 +108,19 @@ export function CallerWorkspace({ sessionCode, integrationStatus, transportFacto
         recoverable: true,
       })
     }
-  }, [session, sessionCode])
+  }, [receiveEvent, sessionCode, setCallerPresence])
 
   const startCall = () => {
-    const incoming = [...session.state.messages].reverse().find((message) => message.role === 'staff' || message.role === 'agent')
+    const incoming = [...state.messages].reverse().find((message) => message.role === 'staff' || message.role === 'agent')
     heardMessage.current = incoming?.id ?? null
     setJoined(true)
     setMicrophone(integrationStatus.livekit)
-    if (!integrationStatus.livekit) session.setCallerPresence(true)
+    setCallerPresence(true)
   }
 
   const hangUp = () => {
     recognition.stop()
-    session.setCallerPresence(false)
+    setCallerPresence(false)
     setMicrophone(false)
     setJoined(false)
     setPhase('disconnected')
@@ -116,8 +135,8 @@ export function CallerWorkspace({ sessionCode, integrationStatus, transportFacto
     else recognition.start()
   }
 
-  const latestIncoming = [...session.state.messages].reverse().find((message) => message.role === 'staff' || message.role === 'agent')
-  const latestCaller = [...session.state.messages].reverse().find((message) => message.role === 'caller')
+  const latestIncoming = [...state.messages].reverse().find((message) => message.role === 'staff' || message.role === 'agent')
+  const latestCaller = [...state.messages].reverse().find((message) => message.role === 'caller')
 
   return (
     <div className="min-h-[100dvh] bg-[var(--canvas)] px-4 py-5 text-[var(--ink)] sm:py-8">
@@ -136,17 +155,17 @@ export function CallerWorkspace({ sessionCode, integrationStatus, transportFacto
         <section className="mt-5 overflow-hidden rounded-[24px] border border-[var(--hairline)] bg-white">
           <div className="px-5 pb-6 pt-7 text-center">
             <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-[var(--action-soft)] text-[var(--action)]">
-              {joined ? <PhoneIcon size={34} weight="fill" aria-hidden /> : <ChatTextIcon size={34} weight="duotone" aria-hidden />}
+              {activeJoined ? <PhoneIcon size={34} weight="fill" aria-hidden /> : <ChatTextIcon size={34} weight="duotone" aria-hidden />}
             </div>
             <h1 className="mt-5 text-3xl font-semibold tracking-[-0.05em]">Gọi đặt vé</h1>
-            <p className="mt-2 text-sm text-[var(--muted)]">{joined ? 'Đang trong cuộc gọi' : 'Sẵn sàng gọi nhà xe VéĐi'}</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">{activeJoined ? 'Đang trong cuộc gọi' : 'Sẵn sàng gọi nhà xe VéĐi'}</p>
             <div className="mt-4 flex flex-wrap justify-center gap-2 text-xs">
-              <span className="rounded-[8px] bg-[var(--pearl)] px-2 py-1 font-medium">{integrationStatus.livekit ? livePhaseLabel(phase) : 'Mô phỏng cục bộ'}</span>
-              <span className="rounded-[8px] bg-[var(--warning-soft)] px-2 py-1 font-medium text-[var(--warning)]">{integrationStatus.valsea ? 'VALSEA sẵn sàng' : 'Chưa dùng VALSEA'}</span>
+              <span className="rounded-[8px] bg-[var(--pearl)] px-2 py-1 font-medium">{integrationStatus.livekit ? livePhaseLabel(activeJoined ? phase : 'idle') : 'Mô phỏng cục bộ'}</span>
+              <span className="rounded-[8px] bg-[var(--warning-soft)] px-2 py-1 font-medium text-[var(--warning)]">{callerValseaLabel(state.connection.valsea, integrationStatus.valsea)}</span>
             </div>
           </div>
 
-          {!joined ? (
+          {!activeJoined ? (
             <div className="border-t border-[var(--divider)] p-5">
               <button type="button" onClick={startCall} className="inline-flex min-h-13 w-full items-center justify-center gap-2 rounded-[14px] bg-[var(--action)] px-5 text-base font-semibold text-white transition hover:bg-[var(--action-hover)]">
                 <PhoneIcon size={20} weight="fill" aria-hidden /> Bắt đầu cuộc gọi
@@ -176,7 +195,7 @@ export function CallerWorkspace({ sessionCode, integrationStatus, transportFacto
           )}
         </section>
 
-        {joined ? (
+        {activeJoined ? (
           <>
             <section className="mt-4 rounded-[18px] border border-[var(--hairline)] bg-white p-4" aria-label="Nội dung cuộc gọi">
               <p className="text-xs font-semibold uppercase tracking-[0.07em] text-[var(--muted)]">Phản hồi gần nhất</p>
@@ -189,7 +208,7 @@ export function CallerWorkspace({ sessionCode, integrationStatus, transportFacto
               <h2 className="text-sm font-semibold">Câu mẫu để demo</h2>
               <div className="mt-3 grid gap-2">
                 {SAMPLE_UTTERANCES.map((sample) => (
-                  <button key={sample.label} type="button" onClick={() => session.sendCallerText(sample.text, 'preset')} className="min-h-11 rounded-[11px] border border-[var(--hairline)] bg-white px-3 text-left text-sm transition hover:bg-[var(--pearl)]" aria-label={sample.label}>
+                  <button key={sample.label} type="button" onClick={() => sendCallerText(sample.text, 'preset')} className="min-h-11 rounded-[11px] border border-[var(--hairline)] bg-white px-3 text-left text-sm transition hover:bg-[var(--pearl)]" aria-label={sample.label}>
                     {sample.text}
                   </button>
                 ))}
@@ -201,7 +220,7 @@ export function CallerWorkspace({ sessionCode, integrationStatus, transportFacto
               onSubmit={(event) => {
                 event.preventDefault()
                 if (!typedText.trim()) return
-                session.sendCallerText(typedText, 'text')
+                sendCallerText(typedText, 'text')
                 setTypedText('')
               }}
             >
@@ -222,7 +241,7 @@ export function CallerWorkspace({ sessionCode, integrationStatus, transportFacto
           sessionCode={sessionCode}
           role="caller"
           displayName="Khách gọi thử"
-          connect={joined}
+          connect={activeJoined}
           microphone={microphone}
           transport={liveTransport}
           onConnectionChange={handleLiveKitPhase}
@@ -234,8 +253,18 @@ export function CallerWorkspace({ sessionCode, integrationStatus, transportFacto
 
 function livePhaseLabel(phase: LiveKitConnectionPhase | 'idle'): string {
   const labels: Record<LiveKitConnectionPhase | 'idle', string> = {
-    idle: 'LiveKit sẵn sàng', requesting: 'Đang cấp quyền', connecting: 'Đang kết nối',
+    idle: 'LiveKit chưa kết nối', requesting: 'Đang cấp quyền', connecting: 'Đang kết nối',
     connected: 'LiveKit đã kết nối', disconnected: 'Đã ngắt kết nối', error: 'Lỗi LiveKit',
   }
   return labels[phase]
+}
+
+function callerValseaLabel(state: 'unconfigured' | 'connecting' | 'live' | 'error', configured: boolean): string {
+  if (!configured) return 'Chưa dùng VALSEA'
+  return {
+    unconfigured: 'VALSEA chờ kết nối',
+    connecting: 'VALSEA đang kết nối',
+    live: 'VALSEA đang nghe',
+    error: 'Lỗi VALSEA',
+  }[state]
 }

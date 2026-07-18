@@ -11,6 +11,7 @@ dependencies = [
   "livekit-agents[silero]==1.6.5",
   "livekit-plugins-noise-cancellation==0.3.0",
   "livekit-plugins-openai==1.6.5",
+  "openai==2.46.0",
   "python-dotenv==1.2.2",
   "websockets==15.0.1",
 ]
@@ -23,7 +24,7 @@ dev = [
 ]
 
 [tool.setuptools]
-py-modules = ["agent", "booking_policy", "valsea_stt"]
+py-modules = ["agent", "booking_policy", "transcript_translation", "valsea_stt"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
