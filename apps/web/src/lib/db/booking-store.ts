@@ -20,6 +20,19 @@ export type TripOffer = {
   pickupPoint: string
   dropoffPoint: string
   seatsAvailable: number
+  /** "ghế" | "giường" | "phòng" — dùng đúng từ nhà xe gọi sản phẩm. */
+  seatNoun: string
+}
+
+/**
+ * What to call a seat on this vehicle. A "Limousine 21 Phòng VIP" sells cabins,
+ * so telling the caller "ghế A1" contradicts the product name they just heard.
+ */
+export function seatNounFor(vehicleType: string): string {
+  const v = vehicleType.toLocaleLowerCase('vi-VN')
+  if (v.includes('phòng') || v.includes('cabin')) return 'phòng'
+  if (v.includes('giường')) return 'giường'
+  return 'ghế'
 }
 
 // "Sài Gòn", "sai gon", "TP HCM" → a comparable key.
@@ -161,6 +174,7 @@ export async function searchTrips(input: {
       pickupPoint: r.pickupPoint,
       dropoffPoint: r.dropoffPoint,
       seatsAvailable: r.seatsAvailable,
+      seatNoun: seatNounFor(r.vehicleType),
     }))
 }
 
@@ -174,18 +188,19 @@ export async function holdSeats(input: {
   callId: string
   passengers: number
   holdMinutes?: number
-}): Promise<{ seatCodes: string[]; priceVnd: number; totalVnd: number } | null> {
+}): Promise<{ seatCodes: string[]; priceVnd: number; totalVnd: number; seatNoun: string } | null> {
   const db = getDb()
   if (!db) return null
   const minutes = input.holdMinutes ?? 15
 
   const tripRows = await db
-    .select({ priceVnd: trips.priceVnd })
+    .select({ priceVnd: trips.priceVnd, vehicleType: trips.vehicleType })
     .from(trips)
     .where(eq(trips.id, input.tripId))
     .limit(1)
-  const price = tripRows[0]?.priceVnd
-  if (price === undefined) return null
+  const trip = tripRows[0]
+  if (!trip) return null
+  const price = trip.priceVnd
 
   const claimed = await db.execute(sql`
     UPDATE ${seats} SET
@@ -209,7 +224,12 @@ export async function holdSeats(input: {
 
   const seatCodes = (claimed.rows as { code: string }[]).map((r) => r.code).sort()
   if (seatCodes.length === 0) return null
-  return { seatCodes, priceVnd: price, totalVnd: price * seatCodes.length }
+  return {
+    seatCodes,
+    priceVnd: price,
+    totalVnd: price * seatCodes.length,
+    seatNoun: seatNounFor(trip.vehicleType),
+  }
 }
 
 export async function releaseHolds(callId: string): Promise<void> {
@@ -296,8 +316,10 @@ export type CustomerTicket = {
   totalVnd: number
   status: string
   departureAt: string // ISO, so the page formats in the reader's own locale
+  arrivalAt: string | null
   originCity: string
   destinationCity: string
+  vehicleType: string
   pickupPoint: string
   dropoffPoint: string
 }
@@ -348,6 +370,8 @@ export async function findTicketForCustomer(input: {
       totalFareVnd: bookings.totalFareVnd,
       status: bookings.status,
       departureAt: trips.departureAt,
+      arrivalAt: trips.arrivalAt,
+      vehicleType: trips.vehicleType,
       pickupPoint: trips.pickupPoint,
       dropoffPoint: trips.dropoffPoint,
       originCity: routes.originCity,
@@ -373,8 +397,10 @@ export async function findTicketForCustomer(input: {
     totalVnd: row.totalFareVnd,
     status: row.status,
     departureAt: row.departureAt.toISOString(),
+    arrivalAt: row.arrivalAt?.toISOString() ?? null,
     originCity: row.originCity,
     destinationCity: row.destinationCity,
+    vehicleType: row.vehicleType,
     pickupPoint: row.pickupPoint,
     dropoffPoint: row.dropoffPoint,
   }

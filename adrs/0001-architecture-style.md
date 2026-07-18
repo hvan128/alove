@@ -1,18 +1,29 @@
-# ADR 0001: Modular monolith with a dedicated media gateway
+# ADR 0001: Modular monolith with a separate realtime worker
 
-**Status:** Accepted
+## Status
 
-## Decision
-
-Use a pnpm workspace with a Next.js web application, a Fastify media gateway and shared packages for contracts, domain core and providers. Deploy the Next.js application to Vercel. Run the media gateway on a Node host suitable for long-lived WebSockets.
+Accepted — 2026-07-18
 
 ## Context
 
-The product needs both product UI and continuous bidirectional audio. A single unbounded backend would couple UI deploys, provider sockets and rules. A full microservice estate is unjustified for an MVP.
+SpeechToInvoice is a Vietnamese AI voice-agent bus-ticket booking product. Its public profile is a same-browser Web Call that must run without provider credentials; its next profile adds remote realtime media. Booking safety, final-message evidence, explicit confirmation, and idempotency must remain the same in either profile. Long-lived media streams and agent jobs do not have the lifecycle of a Next.js BFF request.
+
+## Decision
+
+Use a modular monolith for the web/BFF and booking application, with pure shared contracts and booking core. Deploy a separate realtime worker/direct-media gateway when the credentialed pilot needs it.
+
+- Next.js App Router owns the passenger/staff workspace, BFF routes, authentication and short-lived room-token issuance.
+- Contracts, booking state transitions, confirmation validation and idempotency remain transport-independent.
+- A separately deployed Agent worker owns LiveKit participation, media turns and provider adapters.
+- Fastify is an optional direct-media/PSTN gateway, not the default BFF or booking owner.
 
 ## Consequences
 
-- Contracts package is the only boundary shared by web and gateway.
-- Domain core has no HTTP/WebSocket/provider imports and is unit-testable.
-- Vercel remains a valid web deployment even if the realtime gateway is hosted separately.
-- Deployment requires two environment configurations in production; the public demo remains usable in no-key client demo mode.
+- The public demo remains credential-free and deployable without the worker.
+- The pilot has multiple deployables and requires correlation IDs, health checks and secret ownership per runtime.
+- The worker and gateway may propose or relay messages, but only the booking application/core may confirm a booking.
+- Long-lived media does not run inside the Next.js BFF.
+
+## Migration impact
+
+Keep existing Fastify and provider code as optional adapter seams. Move any booking rule that depends on HTTP, WebSocket, React or a provider SDK behind contracts/core before enabling the credentialed pilot. Do not rename legacy packages as part of this documentation migration.

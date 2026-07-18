@@ -1,26 +1,22 @@
-# TASK-001 — OrderVoice Voice-to-Order MVP
+# TASK-001 — SpeechToInvoice voice booking foundation
 
 **Owner:** Codex + product owner
 
-**Status:** Done — production deployment verified on 2026-07-18
+**Status:** Superseded by TASK-002; retained as the tracked foundation artifact
 
 ## Goal
 
-Deliver a deployable Vietnamese voice-to-order operator console with browser, phone and Zalo replay entry points; VALSEA-first audio adapters; evidence-backed human-approved drafts; and a speaking demonstration.
+Deliver the reusable Vietnamese voice-workspace foundation for AI Voice Agent đặt vé xe: transcript provenance, human-reviewed draft state, optional speech controls, and provider seams. The current public demo is defined by TASK-002.
 
 ## Acceptance criteria
 
-- [x] Browser, Phone and Zalo replay are visible, selectable and truthfully report their mode/readiness.
-- [x] Browser/replay use normalized PCM16/16 kHz frames; Twilio event/media conversion is implemented and fixture-tested.
-- [x] VALSEA realtime protocol is implemented server-side; OpenAI fallback is opt-in dev only.
-- [x] Final transcript segments, not partials, produce a structured Vietnamese/code-switching order draft with evidence.
-- [x] Ambiguous catalog resolution and blocking exceptions are visible and block approval.
-- [x] Human correction and approval gate idempotent ERPNext draft export.
-- [x] Human-clicked reply speech works in the no-key demo and provider TTS has an adapter seam.
-- [x] `/design-system` documents tokens/shared controls and console follows it responsively.
-- [x] Third-party feasibility/live-test result is recorded in docs.
-- [x] `lint`, `typecheck`, `test`, `test:e2e`, `build` and deploy smoke pass or have a specific external blocker recorded.
+- [x] Final transcript segments, rather than partial text, retain evidence and update a draft safely.
+- [x] Human review, correction, and an explicit confirmation gate exist before one idempotent booking-code result.
+- [x] Human-triggered reply speech has a device-voice preview and a provider seam.
+- [x] `/design-system` documents accessible shared controls and responsive behavior.
+- [x] Provider feasibility and live-test limits are recorded without claiming an unverified integration.
+- [x] Quality gates are defined; the current booking-demo evidence is maintained in [`TASK-002`](TASK-002-bus-ticket-agent-demo.md) and [`vedi-release-manifest.md`](../docs/vedi-release-manifest.md).
 
 ## Definition of done
 
-All acceptance criteria map to source/tests/docs in the release manifest. The source branch has clean status, no credential in history/diff, quality gates pass, integration caveats are documented, and the Vercel production deployment is confirmed.
+The current implementation maps booking-demo acceptance criteria to source, tests, and truthful release evidence. No historic deployment or provider capability is implied by this retained task.

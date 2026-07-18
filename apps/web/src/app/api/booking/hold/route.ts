@@ -34,5 +34,6 @@ export async function POST(req: Request): Promise<Response> {
     shortfall: passengers - held.seatCodes.length,
     priceVnd: held.priceVnd,
     totalVnd: held.totalVnd,
+    seatNoun: held.seatNoun,
   })
 }

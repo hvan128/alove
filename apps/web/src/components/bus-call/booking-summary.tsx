@@ -1,6 +1,6 @@
 import type { BookingDraft } from '@ordervoice/contracts'
 import type { ReactNode } from 'react'
-import { Armchair as Seat, MapPin, Receipt, Ticket } from 'lucide-react'
+import { MapPinIcon as MapPin, ReceiptIcon as Receipt, SeatIcon as Seat, TicketIcon as Ticket } from '@phosphor-icons/react/dist/ssr'
 
 const STATUS_LABEL: Record<BookingDraft['status'], string> = {
   collecting: 'Đang thu thập',
@@ -17,7 +17,7 @@ export function BookingSummary({ booking }: { booking: BookingDraft }) {
           <p className="text-xs font-medium text-[var(--muted)]">Phiếu đặt vé</p>
           <h3 id="booking-summary-title" className="mt-0.5 font-semibold text-[var(--ink)]">{STATUS_LABEL[booking.status]}</h3>
         </div>
-        <Ticket size={22} className="text-[var(--success)]" aria-hidden />
+        <Ticket size={24} weight="duotone" className="text-[var(--success)]" aria-hidden />
       </div>
 
       {booking.bookingCode ? (

@@ -4,15 +4,19 @@ import { useEffect, useRef, useState } from 'react'
 import type { BookingDraft, BusDemoWorkspace, CallMessage, CallMessageChannel, CallRole } from '@ordervoice/contracts'
 import { advanceBookingAgent, createInitialBooking } from '@ordervoice/core/bus-booking'
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
+import { useTtsProvider } from '@/hooks/use-tts-provider'
 import { speakVietnamese, stopVietnameseSpeech } from '@/lib/device-speech'
 import { CallStage } from './call-stage'
 import { TicketCard } from './ticket-card'
-import { ticketViewFromDraft } from './ticket-view'
 import { LiveKitCall, type LiveKitAgentState } from './livekit-call'
 
 // Set NEXT_PUBLIC_LIVEKIT_URL to make LiveKit the transport. Unset (public
 // zero-key demo) → the in-browser Web Speech path below stays the default.
 const LIVEKIT_ENABLED = Boolean(process.env.NEXT_PUBLIC_LIVEKIT_URL)
+
+// Bản ghi tạm của STT tới liên tiếp trong khoảng này được coi là cùng một lượt
+// nói. Rộng hơn nhịp sửa chữ của STT, hẹp hơn khoảng nghỉ giữa hai lượt thật.
+const SAME_UTTERANCE_MS = 4000
 
 export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDemoWorkspace }) {
   const [workspace, setWorkspace] = useState(initialWorkspace)
@@ -21,6 +25,7 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
   const [agentSpeaking, setAgentSpeaking] = useState(false)
   const [liveAgentState, setLiveAgentState] = useState<LiveKitAgentState>('idle')
   const sequence = useRef(0)
+  const tts = useTtsProvider()
 
   // LiveKit transport: the agent worker owns STT, booking and TTS. Declared
   // before the handlers below because they all read it to stay inert while the
@@ -116,21 +121,21 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
     setWorkspace((current) => {
       const id = `lk-${segmentId}`
       let index = current.messages.findIndex((message) => message.id === id)
-      // Streaming STT (VALSEA especially) emits a growing transcript — "Tôi",
-      // "Tôi đi", "Tôi đi từ Sài Gòn" — and not every provider reuses a segment
-      // id across those updates. Collapse by prefix so one utterance stays one
-      // bubble no matter how the ids behave.
+      // Streaming STT emits a transcript that both grows AND gets revised:
+      // "tới Thành phố" → "tới TP." → "tới Thành phố Hồ" → "tới TP.HC". Those are
+      // not prefixes of one another, so prefix matching alone left one utterance
+      // scattered across five bubbles. The agent still commits a single turn (its
+      // own end-of-turn detection does that), so anything the same speaker says
+      // within a few seconds belongs to the same bubble.
       if (index === -1) {
         const last = current.messages.length - 1
         const previous = current.messages[last]
-        if (
+        const withinSameUtterance =
           previous
           && previous.role === role
           && previous.channel === 'voice'
-          && (text.startsWith(previous.text) || previous.text.startsWith(text))
-        ) {
-          index = last
-        }
+          && Date.now() - new Date(previous.createdAt).getTime() < SAME_UTTERANCE_MS
+        if (withinSameUtterance) index = last
       }
       const message: CallMessage = {
         id,
@@ -170,8 +175,11 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
 
   return (
     <div className="mx-auto flex min-h-[100dvh] w-full max-w-6xl flex-col px-4 py-5 sm:px-6 lg:py-7">
-      <main className="grid flex-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
+      {/* Trên màn rộng hai cột kéo bằng nhau để phiếu vé không hụt một mảng
+          trắng dưới đáy; màn hẹp thì xếp dọc theo chiều cao nội dung. */}
+      <main className="grid flex-1 content-start items-start gap-5 lg:content-stretch lg:items-stretch lg:grid-cols-[minmax(0,1fr)_380px]">
         <CallStage
+          onBrandTap={tts.toggle}
           status={workspace.callStatus}
           elapsedSec={elapsedSec}
           messages={workspace.messages}
@@ -191,6 +199,7 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
           liveKitSlot={
             liveKitActive ? (
               <LiveKitCall
+              ttsProvider={tts.provider}
                 conversationId={workspace.conversationId}
                 onTranscript={upsertLiveTranscript}
                 onBooking={applyLiveBooking}
@@ -200,7 +209,7 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
             ) : undefined
           }
         />
-        <TicketCard view={ticketViewFromDraft(workspace.booking)} />
+        <TicketCard booking={workspace.booking} />
       </main>
     </div>
   )

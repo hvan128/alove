@@ -17,8 +17,10 @@ const TICKET: CustomerTicket = {
   totalVnd: 320_000,
   status: 'paid',
   departureAt: '2026-07-25T15:00:00.000Z',
+  arrivalAt: '2026-07-25T22:30:00.000Z',
   originCity: 'Sài Gòn',
   destinationCity: 'Đà Lạt',
+  vehicleType: 'Giường nằm 34 chỗ',
   pickupPoint: 'Bến xe Miền Đông',
   dropoffPoint: 'Bến xe Đà Lạt',
 }

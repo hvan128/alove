@@ -40,7 +40,7 @@ from livekit.agents import (
     stt,
 )
 from livekit.agents.llm import StopResponse
-from livekit.plugins import cartesia, google, noise_cancellation, openai, silero, speechmatics
+from livekit.plugins import cartesia, elevenlabs, google, noise_cancellation, openai, silero, speechmatics
 from livekit.plugins.speechmatics import OperatingPoint
 from google.genai import types
 
@@ -54,7 +54,7 @@ logger = logging.getLogger(__name__)
 AGENT_ENGINE = os.getenv("AGENT_ENGINE", "cascade").lower()
 # Cascade STT backend: valsea | speechmatics | openai.
 STT_PROVIDER = os.getenv("STT_PROVIDER", "speechmatics").lower()
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai/gpt-4.1-mini")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai/gpt-4.1")
 TTS_PROVIDER = os.getenv("TTS_PROVIDER", "cartesia/sonic-3")
 
 # Direct provider keys — when set, the cascade talks to the provider directly
@@ -69,6 +69,21 @@ VALSEA_API_KEY = os.getenv("VALSEA_API_KEY", "")
 GOOGLE_TTS_CREDENTIALS_JSON = os.getenv("GOOGLE_TTS_CREDENTIALS_JSON", "")
 GOOGLE_TTS_CREDENTIALS_FILE = os.getenv("GOOGLE_TTS_CREDENTIALS_FILE", "")
 GOOGLE_TTS_VOICE = os.getenv("GOOGLE_TTS_VOICE", "Kore")
+
+# ElevenLabs: giọng mặc định, đổi sang Google bằng công tắc ẩn trên giao diện.
+# flash_v2_5 là model độ trễ thấp nhất còn hỗ trợ tiếng Việt.
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
+ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "s6W2NupNY6TykGJoDtWy")
+# flash là bậc nhanh nhất nhưng phát âm tiếng Việt sai rõ; turbo chỉ chậm hơn
+# khoảng 80ms mà đọc chuẩn hơn hẳn. multilingual_v2 chuẩn nhất nhưng tốn thêm
+# 0,8 giây nên chỉ dùng khi chấp nhận đánh đổi độ trễ.
+ELEVENLABS_MODEL = os.getenv("ELEVENLABS_MODEL", "eleven_turbo_v2_5")
+# 1.0 là tốc độ gốc; ElevenLabs nhận 0.7 tới 1.2. Giọng mặc định nghe hơi chậm
+# so với nhịp nói của tổng đài viên thật.
+ELEVENLABS_SPEED = float(os.getenv("ELEVENLABS_SPEED", "1.12"))
+ELEVENLABS_STABILITY = float(os.getenv("ELEVENLABS_STABILITY", "0.45"))
+ELEVENLABS_SIMILARITY = float(os.getenv("ELEVENLABS_SIMILARITY", "0.75"))
+TTS_DEFAULT = os.getenv("TTS_DEFAULT", "elevenlabs").lower()
 
 # Gemini Live (speech-to-speech) config, only used when AGENT_ENGINE=gemini-sts.
 GEMINI_LIVE_MODEL = os.getenv("GEMINI_LIVE_MODEL", "gemini-2.5-flash-native-audio-latest")
@@ -128,7 +143,19 @@ def bus_agent_instructions(today_vn: str) -> str:
         "\"mai\", \"ngày 20 tháng 7\", \"thứ sáu tuần này\", \"cuối tuần\"...\n\n"
         "NÓI CHUYỆN NHƯ NGƯỜI THẬT:\n"
         "- Câu ngắn. Mỗi lượt nói một hai câu thôi, đừng đọc một tràng dài.\n"
-        "- Mở đầu bằng \"Dạ\", \"Vâng\", \"Dạ rồi\" cho tự nhiên, nhưng đừng lặp mãi một chữ.\n"
+        "- ĐỪNG XÁC NHẬN LẠI SAU MỖI THÔNG TIN. Nghe xong thì đi tiếp. Chỉ xác nhận ở ba "
+        "chỗ có rủi ro thật: khi khách đổi hẳn điểm đến, trước khi chốt vé, và sau khi đặt "
+        "xong. Xác nhận từng ly từng tí nghe như máy hỏi cung.\n"
+        "- CHỈ gọi tên khách khi chính khách đã nói tên trong cuộc gọi này. Khách chưa xưng "
+        "tên thì tuyệt đối không được gọi bằng tên nào cả — không suy đoán, không lấy tên ở "
+        "đâu khác. Gọi nhầm tên người lạ là hỏng cả cuộc gọi.\n"
+        "- Khi khách đã cho tên rồi thì dùng tên đó nhất quán, đừng quay lại \"anh chị\". "
+        "Chưa biết giới tính thì \"anh chị\" một lần rồi thôi.\n"
+        "- Đừng mở đầu câu nào cũng \"Dạ\". Xen kẽ, hoặc vào thẳng nội dung.\n"
+        "- Không dùng từ của phần mềm khi nói với khách: đừng nói \"loại xe không chọn lọc\", "
+        "\"bộ lọc\", \"hệ thống\". Nói như người: \"xe nào cũng được\".\n"
+        "- Đọc lại thông tin thì tách thành câu ngắn, đừng dồn hết vào một câu dài, khách "
+        "nghe không kịp và không phát hiện được chỗ sai.\n"
         "- Nghe khách xong thì đáp lại cái vừa nghe rồi mới hỏi tiếp, đừng hỏi trống không.\n"
         "- Đừng bao giờ hỏi lại thứ khách đã nói. Nhớ hết những gì khách đã cung cấp.\n"
         "- MỖI LƯỢT CHỈ HỎI MỘT THỨ. Không bao giờ hỏi dồn kiểu \"đi từ đâu đến đâu, ngày "
@@ -148,7 +175,14 @@ def bus_agent_instructions(today_vn: str) -> str:
         "- Đọc số điện thoại tách từng cụm cho khách dễ nghe.\n\n"
         "QUY TRÌNH:\n"
         "- Đủ điểm đi, điểm đến, ngày, số vé thì gọi search_trips.\n"
+        "- Mời chuyến thì nói luôn ĐIỂM ĐÓN và ĐIỂM TRẢ thật (pickupPoint, dropoffPoint do "
+        "công cụ trả về), đừng để tới lúc xuất vé khách mới biết đón ở đâu. Gọi tên nơi trả "
+        "đúng như dữ liệu (\"Bến xe Vinh\"), đừng nói chung chung tên tỉnh.\n"
+        "- Gọi chỗ ngồi đúng từ nhà xe dùng: công cụ trả về seatNoun (\"ghế\", \"giường\" hay "
+        "\"phòng\"). Xe limousine phòng VIP thì phải nói \"phòng A1\", không nói \"ghế A1\".\n"
         "- Khách chọn chuyến thì gọi hold_seats, rồi xin họ tên và số điện thoại.\n"
+        "- Số điện thoại: đọc lại theo từng cụm cho khách nghe rõ và hỏi đúng chưa, vì nghe "
+        "nhầm số là hỏng cả vé. Số không hợp lệ thì xin khách đọc lại, đừng đoán.\n"
         "- Đọc lại cho khách nghe, khách đồng ý mới gọi confirm_booking.\n"
         "- Báo mã vé, chúc đi đường bình an, rồi gọi end_call.\n"
         "- Khách đổi ý ngay trong cuộc gọi này thì gọi cancel_booking (không cần tham số) "
@@ -169,12 +203,58 @@ def bus_agent_instructions(today_vn: str) -> str:
 
 # Spoken when the booking backend is unreachable — never leave the caller in silence.
 BACKEND_ERROR_REPLY = "Dạ xin lỗi anh chị, hệ thống đặt vé đang bận, anh chị chờ em một chút ạ."
-CLOSING_LINE = "Dạ cảm ơn anh chị đã đặt vé nhà xe Mai Anh qua Alove. Chúc anh chị đi đường bình an ạ!"
+# Hai câu kết khác nhau. Câu cảm ơn đã đặt vé từng được đọc cho cả khách bỏ
+# ngang giữa chừng — khách vừa nói "bỏ" mà tổng đài chúc đi đường bình an thì
+# lộ ngay là máy đọc kịch bản. Chọn theo việc có vé thật hay không.
+CLOSING_BOOKED = "Dạ cảm ơn anh chị đã đặt vé nhà xe Mai Anh. Chúc anh chị đi đường bình an ạ!"
+CLOSING_NO_BOOKING = "Dạ vâng, cảm ơn anh chị đã gọi nhà xe Mai Anh. Khi nào cần anh chị cứ gọi lại nhé ạ."
+
+
+
+# Nhãn chuyến từ backend là chuỗi vi-VN gộp giờ và ngày ("20:00 20-07"). Thứ tự
+# hai phần phụ thuộc bản ICU của máy chạy Next.js, nên phải bóc theo mẫu chứ
+# không cắt theo vị trí — cắt theo vị trí là cách "Ngày đi" từng hiện ra giờ
+# chạy còn "Giờ khởi hành" hiện ra ngày.
+DEPARTURE_CLOCK_RE = re.compile(r"\b(\d{1,2}):(\d{2})\b")
+
+
+def _departure_clock(label: Optional[str]) -> str:
+    """Giờ chạy dạng HH:MM, khớp busTripSchema bên contracts."""
+    found = DEPARTURE_CLOCK_RE.search(label or "")
+    if not found:
+        return "00:00"
+    return f"{int(found.group(1)):02d}:{found.group(2)}"
+
+
+def _departure_date(label: Optional[str]) -> Optional[str]:
+    """Phần ngày của nhãn, tức nhãn đã bỏ giờ chạy đi."""
+    if not label:
+        return None
+    date_part = DEPARTURE_CLOCK_RE.sub("", label).strip(" ,·-")
+    return date_part or None
 
 
 def conversation_id_from_room(room_name: str) -> Optional[str]:
     if room_name.startswith(ROOM_PREFIX):
         return room_name[len(ROOM_PREFIX):]
+    return None
+
+
+def tts_choice_from_room(room) -> Optional[str]:
+    """Giọng đọc do người gọi chọn, gửi kèm metadata của participant lúc mint token.
+
+    Công tắc nằm ẩn trên giao diện nên chỉ đổi được giữa các cuộc gọi, đúng ý:
+    so giọng trên cùng một kịch bản mà người nghe không biết đang đổi."""
+    try:
+        for participant in room.remote_participants.values():
+            raw = getattr(participant, "metadata", "") or ""
+            if not raw:
+                continue
+            choice = (json.loads(raw).get("tts") or "").lower()
+            if choice in ("elevenlabs", "google"):
+                return choice
+    except Exception as exc:  # noqa: BLE001 — metadata hỏng thì dùng mặc định
+        logger.debug("đọc metadata giọng đọc thất bại: %s", exc)
     return None
 
 
@@ -238,10 +318,37 @@ def _google_tts_creds() -> Optional[dict]:
     return None
 
 
-def _cascade_tts(language: str):
+def _elevenlabs_tts(language: str):
+    """Giọng ElevenLabs. None khi thiếu key để gọi thoại rơi về Google thay vì tắt tiếng."""
+    if not ELEVENLABS_API_KEY:
+        logger.warning("ELEVENLABS_API_KEY trống — quay về Google TTS")
+        return None
+    return elevenlabs.TTS(
+        voice_id=ELEVENLABS_VOICE_ID,
+        model=ELEVENLABS_MODEL,
+        api_key=ELEVENLABS_API_KEY,
+        language=("en" if language == "en" else "vi"),
+        voice_settings=elevenlabs.VoiceSettings(
+            stability=ELEVENLABS_STABILITY,
+            similarity_boost=ELEVENLABS_SIMILARITY,
+            speed=ELEVENLABS_SPEED,
+        ),
+        # Cho ElevenLabs chuẩn hoá theo tiếng Việt trước khi đọc — giúp phát âm
+        # đúng hơn với tên riêng và chữ viết tắt còn sót lại.
+        apply_language_text_normalization=True,
+    )
+
+
+def _cascade_tts(language: str, provider: Optional[str] = None):
     """Preferred: Google Cloud TTS (Chirp3-HD) when creds are set; else Cartesia
     direct; else the gateway provider string. VALSEA has no TTS in this workspace,
     so VALSEA mode reuses this TTS chain."""
+    choice = (provider or TTS_DEFAULT).lower()
+    if choice == "elevenlabs":
+        eleven = _elevenlabs_tts(language)
+        if eleven is not None:
+            return eleven
+
     gcreds = _google_tts_creds()
     if gcreds is not None:
         loc = "en-US" if language == "en" else "vi-VN"
@@ -301,7 +408,7 @@ def _turn_detector():
     return None
 
 
-def build_agent_session(language: str, vad=None) -> AgentSession:
+def build_agent_session(language: str, vad=None, tts_provider: Optional[str] = None) -> AgentSession:
     if AGENT_ENGINE == "gemini-sts":
         logger.info("Engine: gemini-sts (model=%s voice=%s)", GEMINI_LIVE_MODEL, GEMINI_LIVE_VOICE)
         end_sens = (
@@ -336,8 +443,10 @@ def build_agent_session(language: str, vad=None) -> AgentSession:
         else "speechmatics" if SPEECHMATICS_API_KEY
         else "gateway"
     )
+    provider_choice = (tts_provider or TTS_DEFAULT).lower()
     tts_route = (
-        f"google-chirp3:{GOOGLE_TTS_VOICE}" if _google_tts_creds() is not None
+        f"elevenlabs:{ELEVENLABS_VOICE_ID[:8]}" if (provider_choice == "elevenlabs" and ELEVENLABS_API_KEY)
+        else f"google-chirp3:{GOOGLE_TTS_VOICE}" if _google_tts_creds() is not None
         else f"cartesia:{TTS_PROVIDER}" if CARTESIA_API_KEY
         else "gateway"
     )
@@ -356,7 +465,7 @@ def build_agent_session(language: str, vad=None) -> AgentSession:
     return AgentSession(
         stt=_cascade_stt(language),
         llm=_cascade_llm(),
-        tts=_cascade_tts(language),
+        tts=_cascade_tts(language, tts_provider),
         vad=vad or silero.VAD.load(),
         turn_handling=turn_handling,
     )
@@ -374,6 +483,8 @@ class BusBookingAgent(Agent):
         self._conversation_id = conversation_id
         self._room = room
         self._ended = False
+        # Chỉ bật khi confirm_booking thật sự ra vé, dùng để chọn câu kết.
+        self._booked = False
         # Last offers/hold, mirrored to the browser so the ticket card matches
         # what the caller is being told.
         self._selected_trip: Optional[dict] = None
@@ -429,7 +540,7 @@ class BusBookingAgent(Agent):
             "status": "collecting",
             "origin": offer.get("originCity"),
             "destination": offer.get("destinationCity"),
-            "travelDateLabel": offer.get("departureLabel"),
+            "travelDateLabel": _departure_date(offer.get("departureLabel")),
             "timeWindow": None,
             "passengerCount": trip.get("seatsHeld"),
             "selectedTrip": (
@@ -437,7 +548,7 @@ class BusBookingAgent(Agent):
                     "id": offer.get("tripId") or trip.get("tripId") or "",
                     "origin": offer.get("originCity") or "",
                     "destination": offer.get("destinationCity") or "",
-                    "departureTime": (offer.get("departureLabel") or "")[-5:] or "00:00",
+                    "departureTime": _departure_clock(offer.get("departureLabel")),
                     "arrivalTime": "00:00",
                     "vehicleType": offer.get("vehicleType") or "",
                     "priceVnd": trip.get("priceVnd") or offer.get("priceVnd") or 0,
@@ -500,7 +611,15 @@ class BusBookingAgent(Agent):
         )
         if data is None:
             return {"error": "backend_unavailable"}
-        self._offers = {t["tripId"]: t for t in data.get("trips", [])}
+        # Gộp thêm otherDates: model được phép mời khách các chuyến trong danh
+        # sách đó, nên chúng cũng phải nằm trong kho offer. Gộp chứ không thay
+        # thế, vì lần tìm sau (ngày khác, tuyến khác) không được xoá chuyến mà
+        # khách đang cân nhắc — mất offer là mất luôn tuyến, ngày và loại xe
+        # trên vé.
+        for offer in (data.get("trips") or []) + (data.get("otherDates") or []):
+            trip_id = offer.get("tripId")
+            if trip_id:
+                self._offers[trip_id] = offer
         return data
 
     @function_tool()
@@ -550,6 +669,7 @@ class BusBookingAgent(Agent):
         if data is None:
             return {"error": "backend_unavailable"}
         if data.get("confirmed"):
+            self._booked = True
             await self._publish({
                 "type": "booking.update",
                 "booking": self._draft_payload(
@@ -633,7 +753,8 @@ class BusBookingAgent(Agent):
             pass
         if not spoke:
             try:
-                await context.session.say(CLOSING_LINE, allow_interruptions=False)
+                closing = CLOSING_BOOKED if self._booked else CLOSING_NO_BOOKING
+                await context.session.say(closing, allow_interruptions=False)
             except Exception as exc:
                 logger.warning("closing line failed: %s", exc)
         await self._publish({"type": "call.end"})
@@ -671,7 +792,10 @@ async def entrypoint(ctx: JobContext):
     # date in Vietnam time — the worker runs UTC.
     today_vn = datetime.now(timezone(timedelta(hours=7))).strftime("%d/%m/%Y")
     agent = BusBookingAgent(conversation_id=conversation_id, room=ctx.room, today_vn=today_vn)
-    session = build_agent_session("vi", vad=ctx.proc.userdata.get("vad"))
+    tts_provider = tts_choice_from_room(ctx.room)
+    session = build_agent_session(
+        "vi", vad=ctx.proc.userdata.get("vad"), tts_provider=tts_provider
+    )
 
     # Commit the customer turn immediately when they press "Tôi nói xong".
     def _on_data_received(packet) -> None:

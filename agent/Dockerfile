@@ -1,19 +1,25 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/home/vedi/.local/bin:${PATH}"
 
 WORKDIR /app
 
-# Install from the committed lock for reproducible builds. Export the frozen,
-# hash-pinned deps and install them system-wide (the project itself is just the
-# scripts copied below, so exclude it from the export).
 COPY pyproject.toml uv.lock ./
 
-RUN pip install --no-cache-dir uv && \
-    uv export --frozen --no-dev --no-emit-project -o requirements.txt && \
-    uv pip install --system --no-cache -r requirements.txt
+RUN pip install --no-cache-dir uv==0.11.29 \
+    && uv export --frozen --no-dev --no-emit-project -o requirements.txt \
+    && uv pip install --system --no-cache -r requirements.txt \
+    && useradd --create-home --uid 10001 vedi
 
-# Download the Silero VAD model at build time so cold starts don't fetch it.
-RUN python -c "from livekit.plugins import silero; silero.VAD.load()" || true
+COPY agent.py booking_policy.py valsea_stt.py ./
 
-COPY agent.py turn_rules.py valsea_stt.py ./
+USER vedi
+
+# Cache the small VAD model in the image; a download failure must fail the build.
+RUN python -c "from livekit.plugins import silero; silero.VAD.load()"
+
+EXPOSE 8081
 
 CMD ["python", "agent.py", "start"]

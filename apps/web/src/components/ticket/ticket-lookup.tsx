@@ -1,11 +1,11 @@
 'use client'
 
-import { Loader2, TicketCheck } from 'lucide-react'
+import { Loader2, TicketCheck, TriangleAlert } from 'lucide-react'
 import { useState } from 'react'
 import type { CustomerTicket } from '@/lib/db/booking-store'
 import { TicketCard } from '@/components/bus-call/ticket-card'
-import { ticketShareText, ticketViewFromCustomerTicket } from '@/components/bus-call/ticket-view'
 import { ShareTicketButton } from './share-ticket-button'
+import { bookingDraftFromTicket, ticketShareText } from './ticket-draft'
 
 /**
  * Vé của khách sau cuộc gọi.
@@ -54,13 +54,21 @@ export function TicketLookup({ initialCode }: { initialCode: string }) {
   }
 
   if (ticket) {
-    const view = ticketViewFromCustomerTicket(ticket)
     return (
       <div className="mx-auto grid max-w-md gap-4">
-        <TicketCard view={view} />
+        {/* BookingDraft chỉ mô tả cuộc gọi đang chạy nên không có trạng thái
+            huỷ. Vé huỷ vẫn in ra để đối chiếu, còn cảnh báo đặt ngoài card —
+            đến bến mới biết vé chết là hỏng nặng hơn nhiều. */}
+        {ticket.status === 'cancelled' ? (
+          <p role="alert" className="flex items-start gap-2 rounded-2xl border border-[color-mix(in_srgb,var(--danger)_45%,var(--hairline))] bg-[color-mix(in_srgb,var(--danger)_8%,transparent)] px-3.5 py-3 text-sm leading-6 text-[var(--danger)]">
+            <TriangleAlert size={17} className="mt-0.5 shrink-0" aria-hidden />
+            Vé này đã huỷ, không còn dùng để lên xe được. Gọi lại tổng đài nếu bạn cần đặt lại.
+          </p>
+        ) : null}
+        <TicketCard booking={bookingDraftFromTicket(ticket)} />
         <ShareTicketButton
           title={`Vé xe Alove ${ticket.code}`}
-          text={ticketShareText(view, shareUrl(ticket.code))}
+          text={ticketShareText(ticket, shareUrl(ticket.code))}
         />
         <button
           type="button"

@@ -22,17 +22,10 @@ type UseZaloReplayOptions = {
   onStatus?: (detail: string) => void
 }
 
-// VALSEA finalizes on its own endpointing schedule, not when playback ends —
-// closing the socket the instant the media element fires `ended` can cut the
-// session before a final transcript arrives for a clip with no trailing
-// silence. Give it a grace window to finish before tearing the session down.
-const END_OF_PLAYBACK_GRACE_MS = 2500
-
 export function useZaloReplay({ conversationId, gatewayUrl, onTranscript, onStatus }: UseZaloReplayOptions) {
   const mediaRef = useRef<HTMLMediaElement | null>(null)
   const resources = useRef<ReplayResources | null>(null)
   const objectUrl = useRef<string | null>(null)
-  const endGraceTimer = useRef<number | null>(null)
   const [url, setUrl] = useState<string | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
   const [mediaKind, setMediaKind] = useState<ReplayMediaKind>('audio')
@@ -53,10 +46,6 @@ export function useZaloReplay({ conversationId, gatewayUrl, onTranscript, onStat
   }, [])
 
   const disconnect = useCallback(() => {
-    if (endGraceTimer.current !== null) {
-      window.clearTimeout(endGraceTimer.current)
-      endGraceTimer.current = null
-    }
     const current = resources.current
     if (!current) return
     current.worklet.port.postMessage({ type: 'stop' })
@@ -169,17 +158,7 @@ export function useZaloReplay({ conversationId, gatewayUrl, onTranscript, onStat
           pendingFrames.push(event.data.pcm)
         }
       }
-      media.onended = () => {
-        if (!socket) {
-          stop()
-          return
-        }
-        onStatusRef.current?.('Đã phát hết audio, đang chờ lõi giọng nói chốt câu cuối…')
-        endGraceTimer.current = window.setTimeout(() => {
-          endGraceTimer.current = null
-          stop()
-        }, END_OF_PLAYBACK_GRACE_MS)
-      }
+      media.onended = () => stop()
       resources.current = { context, source, worklet, mute, ...(socket ? { socket } : {}) }
       await context.resume()
       await media.play()

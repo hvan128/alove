@@ -1,4 +1,8 @@
 import { boolean, integer, jsonb, pgTable, real, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
+import { catalogTrips, catalogVersions } from './catalog-schema'
+
+export * from './catalog-schema'
+export * from './inventory-schema'
 
 export const conversations = pgTable('conversations', {
   id: text('id').primaryKey(),
@@ -74,11 +78,29 @@ export const busCalls = pgTable('bus_calls', {
   id: text('id').primaryKey(),
   mode: text('mode').notNull(),
   status: text('status').notNull(),
+  transcriptLanguage: text('transcript_language').notNull().default('original'),
+  transport: text('transport').notNull().default('local'),
+  agentState: text('agent_state').notNull().default('offline'),
+  valseaState: text('valsea_state').notNull().default('unconfigured'),
+  revision: integer('revision').notNull().default(0),
   isDemo: boolean('is_demo').notNull().default(true),
   startedAt: timestamp('started_at', { withTimezone: true }),
   endedAt: timestamp('ended_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+export const busCallEvents = pgTable('bus_call_events', {
+  id: text('id').primaryKey(),
+  callId: text('call_id').notNull().references(() => busCalls.id, { onDelete: 'cascade' }),
+  eventId: text('event_id').notNull(),
+  eventType: text('event_type').notNull(),
+  payload: jsonb('payload').notNull(),
+  occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('bus_call_events_call_event_unique').on(table.callId, table.eventId),
+])
 
 export const busCallMessages = pgTable('bus_call_messages', {
   id: text('id').primaryKey(),
@@ -87,6 +109,11 @@ export const busCallMessages = pgTable('bus_call_messages', {
   role: text('role').notNull(),
   channel: text('channel').notNull(),
   text: text('text').notNull(),
+  language: text('language').notNull().default('vi'),
+  translations: jsonb('translations').notNull().default({}),
+  confidence: real('confidence'),
+  startedAtMs: integer('started_at_ms').notNull().default(0),
+  endedAtMs: integer('ended_at_ms').notNull().default(0),
   final: boolean('final').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
@@ -97,6 +124,10 @@ export const busBookings = pgTable('bus_bookings', {
   id: text('id').primaryKey(),
   callId: text('call_id').notNull().references(() => busCalls.id, { onDelete: 'cascade' }),
   status: text('status').notNull(),
+  runtimeProfile: text('runtime_profile').notNull().default('demo'),
+  catalogVersionId: text('catalog_version_id').references(() => catalogVersions.id),
+  tripId: text('trip_id').references(() => catalogTrips.id),
+  seatHoldId: text('seat_hold_id'),
   origin: text('origin'),
   destination: text('destination'),
   travelDateLabel: text('travel_date_label'),
@@ -106,9 +137,18 @@ export const busBookings = pgTable('bus_bookings', {
   seats: jsonb('seats').notNull().default([]),
   passengerName: text('passenger_name'),
   phone: text('phone'),
+  pickupPoint: text('pickup_point'),
+  dropoffPoint: text('dropoff_point'),
+  vehiclePreference: text('vehicle_preference'),
+  paymentMethod: text('payment_method'),
+  note: text('note'),
   totalFareVnd: integer('total_fare_vnd'),
   bookingCode: text('booking_code'),
   evidenceMessageIds: jsonb('evidence_message_ids').notNull().default([]),
+  fieldEvidence: jsonb('field_evidence').notNull().default({}),
+  confirmedFields: jsonb('confirmed_fields').notNull().default([]),
+  reviewItems: jsonb('review_items').notNull().default([]),
+  revision: integer('revision').notNull().default(0),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   uniqueIndex('bus_bookings_call_unique').on(table.callId),

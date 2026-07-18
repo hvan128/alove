@@ -32,16 +32,3 @@ export async function synthesizeOpenAiSpeech(text: string): Promise<Uint8Array> 
 
   return new Uint8Array(await response.arrayBuffer())
 }
-
-// Generic global ASR baseline for side-by-side comparison against the
-// accent/code-switch-aware engine — Whisper by default, unprompted (no
-// Vietnamese hint), so the comparison shows what a generic engine does on
-// its own rather than one already tuned toward Vietnamese.
-export async function transcribeWithOpenAiBaseline(audio: File): Promise<string> {
-  const response = await getOpenAiClient().audio.transcriptions.create({
-    file: audio,
-    model: process.env.OPENAI_TRANSCRIBE_MODEL ?? 'whisper-1',
-  })
-
-  return response.text
-}
