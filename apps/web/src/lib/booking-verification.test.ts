@@ -19,10 +19,10 @@ function confirmedSnapshot() {
       departureTime: '20:00',
       arrivalTime: '01:30',
       vehicleType: 'Limousine',
+      seatNoun: 'ghế',
       priceVnd: 300_000,
       pickupPoint: 'Bến xe Nước Ngầm',
       dropoffPoint: 'Bến xe Vinh',
-      seatNoun: 'ghế',
     },
     seats: ['A1', 'A2'],
     passengerName: 'Nguyễn An',
@@ -46,6 +46,7 @@ describe('public booking verification projection', () => {
       travelDateLabel: '20/07/2026',
       departureTime: '20:00',
       vehicleType: 'Limousine',
+      seatNoun: 'ghế',
       pickupPoint: 'Bến xe Nước Ngầm',
       dropoffPoint: 'Bến xe Vinh',
       seats: ['A1', 'A2'],
@@ -57,6 +58,13 @@ describe('public booking verification projection', () => {
     expect(verified).not.toHaveProperty('conversationId')
     expect(verified).not.toHaveProperty('id')
     expect(verified).not.toHaveProperty('selectedTrip')
+  })
+
+  it('preserves the catalog seat noun without exposing passenger identifiers', () => {
+    const snapshot = confirmedSnapshot()
+    snapshot.selectedTrip!.seatNoun = 'giường'
+
+    expect(createVerifiedBooking(snapshot).seatNoun).toBe('giường')
   })
 
   it('refuses to project an incomplete or non-confirmed snapshot', () => {

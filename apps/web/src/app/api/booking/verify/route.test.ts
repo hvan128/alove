@@ -208,6 +208,7 @@ describe('POST /api/booking/verify', () => {
         bookingCode: 'MA-260720-0001',
         origin: 'Hà Nội',
         destination: 'Vinh',
+        seatNoun: 'ghế',
       },
     })
     expect(JSON.stringify(body)).not.toContain('Nguyễn An')

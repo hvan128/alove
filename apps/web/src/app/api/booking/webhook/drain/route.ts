@@ -1,7 +1,10 @@
 import { timingSafeEqual } from 'node:crypto'
 
 import { bookingWebhookConfigurationStatus, deliverBookingWebhook } from '@/lib/booking-webhook'
-import { listDueBookingWebhookEventIds } from '@/lib/db/webhook-outbox-store'
+import {
+  listDueBookingWebhookEventIds,
+  reconcileStaleBookingWebhookAttempts,
+} from '@/lib/db/webhook-outbox-store'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -32,20 +35,23 @@ export async function GET(req: Request): Promise<Response> {
     })
   }
 
+  await reconcileStaleBookingWebhookAttempts()
   const eventIds = await listDueBookingWebhookEventIds(3)
   const counts = { delivered: 0, failed: 0, pending: 0 }
-  for (const eventId of eventIds) {
+  const results = await Promise.all(eventIds.map(async (eventId) => {
     try {
-      const result = await deliverBookingWebhook(eventId)
-      if (result.status === 'delivered') counts.delivered += 1
-      else if (result.status === 'failed') counts.failed += 1
-      else counts.pending += 1
+      return await deliverBookingWebhook(eventId)
     } catch {
-      counts.pending += 1
       console.warn('[alove] scheduled booking webhook deferred', {
         reason: 'delivery_infrastructure_error',
       })
+      return { status: 'pending' as const, attempts: 0 }
     }
+  }))
+  for (const result of results) {
+    if (result.status === 'delivered') counts.delivered += 1
+    else if (result.status === 'failed') counts.failed += 1
+    else counts.pending += 1
   }
 
   return Response.json({ status: 'processed', processed: eventIds.length, counts }, {

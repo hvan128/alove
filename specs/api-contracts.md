@@ -106,12 +106,15 @@ delivery performs no second DNS lookup. Delivery retries only network errors,
 Webhook failure never rolls back a confirmed booking. Logs exclude URL, payload,
 name, phone, signature and secrets.
 
-`GET /api/booking/webhook/drain` is invoked every minute by Vercel Cron and
-requires `Authorization: Bearer <CRON_SECRET>`. It claims at most three due rows,
-including stale one-minute leases after a process crash. Only network/DNS,
-408/425/429/5xx failures receive a future `next_attempt_at`; invalid payload,
-private destination and other 4xx results are terminal even if confirmation is
-replayed.
+Confirmation immediately attempts delivery with the same persisted, idempotent
+state machine. `GET /api/booking/webhook/drain` is the recovery path: Vercel
+Hobby invokes it once per day and sends `Authorization: Bearer <CRON_SECRET>`.
+It claims at most three due rows, including stale one-minute leases after a
+process crash. Only network/DNS, 408/425/429/5xx failures receive a future
+`next_attempt_at`; invalid payload, private destination and other 4xx results are
+terminal even if confirmation is replayed. Teams that need sub-day recovery must
+use a Pro cron or an external authenticated scheduler without changing this
+endpoint contract.
 
 ## Persisted call events
 

@@ -13,6 +13,7 @@ const verifiedBooking = {
   travelDateLabel: '20/07/2026',
   departureTime: '20:00',
   vehicleType: 'Limousine',
+  seatNoun: 'giường',
   pickupPoint: 'Bến xe Nước Ngầm',
   dropoffPoint: 'Bến xe Vinh',
   seats: ['A1'],
@@ -76,6 +77,7 @@ describe('VerifyBooking', () => {
     expect(within(result).getByText('Đã xác minh')).toBeVisible()
     expect(within(result).getByRole('heading', { name: 'Hà Nội → Vinh' })).toBeVisible()
     expect(within(result).getByText('300.000 đ')).toBeVisible()
+    expect(within(result).getByText('Giường')).toBeVisible()
     expect(within(result).queryByText('Nguyễn An')).not.toBeInTheDocument()
     expect(within(result).queryByText('0909123456')).not.toBeInTheDocument()
     expect(fetch).toHaveBeenCalledWith('/api/booking/verify', expect.objectContaining({

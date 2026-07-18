@@ -152,6 +152,7 @@ describe('booking-store invariants', () => {
   it('reconstructs a valid confirmed snapshot only when both verification factors match', async () => {
     const query = queryReturning([{
       status: 'pending_payment',
+      verificationSnapshotRequired: true,
       verificationSnapshot: {
         id: 'booking-17',
         conversationId: 'call-17',
@@ -206,6 +207,34 @@ describe('booking-store invariants', () => {
     expect(compiled.params).toContain('MA-260725-0017')
     expect(compiled.params).toContain('0909123456')
     expect(query.innerJoin).not.toHaveBeenCalled()
+  })
+
+  it('treats an explicitly exempt legacy booking like an unknown ticket', async () => {
+    const query = queryReturning([{
+      status: 'pending_payment',
+      verificationSnapshot: null,
+      verificationSnapshotRequired: false,
+    }])
+    fakeDb.select.mockReturnValue(query)
+
+    await expect(findBookingSnapshotForVerification({
+      code: 'MA-260725-0017',
+      phone: '0909123456',
+    })).resolves.toBeNull()
+  })
+
+  it('fails closed when a required booking snapshot is missing', async () => {
+    const query = queryReturning([{
+      status: 'pending_payment',
+      verificationSnapshot: null,
+      verificationSnapshotRequired: true,
+    }])
+    fakeDb.select.mockReturnValue(query)
+
+    await expect(findBookingSnapshotForVerification({
+      code: 'MA-260725-0017',
+      phone: '0909123456',
+    })).rejects.toThrow('Required booking verification snapshot is missing')
   })
 
   it('cancels booking and releases its seats in one authenticated statement', async () => {

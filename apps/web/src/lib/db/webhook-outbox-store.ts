@@ -8,6 +8,29 @@ export type WebhookOutboxState = {
   attempts: number
 }
 
+/**
+ * A process can die after persisting its final claim but before recording the
+ * result. Once that lease is stale there is no retry budget left, so reconcile
+ * it to a terminal failure instead of leaving it `delivering` forever.
+ */
+export async function reconcileStaleBookingWebhookAttempts(eventId?: string): Promise<number> {
+  const eventFilter = eventId
+    ? sql`AND ${bookingWebhookOutbox.eventId} = ${eventId}`
+    : sql.empty()
+  const result = await requireDb().execute(sql`
+    UPDATE ${bookingWebhookOutbox}
+    SET status = 'failed',
+        last_error_code = 'retry_budget_exhausted',
+        updated_at = now()
+    WHERE ${bookingWebhookOutbox.status} = 'delivering'
+      AND ${bookingWebhookOutbox.attempts} >= 3
+      AND ${bookingWebhookOutbox.lastAttemptAt} < now() - interval '1 minute'
+      ${eventFilter}
+    RETURNING ${bookingWebhookOutbox.eventId}
+  `)
+  return result.rows.length
+}
+
 export async function claimBookingWebhookAttempt(eventId: string): Promise<{
   payload: unknown
   attempts: number

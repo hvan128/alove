@@ -37,7 +37,8 @@ export async function GET(): Promise<Response> {
           (SELECT count(*) FROM booking_snapshots WHERE sequence IS NULL OR event_id IS NULL) = 0
             AS "snapshotSchemaReady",
           (SELECT count(*) FROM bookings
-            WHERE confirmation_text IS NULL OR verification_snapshot IS NULL) = 0
+            WHERE confirmation_text IS NULL
+              OR (verification_snapshot_required AND verification_snapshot IS NULL)) = 0
             AS "bookingSchemaReady",
           (SELECT count(*) FROM public_rate_limits WHERE key IS NULL) = 0
             AS "verificationSchemaReady",

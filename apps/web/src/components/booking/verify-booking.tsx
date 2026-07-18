@@ -15,6 +15,10 @@ function formatVnd(value: number): string {
   return new Intl.NumberFormat('vi-VN').format(value) + ' đ'
 }
 
+function sentenceCase(value: string): string {
+  return value.charAt(0).toLocaleUpperCase('vi-VN') + value.slice(1)
+}
+
 export function VerifyBooking({ initialCode = '' }: { initialCode?: string }) {
   const [code, setCode] = useState(initialCode.trim().toLocaleUpperCase('vi-VN'))
   const [phone, setPhone] = useState('')
@@ -157,7 +161,7 @@ export function VerifyBooking({ initialCode = '' }: { initialCode?: string }) {
 
           <dl className="mt-6 grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
             <div><dt className="text-[var(--muted)]">Ngày và giờ đi</dt><dd className="mt-1 font-medium text-[var(--ink)]">{booking.travelDateLabel} · {booking.departureTime}</dd></div>
-            <div><dt className="text-[var(--muted)]">Ghế</dt><dd className="mt-1 font-medium text-[var(--ink)]">{booking.seats.join(', ')}</dd></div>
+            <div><dt className="text-[var(--muted)]">{sentenceCase(booking.seatNoun)}</dt><dd className="mt-1 font-medium text-[var(--ink)]">{booking.seats.join(', ')}</dd></div>
             <div><dt className="text-[var(--muted)]">Loại xe</dt><dd className="mt-1 font-medium text-[var(--ink)]">{booking.vehicleType}</dd></div>
             <div><dt className="text-[var(--muted)]">Số hành khách</dt><dd className="mt-1 font-medium text-[var(--ink)]">{booking.passengerCount}</dd></div>
             <div><dt className="text-[var(--muted)]">Điểm đón</dt><dd className="mt-1 font-medium text-[var(--ink)]">{booking.pickupPoint}</dd></div>

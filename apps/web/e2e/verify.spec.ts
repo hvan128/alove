@@ -11,6 +11,7 @@ const verifiedResponse = {
     travelDateLabel: '20/07/2026',
     departureTime: '20:00',
     vehicleType: 'Limousine',
+    seatNoun: 'giường',
     pickupPoint: 'Bến xe Nước Ngầm',
     dropoffPoint: 'Bến xe Vinh',
     seats: ['A1'],
@@ -38,6 +39,7 @@ test('xác minh vé chỉ hiện chi tiết sau khi cả mã và điện thoại
   const result = page.getByRole('region', { name: 'Thông tin vé đã xác minh' })
   await expect(result).toBeVisible()
   await expect(result.getByRole('heading', { name: 'Hà Nội → Vinh' })).toBeVisible()
+  await expect(result.getByText('Giường')).toBeVisible()
   await expect(result.getByText('300.000 đ')).toBeVisible()
   expect(submitted).toEqual({ code: 'MA-260720-0001', phone: '0909123456' })
 })

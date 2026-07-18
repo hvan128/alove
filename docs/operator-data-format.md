@@ -104,7 +104,9 @@ Mỗi booking confirmed giữ một `verification_snapshot` bất biến gồm �
 viết lại snapshot này. Trang verify và JSON tải xuống đọc contract của vé đã phát
 hành, không dựng lại lịch sử từ catalog hiện tại.
 
-Migration expand có thể tạm để cột nullable trong rolling release. Trước khi
-promote và trước contract migration `NOT NULL`, operator phải chạy null check theo
-`docs/deployment.md`; chỉ phục hồi từ confirmed booking snapshot đã lưu, không suy
-diễn từ giá hoặc lịch hiện tại.
+Migration expand để cột nullable nhằm giữ các booking legacy không có archived
+confirmed snapshot trung thực. `verification_snapshot_required=false` chỉ dành
+cho các hàng legacy đó; mọi booking mới giữ giá trị `true` và bị database check
+chặn nếu snapshot null. Trước khi promote, operator phải chạy required-row check
+theo `docs/deployment.md`; chỉ phục hồi từ confirmed booking snapshot đã lưu,
+không suy diễn từ giá hoặc lịch hiện tại.

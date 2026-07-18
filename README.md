@@ -107,7 +107,7 @@ Trên production, ban tổ chức bắt đầu tại
 | `BOOKING_WEBHOOK_URL` | Không | HTTPS endpoint nhà xe nhận `booking.confirmed` |
 | `BOOKING_WEBHOOK_SECRET` | Khi có URL | HMAC key riêng để ký webhook; tối thiểu 32 byte |
 | `BOOKING_WEBHOOK_ALLOWED_HOSTS` | Khi có URL | Allowlist hostname chính xác, phân tách bằng dấu phẩy |
-| `CRON_SECRET` | Khi có webhook | Bảo vệ Vercel Cron drainer của outbox; tối thiểu 32 byte |
+| `CRON_SECRET` | Có trên Vercel | Bảo vệ cron phục hồi outbox hằng ngày; tối thiểu 32 byte và tách khỏi secret khác |
 | `DASHBOARD_ACCESS_KEY` | Có nếu dùng dashboard | Khóa pilot tối thiểu 32 ký tự |
 
 ### Python agent

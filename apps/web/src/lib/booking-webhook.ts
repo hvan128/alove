@@ -9,6 +9,7 @@ import { vietnamesePhoneSchema } from './call-contract'
 import {
   claimBookingWebhookAttempt,
   getBookingWebhookState,
+  reconcileStaleBookingWebhookAttempts,
   recordBookingWebhookDelivered,
   recordBookingWebhookFailed,
 } from './db/webhook-outbox-store'
@@ -188,6 +189,14 @@ function retryDelay(attempt: number, random: () => number): number {
   return Math.min(3_000, base + Math.floor(random() * 250))
 }
 
+function rejectOnAbort(signal: AbortSignal): Promise<never> {
+  return new Promise((_, reject) => {
+    const rejectTimeout = () => reject(new Error('delivery_timeout'))
+    if (signal.aborted) rejectTimeout()
+    else signal.addEventListener('abort', rejectTimeout, { once: true })
+  })
+}
+
 function postToPinnedDestination(input: {
   config: EnabledConfig
   destination: PinnedAddress
@@ -240,6 +249,7 @@ export async function deliverBookingWebhook(
   const random = options.random ?? Math.random
   const resolveHost = options.resolveHost ?? (async (hostname) => lookup(hostname, { all: true, verbatim: true }))
 
+  await reconcileStaleBookingWebhookAttempts(eventId)
   const initialState = await getBookingWebhookState(eventId)
   if (initialState?.status === 'delivered') return { status: 'delivered', attempts: initialState.attempts }
 
@@ -261,24 +271,29 @@ export async function deliverBookingWebhook(
       await recordBookingWebhookFailed(eventId, 'invalid_payload')
       return { status: 'failed', attempts: claimed.attempts }
     }
-    const body = JSON.stringify(parsed.data)
-    let destination: PinnedAddress
-    try {
-      destination = await resolvePublicDestination(config, resolveHost)
-    } catch (error) {
-      if (error instanceof PrivateDestinationError) {
-        await recordBookingWebhookFailed(eventId, 'destination_rejected')
-        return { status: 'failed', attempts: claimed.attempts }
-      }
-      await recordBookingWebhookFailed(eventId, 'dns_error')
-      continue
-    }
-
-    const timestamp = String(Math.floor(now() / 1_000))
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), timeoutMs)
     let retryable = true
     try {
+      let destination: PinnedAddress
+      try {
+        // The attempt deadline starts before DNS. A slow resolver must not hold
+        // the authoritative confirmation response open indefinitely.
+        destination = await Promise.race([
+          resolvePublicDestination(config, resolveHost),
+          rejectOnAbort(controller.signal),
+        ])
+      } catch (error) {
+        if (error instanceof PrivateDestinationError) {
+          await recordBookingWebhookFailed(eventId, 'destination_rejected')
+          return { status: 'failed', attempts: claimed.attempts }
+        }
+        await recordBookingWebhookFailed(eventId, 'dns_error')
+        continue
+      }
+
+      const body = JSON.stringify(parsed.data)
+      const timestamp = String(Math.floor(now() / 1_000))
       const headers = {
         'Content-Type': 'application/json',
         'Idempotency-Key': parsed.data.eventId,

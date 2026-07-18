@@ -444,6 +444,7 @@ export async function findBookingSnapshotForVerification(input: {
     .select({
       status: bookings.status,
       verificationSnapshot: bookings.verificationSnapshot,
+      verificationSnapshotRequired: bookings.verificationSnapshotRequired,
     })
     .from(bookings)
     .where(and(eq(bookings.code, input.code), eq(bookings.phone, input.phone)))
@@ -451,6 +452,13 @@ export async function findBookingSnapshotForVerification(input: {
     .limit(1)
 
   if (!row || row.status === 'cancelled') return null
+  if (row.verificationSnapshot === null) {
+    // Legacy rows without a trustworthy archived confirmation intentionally
+    // behave like an unknown ticket. A null on a required row is corruption and
+    // must still fail closed as an infrastructure error.
+    if (!row.verificationSnapshotRequired) return null
+    throw new Error('Required booking verification snapshot is missing')
+  }
   return bookingSnapshotSchema.parse(row.verificationSnapshot)
 }
 

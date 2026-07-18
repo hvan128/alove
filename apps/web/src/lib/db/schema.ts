@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { bigint, check, index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
+import { bigint, boolean, check, index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 
 // ---------------------------------------------------------------------------
 // Inventory — the real bus catalog. Seeded from an operator's own schedule (see
@@ -55,9 +55,11 @@ export const bookings = pgTable('bookings', {
   totalFareVnd: integer('total_fare_vnd').notNull(),
   // Immutable facts captured in the authoritative confirmation statement.
   // Verification never rebuilds an old ticket from mutable trip/route rows.
-  // This stays nullable for the expand side of the rolling migration; readiness
-  // fails on nulls and the later contract migration will enforce NOT NULL.
+  // This stays nullable for the expand side of the rolling migration. Legacy
+  // rows without an archived confirmed snapshot are explicitly exempt rather
+  // than being reconstructed from mutable route/trip data.
   verificationSnapshot: jsonb('verification_snapshot').$type<Record<string, unknown>>(),
+  verificationSnapshotRequired: boolean('verification_snapshot_required').notNull().default(true),
   status: text('status', {
     enum: ['pending_payment', 'paid', 'cancelled'],
   }).notNull().default('pending_payment'),
@@ -70,6 +72,10 @@ export const bookings = pgTable('bookings', {
   uniqueIndex('bookings_idempotency_unique').on(table.idempotencyKey),
   check('bookings_status_check', sql`${table.status} in ('pending_payment', 'paid', 'cancelled')`),
   check('bookings_total_fare_nonnegative_check', sql`${table.totalFareVnd} >= 0`),
+  check(
+    'bookings_verification_snapshot_required_check',
+    sql`not ${table.verificationSnapshotRequired} or ${table.verificationSnapshot} is not null`,
+  ),
 ])
 
 // One row per physical seat. Holds live on the row itself so a single atomic

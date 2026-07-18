@@ -104,8 +104,9 @@ chưa đủ bằng chứng live để đánh ✅.
   (`docs/deployment.md:76-79`).
 - Webhook: cần receiver thật xác minh signature/idempotency và delivery; code/test
   không thay thế bằng chứng này (`specs/api-contracts.md:77-112`).
-- Migration: cần preview/production null checks, sau đó mới có contract migration
-  `NOT NULL` (`docs/deployment.md:43-73`).
+- Migration: cần preview/production required-row checks. Legacy exemption chỉ
+  được gỡ và chuyển toàn cột sang `NOT NULL` sau khi có archived snapshot trung
+  thực cho từng hàng (`docs/deployment.md:43-86`).
 - Semantic annotation và latency: cần capture event/UI trong một cuộc gọi thật
   (`docs/architecture.md:109-123`).
 - PSTN: runbook ghi rõ chưa có cuộc gọi thật (`docs/pstn-sip-runbook.md:3-12`).

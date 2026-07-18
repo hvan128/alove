@@ -6,6 +6,7 @@ const webhook = vi.hoisted(() => ({
   configuration: vi.fn(),
   deliver: vi.fn(),
   list: vi.fn(),
+  reconcile: vi.fn(),
 }))
 
 vi.mock('@/lib/booking-webhook', () => ({
@@ -15,6 +16,7 @@ vi.mock('@/lib/booking-webhook', () => ({
 
 vi.mock('@/lib/db/webhook-outbox-store', () => ({
   listDueBookingWebhookEventIds: webhook.list,
+  reconcileStaleBookingWebhookAttempts: webhook.reconcile,
 }))
 
 import { GET } from './route'
@@ -33,6 +35,7 @@ describe('GET /api/booking/webhook/drain', () => {
     process.env.CRON_SECRET = SECRET
     webhook.configuration.mockReturnValue('enabled')
     webhook.list.mockResolvedValue([])
+    webhook.reconcile.mockResolvedValue(0)
   })
 
   it('requires the dedicated cron bearer secret', async () => {
@@ -66,6 +69,24 @@ describe('GET /api/booking/webhook/drain', () => {
       counts: { delivered: 1, failed: 1, pending: 1 },
     })
     expect(webhook.list).toHaveBeenCalledWith(3)
+    expect(webhook.reconcile).toHaveBeenCalledOnce()
     expect(JSON.stringify(body)).not.toContain('event-1')
+  })
+
+  it('starts due deliveries concurrently so one slow event cannot consume the whole cron window', async () => {
+    webhook.list.mockResolvedValue(['event-1', 'event-2', 'event-3'])
+    const releases: Array<(value: { status: 'delivered'; attempts: number }) => void> = []
+    webhook.deliver.mockImplementation(() => new Promise((resolve) => releases.push(resolve)))
+
+    const responsePromise = GET(request())
+    await vi.waitFor(() => expect(webhook.deliver).toHaveBeenCalledTimes(3))
+    for (const release of releases) release({ status: 'delivered', attempts: 1 })
+
+    const response = await responsePromise
+    await expect(response.json()).resolves.toEqual({
+      status: 'processed',
+      processed: 3,
+      counts: { delivered: 3, failed: 0, pending: 0 },
+    })
   })
 })

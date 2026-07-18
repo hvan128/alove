@@ -69,20 +69,38 @@ callbacks can finish.
 ## Deploy
 
 ```bash
-docker build -t alove-bus-agent .
-# Run on any host that keeps a long-lived outbound WebSocket to LiveKit
-# (Railway, Fly.io, Cloud Run w/ min-instances, a VM/container).
+cd agent
+
+# First production rollout only: creates the Cloud agent in the immutable
+# ap-south region and writes non-secret IDs to a separate production config.
+lk agent create --config livekit.production.toml --project <livekit-project> \
+  --region ap-south --secrets-file /private/tmp/<owner-only-agent-env> .
+
+# Subsequent immutable versions use that checked-in identity.
+lk agent deploy --config livekit.production.toml \
+  --secrets-file /private/tmp/<owner-only-agent-env> .
+lk agent status --config livekit.production.toml .
+lk agent versions --config livekit.production.toml .
+
+# From v2 onward, on a plan that supports Instant Rollback:
+lk agent rollback --config livekit.production.toml --version <version> .
 ```
 
-Production runs `python agent.py start`. Keep the bare `LIVEKIT_AGENT_NAME`
-(`alove`) in production and point `NEXTJS_API_URL` at
-`https://vedi-one.vercel.app`; local `dev`/`console` auto-isolate under
-`alove-dev`.
+LiveKit Agents Cloud is the canonical production worker host. Its build uses the
+checked-in `Dockerfile` and runs `python agent.py start`. The secrets file is a
+temporary, owner-only file and must contain only the agent runtime variables —
+never `DATABASE_URL`, dashboard keys or Vercel-only secrets. Keep the bare
+`LIVEKIT_AGENT_NAME` (`alove`) in production, point `NEXTJS_API_URL` at
+`https://vedi-one.vercel.app`, and use the same `AGENT_WEBHOOK_SECRET` as
+Vercel. Local `dev`/`console` auto-isolate under `alove-dev`.
+
+The first Cloud create has only v1, so it has no rollback target. Its recovery is
+fix/revert source and deploy a new version, or deliberately stop/remove the new
+agent. Instant Rollback is used only from v2 onward after confirming the LiveKit
+plan supports it. Always record `lk agent versions` before a later rollout.
 
 The Docker build exports from the committed `uv.lock`; update it with `uv lock`
 whenever `pyproject.toml` changes.
-
-## Not verified in this workspace
 
 No LiveKit / provider credentials are committed here, so a fresh checkout cannot
 exercise the live audio path without deployment secrets. VALSEA supplies STT

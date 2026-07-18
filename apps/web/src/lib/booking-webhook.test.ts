@@ -8,11 +8,13 @@ const outbox = vi.hoisted(() => ({
   delivered: vi.fn(),
   failed: vi.fn(),
   get: vi.fn(),
+  reconcile: vi.fn(),
 }))
 
 vi.mock('./db/webhook-outbox-store', () => ({
   claimBookingWebhookAttempt: outbox.claim,
   getBookingWebhookState: outbox.get,
+  reconcileStaleBookingWebhookAttempts: outbox.reconcile,
   recordBookingWebhookDelivered: outbox.delivered,
   recordBookingWebhookFailed: outbox.failed,
 }))
@@ -68,6 +70,7 @@ describe('durable booking confirmation webhook delivery', () => {
     outbox.get.mockResolvedValue(null)
     outbox.delivered.mockResolvedValue(undefined)
     outbox.failed.mockResolvedValue(undefined)
+    outbox.reconcile.mockResolvedValue(0)
   })
 
   afterEach(() => {
@@ -246,6 +249,34 @@ describe('durable booking confirmation webhook delivery', () => {
     })).resolves.toEqual({ status: 'failed', attempts: 1 })
     expect(privateFetch).not.toHaveBeenCalled()
     expect(outbox.failed).toHaveBeenLastCalledWith(EVENT_ID, 'destination_rejected')
+  })
+
+  it('includes DNS resolution in the bounded per-attempt timeout', async () => {
+    enableWebhook()
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    outbox.claim
+      .mockResolvedValueOnce({ payload: event(), attempts: 1 })
+      .mockResolvedValueOnce({ payload: event(), attempts: 2 })
+      .mockResolvedValueOnce({ payload: event(), attempts: 3 })
+    outbox.get.mockResolvedValueOnce(null).mockResolvedValueOnce({ status: 'failed', attempts: 3 })
+    const fetchImpl = vi.fn()
+    const neverResolvingDns = vi.fn(() => new Promise<Array<{ address: string; family: number }>>(() => undefined))
+
+    await expect(deliverBookingWebhook(EVENT_ID, {
+      fetchImpl: fetchImpl as typeof fetch,
+      sleep: vi.fn().mockResolvedValue(undefined),
+      timeoutMs: 100,
+      random: () => 0,
+      resolveHost: neverResolvingDns,
+    })).resolves.toEqual({ status: 'failed', attempts: 3 })
+
+    expect(neverResolvingDns).toHaveBeenCalledTimes(3)
+    expect(fetchImpl).not.toHaveBeenCalled()
+    expect(outbox.failed.mock.calls.slice(-3)).toEqual([
+      [EVENT_ID, 'dns_error'],
+      [EVENT_ID, 'dns_error'],
+      [EVENT_ID, 'dns_error'],
+    ])
   })
 
   it('returns an already-delivered state without another claim or request', async () => {
