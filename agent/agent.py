@@ -40,7 +40,7 @@ from livekit.agents import (
     stt,
 )
 from livekit.agents.llm import StopResponse
-from livekit.plugins import cartesia, elevenlabs, google, noise_cancellation, openai, silero, speechmatics
+from livekit.plugins import cartesia, google, noise_cancellation, openai, silero, speechmatics
 from livekit.plugins.speechmatics import OperatingPoint
 from google.cloud import texttospeech
 from google.genai import types
@@ -71,20 +71,6 @@ GOOGLE_TTS_CREDENTIALS_JSON = os.getenv("GOOGLE_TTS_CREDENTIALS_JSON", "")
 GOOGLE_TTS_CREDENTIALS_FILE = os.getenv("GOOGLE_TTS_CREDENTIALS_FILE", "")
 GOOGLE_TTS_VOICE = os.getenv("GOOGLE_TTS_VOICE", "Kore")
 
-# ElevenLabs: giọng mặc định, đổi sang Google bằng công tắc ẩn trên giao diện.
-# flash_v2_5 là model độ trễ thấp nhất còn hỗ trợ tiếng Việt.
-ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
-ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "s6W2NupNY6TykGJoDtWy")
-# flash là bậc nhanh nhất nhưng phát âm tiếng Việt sai rõ; turbo chỉ chậm hơn
-# khoảng 80ms mà đọc chuẩn hơn hẳn. multilingual_v2 chuẩn nhất nhưng tốn thêm
-# 0,8 giây nên chỉ dùng khi chấp nhận đánh đổi độ trễ.
-ELEVENLABS_MODEL = os.getenv("ELEVENLABS_MODEL", "eleven_turbo_v2_5")
-# 1.0 là tốc độ gốc; ElevenLabs nhận 0.7 tới 1.2. Giọng mặc định nghe hơi chậm
-# so với nhịp nói của tổng đài viên thật.
-ELEVENLABS_SPEED = float(os.getenv("ELEVENLABS_SPEED", "1.12"))
-ELEVENLABS_STABILITY = float(os.getenv("ELEVENLABS_STABILITY", "0.45"))
-ELEVENLABS_SIMILARITY = float(os.getenv("ELEVENLABS_SIMILARITY", "0.75"))
-TTS_DEFAULT = os.getenv("TTS_DEFAULT", "elevenlabs").lower()
 
 # Gemini Live (speech-to-speech) config, only used when AGENT_ENGINE=gemini-sts.
 GEMINI_LIVE_MODEL = os.getenv("GEMINI_LIVE_MODEL", "gemini-2.5-flash-native-audio-latest")
@@ -247,24 +233,6 @@ def conversation_id_from_room(room_name: str) -> Optional[str]:
     return None
 
 
-def tts_choice_from_room(room) -> Optional[str]:
-    """Giọng đọc do người gọi chọn, gửi kèm metadata của participant lúc mint token.
-
-    Công tắc nằm ẩn trên giao diện nên chỉ đổi được giữa các cuộc gọi, đúng ý:
-    so giọng trên cùng một kịch bản mà người nghe không biết đang đổi."""
-    try:
-        for participant in room.remote_participants.values():
-            raw = getattr(participant, "metadata", "") or ""
-            if not raw:
-                continue
-            choice = (json.loads(raw).get("tts") or "").lower()
-            if choice in ("elevenlabs", "google"):
-                return choice
-    except Exception as exc:  # noqa: BLE001 — metadata hỏng thì dùng mặc định
-        logger.debug("đọc metadata giọng đọc thất bại: %s", exc)
-    return None
-
-
 def detect_sip_caller(room) -> tuple[str, Optional[str]]:
     """Return (channel, caller_number). A PSTN caller joins as a SIP participant
     whose attributes carry the dialed metadata (sip.phoneNumber); browser callers
@@ -325,38 +293,10 @@ def _google_tts_creds() -> Optional[dict]:
     return None
 
 
-def _elevenlabs_tts(language: str):
-    """Giọng ElevenLabs. None khi thiếu key để gọi thoại rơi về Google thay vì tắt tiếng."""
-    if not ELEVENLABS_API_KEY:
-        logger.warning("ELEVENLABS_API_KEY trống — quay về Google TTS")
-        return None
-    return elevenlabs.TTS(
-        voice_id=ELEVENLABS_VOICE_ID,
-        model=ELEVENLABS_MODEL,
-        api_key=ELEVENLABS_API_KEY,
-        language=("en" if language == "en" else "vi"),
-        voice_settings=elevenlabs.VoiceSettings(
-            stability=ELEVENLABS_STABILITY,
-            similarity_boost=ELEVENLABS_SIMILARITY,
-            speed=ELEVENLABS_SPEED,
-        ),
-        # KHÔNG bật apply_language_text_normalization: ElevenLabs trả 400 Bad
-        # Request cho mọi lần tổng hợp, nghĩa là agent câm hoàn toàn. Đã khoanh
-        # vùng bằng cách bật tắt từng tham số. Việc chuẩn hoá số tiền và ngày
-        # tháng đã do speech_text.py lo trước khi văn bản tới đây.
-    )
-
-
-def _cascade_tts(language: str, provider: Optional[str] = None):
+def _cascade_tts(language: str):
     """Preferred: Google Cloud TTS (Chirp3-HD) when creds are set; else Cartesia
     direct; else the gateway provider string. VALSEA has no TTS in this workspace,
     so VALSEA mode reuses this TTS chain."""
-    choice = (provider or TTS_DEFAULT).lower()
-    if choice == "elevenlabs":
-        eleven = _elevenlabs_tts(language)
-        if eleven is not None:
-            return eleven
-
     gcreds = _google_tts_creds()
     if gcreds is not None:
         loc = "en-US" if language == "en" else "vi-VN"
@@ -420,7 +360,7 @@ def _turn_detector():
     return None
 
 
-def build_agent_session(language: str, vad=None, tts_provider: Optional[str] = None) -> AgentSession:
+def build_agent_session(language: str, vad=None) -> AgentSession:
     if AGENT_ENGINE == "gemini-sts":
         logger.info("Engine: gemini-sts (model=%s voice=%s)", GEMINI_LIVE_MODEL, GEMINI_LIVE_VOICE)
         end_sens = (
@@ -455,10 +395,8 @@ def build_agent_session(language: str, vad=None, tts_provider: Optional[str] = N
         else "speechmatics" if SPEECHMATICS_API_KEY
         else "gateway"
     )
-    provider_choice = (tts_provider or TTS_DEFAULT).lower()
     tts_route = (
-        f"elevenlabs:{ELEVENLABS_VOICE_ID[:8]}" if (provider_choice == "elevenlabs" and ELEVENLABS_API_KEY)
-        else f"google-chirp3:{GOOGLE_TTS_VOICE}" if _google_tts_creds() is not None
+        f"google-chirp3:{GOOGLE_TTS_VOICE}" if _google_tts_creds() is not None
         else f"cartesia:{TTS_PROVIDER}" if CARTESIA_API_KEY
         else "gateway"
     )
@@ -477,7 +415,7 @@ def build_agent_session(language: str, vad=None, tts_provider: Optional[str] = N
     return AgentSession(
         stt=_cascade_stt(language),
         llm=_cascade_llm(),
-        tts=_cascade_tts(language, tts_provider),
+        tts=_cascade_tts(language),
         vad=vad or silero.VAD.load(),
         turn_handling=turn_handling,
     )
@@ -862,10 +800,7 @@ async def entrypoint(ctx: JobContext):
     # date in Vietnam time — the worker runs UTC.
     today_vn = datetime.now(timezone(timedelta(hours=7))).strftime("%d/%m/%Y")
     agent = BusBookingAgent(conversation_id=conversation_id, room=ctx.room, today_vn=today_vn)
-    tts_provider = tts_choice_from_room(ctx.room)
-    session = build_agent_session(
-        "vi", vad=ctx.proc.userdata.get("vad"), tts_provider=tts_provider
-    )
+    session = build_agent_session("vi", vad=ctx.proc.userdata.get("vad"))
 
     # Commit the customer turn immediately when they press "Tôi nói xong".
     def _on_data_received(packet) -> None:

@@ -27,8 +27,6 @@ const REDISPATCH_MAX_TRIES = 3
 
 type LiveKitCallProps = {
   conversationId: string
-  /** Giọng đọc cho cuộc gọi này. undefined = để worker dùng mặc định của nó. */
-  ttsProvider?: string | undefined
   /** Upsert a transcript segment into the workspace message list (keyed by id). */
   onTranscript: (segmentId: string, role: 'customer' | 'agent', text: string) => void
   /** Authoritative booking snapshot published by the agent after each turn. */
@@ -62,7 +60,6 @@ export function LiveKitCall(props: LiveKitCallProps) {
           body: JSON.stringify({
             conversationId: props.conversationId,
             role: 'customer',
-            ...(props.ttsProvider ? { ttsProvider: props.ttsProvider } : {}),
           }),
         })
         if (!res.ok) {
@@ -75,7 +72,7 @@ export function LiveKitCall(props: LiveKitCallProps) {
         setError('Không kết nối được dịch vụ token.')
       }
     })()
-  }, [props.conversationId, props.ttsProvider])
+  }, [props.conversationId])
 
   if (error) {
     return (

@@ -17,8 +17,6 @@ const BodySchema = z.object({
   role: z.enum(['customer', 'staff', 'observer']).default('customer'),
   identity: z.string().min(1).max(120).optional(),
   displayName: z.string().min(1).max(120).optional(),
-  // Công tắc giọng đọc ẩn phía client; worker đọc lại từ metadata participant.
-  ttsProvider: z.enum(['elevenlabs', 'google']).optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -44,12 +42,6 @@ export async function POST(req: NextRequest) {
     parsed.data.displayName ??
     (role === 'customer' ? 'Khách' : role === 'observer' ? 'Giám sát' : 'Nhân viên')
 
-  const token = await createParticipantToken(
-    roomName,
-    identity,
-    displayName,
-    role,
-    parsed.data.ttsProvider ? { tts: parsed.data.ttsProvider } : undefined,
-  )
+  const token = await createParticipantToken(roomName, identity, displayName, role)
   return Response.json({ token, serverUrl: LIVEKIT_WS_URL, roomName })
 }
