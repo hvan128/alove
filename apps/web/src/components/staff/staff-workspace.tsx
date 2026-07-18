@@ -133,9 +133,9 @@ export function StaffWorkspace({ sessionCode, integrationStatus, transportFactor
         />
       </main>
       {!integrationStatus.livekit ? (
-        <div className="fixed bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-[10px] border border-[var(--hairline)] bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] px-3 py-2 text-center text-[11px] text-[var(--muted)] shadow-sm backdrop-blur-xl">
+        <p className="mx-auto max-w-[1720px] px-4 pb-4 text-center text-[11px] leading-5 text-[var(--muted)] sm:px-6">
           Mô phỏng chỉ đồng bộ giữa các tab cùng trình duyệt. Hai thiết bị cần LiveKit.
-        </div>
+        </p>
       ) : null}
       {integrationStatus.livekit && liveTransport ? (
         <LiveCallRoom

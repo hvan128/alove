@@ -62,6 +62,7 @@ describe('staff live booking cockpit', () => {
     expect(screen.getByText('Mô phỏng cục bộ')).toBeVisible()
     expect(screen.getByText('Chưa dùng VALSEA')).toBeVisible()
     expect(screen.getByText('Agent chưa cấu hình')).toBeVisible()
+    expect(screen.getByText('Mô phỏng chỉ đồng bộ giữa các tab cùng trình duyệt. Hai thiết bị cần LiveKit.')).not.toHaveClass('fixed')
     expect(screen.getByRole('button', { name: 'Nhân viên' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('link', { name: /mở trang người gọi/iu })).toHaveAttribute('href', '/call?session=STAFF1')
     channel.close()
