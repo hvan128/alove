@@ -1,6 +1,6 @@
-# VéĐi
+# Alove
 
-VéĐi là demo đặt vé nhà xe bằng hội thoại tiếng Việt. Một màn hình trình bày đồng thời phía khách hàng và phía chăm sóc khách hàng, hỗ trợ hai chế độ:
+Alove là ứng dụng đặt vé nhà xe Mai Anh bằng hội thoại tiếng Việt, với thông điệp “Alo là có vé”. Một màn hình trình bày đồng thời phía khách hàng và phía chăm sóc khách hàng, hỗ trợ hai chế độ:
 
 - **Nhân viên:** khách gửi yêu cầu, nhân viên tự nhập và phát câu trả lời, sau đó xác nhận thủ công.
 - **Agent tự động:** engine thu thập hành trình, đề xuất chuyến, hỏi thông tin hành khách, đọc lại và chỉ chốt sau câu xác nhận rõ ràng.
@@ -17,6 +17,7 @@ Demo Web Call chạy ngay trong trình duyệt, không cần số điện thoạ
 - Điều kiện xác nhận đầy đủ, giữ ghế theo số hành khách và idempotency cho mã vé.
 - Next.js App Router, design system SaaS trung tính (IBM Plex, icon lucide, token `oklch`, primary indigo, elevation ngữ nghĩa), light/dark mode, Playwright E2E.
 - Các adapter VALSEA, OpenAI, Twilio và Neon từ kiến trúc trước được giữ làm seam cho pilot, không bị trình bày là live khi chưa có credentials.
+- `/engine` — màn test độc lập cho lõi nhận diện giọng nói (UI gọi là "Lõi nhận diện giọng nói Alove"; thực chất là VALSEA realtime ASR, xem [ADR 0009](adrs/0009-valsea-stt-google-chirp3-tts.md)): tải file hoặc ghi âm mic, transcript cuối tự đổ vào `advanceBookingAgent` để ra phiếu đặt vé, đồng thời gửi cùng file sang OpenAI Whisper làm baseline đối chứng. Cần `apps/api` (gateway VALSEA) chạy cùng lúc — xem mục Environment.
 
 ## Kiến trúc
 
@@ -58,9 +59,11 @@ Bản demo mặc định không cần biến môi trường. Chỉ thêm secret 
 | `OPENAI_API_KEY` | Fallback phát triển, không thay thế compliance VALSEA |
 | `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | Token service và Agent worker LiveKit |
 | `NEXT_PUBLIC_LIVEKIT_URL` | URL room công khai, tuyệt đối không chứa secret. Có giá trị = bật transport LiveKit cho `/console` |
-| `LIVEKIT_AGENT_NAME` | Tên dispatch agent, phải khớp `agent/.env` (mặc định `vedi`) |
+| `LIVEKIT_AGENT_NAME` | Tên dispatch agent, phải khớp `agent/.env` (mặc định `alove`) |
 | `AGENT_WEBHOOK_SECRET` | Secret chung bảo vệ `POST /api/booking/advance` — đường ghi duy nhất của agent vào booking core |
 | `TWILIO_*` | Pilot số điện thoại và Media Streams |
+| `NEXT_PUBLIC_GATEWAY_URL` | URL gateway `apps/api` (WS proxy VALSEA) cho `/engine`. Chạy `pnpm dev:api` cùng lúc, trỏ biến này về nó (vd `http://localhost:3001`); bỏ trống thì `/engine` chỉ phát audio cục bộ, không có transcript thật |
+| `OPENAI_TRANSCRIBE_MODEL` | Model baseline đối chứng cho `/engine` (mặc định `whisper-1`) |
 
 Credential từng được dán vào hội thoại không được dùng, lưu hoặc deploy. Chủ key nên revoke/rotate key đó.
 

@@ -7,8 +7,9 @@ Bảng này tách rõ code seam, anonymous connectivity và live credential test
 | Tích hợp | Đã có | Chưa chứng minh live | Quyết định |
 |---|---|---|---|
 | Browser Web Call | Hai phía, preset/text, optional STT/TTS | Hai thiết bị qua mạng | Dùng cho demo public |
-| LiveKit | Kiến trúc/token/room pattern đã review từ project-4 | Thiếu project credentials và Agent worker | Pilot recommended cho multi-device |
-| VALSEA | Realtime adapter + fixture protocol tests | Thiếu sandbox key | Giữ VALSEA-first theo đề bài |
+| LiveKit | Kiến trúc/token/room pattern đã review từ project-4; token route + agent worker đã có trong repo | Cuộc gọi hai thiết bị trên production | Pilot recommended cho multi-device |
+| LiveKit SIP (PSTN) | Trunk/dispatch templates + runbook (`pstn-sip-runbook.md`), agent nhận SIP participant | Thiếu tài khoản trunk (Telnyx/Twilio) và cuộc gọi thật | Kênh điện thoại chính theo ADR 0008 |
+| VALSEA | Realtime adapter + fixture protocol tests | Thiếu sandbox key | Không còn bắt buộc (ADR 0008); giữ làm legacy seam |
 | OpenAI | Adapter fallback phát triển | Key dán trong chat không được dùng | Chỉ opt-in fallback |
 | Twilio | Media Streams μ-law adapter + hooks | Thiếu account, number, public WSS | Pilot PSTN nếu cần số thật |
 | Stringee | Đã đánh giá là lựa chọn Việt Nam | Raw server media stream chưa xác minh công khai | Hỏi commercial/support trước khi đổi |
@@ -26,7 +27,9 @@ Nguồn: [LiveKit authentication endpoint](https://docs.livekit.io/frontends/bui
 
 ## VALSEA và OpenAI
 
-VALSEA vẫn là provider ASR/TTS bắt buộc của pilot theo đề bài. Adapter hiện có xử lý PCM16 16 kHz mono và partial/final event fixture. Anonymous request chỉ chứng minh endpoint có auth boundary, không chứng minh transcript. Cần `VALSEA_API_KEY` sandbox để chạy live smoke với audio có consent.
+**Cập nhật 2026-07-18 (ADR 0008):** VALSEA không còn là provider bắt buộc — người dùng đã bỏ ràng buộc đề bài cũ. STT mặc định của agent là Speechmatics (tiếng Việt), A/B với OpenAI realtime STT và Gemini Live. Adapter VALSEA giữ nguyên làm legacy seam; đoạn dưới chỉ còn giá trị lịch sử.
+
+Adapter hiện có xử lý PCM16 16 kHz mono và partial/final event fixture. Anonymous request chỉ chứng minh endpoint có auth boundary, không chứng minh transcript. Nếu quay lại VALSEA cần `VALSEA_API_KEY` sandbox để chạy live smoke với audio có consent.
 
 OpenAI là fallback phát triển, không được dùng để claim VALSEA compliance. Credential từng xuất hiện trong chat không được copy vào source, command, env hoặc Vercel. Chủ key cần revoke/rotate.
 
@@ -61,9 +64,9 @@ Nguồn: [Neon serverless driver](https://neon.com/docs/serverless/serverless-dr
 ## Checklist khi có credentials
 
 1. Rotate mọi key từng chia sẻ ngoài secret manager.
-2. Cấp LiveKit project và VALSEA sandbox credentials trong encrypted environment.
+2. Cấp STT/TTS credentials (Speechmatics/OpenAI/Gemini/Google TTS) trong encrypted environment.
 3. Deploy token endpoint và Agent worker; test room giữa hai thiết bị thật.
 4. Chạy Vietnamese STT/TTS sample có consent, đo transcript final latency và barge-in.
-5. Chọn Twilio hoặc Stringee sau một cuộc gọi Việt Nam thật và kiểm chứng media access.
-6. Bật Neon migration; xác nhận duplicate final/confirm không tạo booking thứ hai.
+5. Tạo tài khoản trunk (Telnyx/Twilio), chạy `docs/pstn-sip-runbook.md` đủ 7 bước; đo chất lượng ASR trên audio điện thoại. Đường số VN nội địa: xác nhận SIP trunk thương mại VN (FPT/CMC/iTel…).
+6. Bật Neon migration (`cd apps/web && pnpm exec drizzle-kit migrate`); xác nhận duplicate final/confirm không tạo booking thứ hai.
 7. Ghi ngày, account mode, region, latency và outcome vào file này trước khi đổi nhãn UI.

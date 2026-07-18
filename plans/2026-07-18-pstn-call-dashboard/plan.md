@@ -1,7 +1,7 @@
 # Luồng gọi số điện thoại → agent + dashboard transcript + lưu booking
 
 **Ngày:** 2026-07-18
-**Trạng thái:** chờ duyệt
+**Trạng thái:** code hoàn thành 2026-07-18 (typecheck/test/build/py_compile xanh); cuộc gọi thật chờ tài khoản trunk — xem `docs/pstn-sip-runbook.md`
 **Nền tảng:** kế thừa `plans/2026-07-18-livekit-agent-port` (agent worker + token route + booking advance đã có).
 
 ## Quyết định người dùng

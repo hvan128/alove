@@ -10,18 +10,21 @@
 
 ## P1, two-device pilot
 
-- LiveKit Cloud room and secure token endpoint.
+- LiveKit Cloud room and secure token endpoint. *(code in repo)*
 - Separate customer/staff routes.
-- Agent worker with VALSEA-first STT/TTS.
-- Neon final transcript, booking and audit persistence.
+- Agent worker with Speechmatics-default STT, A/B OpenAI/Gemini (ADR 0008). *(code in repo)*
+- Neon final transcript, booking and audit persistence. *(code in repo — `apps/web/src/lib/db`)*
+- `/dashboard` live transcript + call history. *(code in repo)*
 - Reconnect, duplicate event and human takeover tests.
 
 ## P2, Vietnam telephony pilot
 
 - Consent and retention policy.
-- Compare one live Twilio call with Stringee commercial media capability.
-- Route PSTN audio into the same final-message booking boundary.
-- Measure latency, recognition accuracy, cost and number provisioning.
+- PSTN via LiveKit SIP + Telnyx/Twilio trunk — run `docs/pstn-sip-runbook.md`
+  end-to-end; plan `plans/2026-07-18-pstn-call-dashboard/`. *(config templates in repo)*
+- Vietnamese local number: confirm a VN commercial SIP trunk (FPT/CMC/iTel…)
+  pointing at the same LiveKit SIP URI.
+- Measure latency, recognition accuracy on 8 kHz phone audio, cost and number provisioning.
 
 ## Exit criteria
 
