@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -10,87 +10,131 @@ import {
   useRemoteParticipants,
   useTranscriptions,
 } from '@livekit/components-react'
-import { ConnectionState } from 'livekit-client'
+import { ConnectionState, ParticipantKind } from 'livekit-client'
 import { Loader2, Mic, MicOff, PhoneOff, RotateCcw } from 'lucide-react'
-import { type BookingDraft, bookingDraftSchema } from '@ordervoice/contracts'
+import { z } from 'zod'
 
+import {
+  agentEventSchema,
+  type AgentEvent,
+  type BookingSnapshot,
+  type CallRole,
+  type SemanticAnnotation,
+} from '@/lib/call-contract'
 import { useRingback } from '@/hooks/use-ringback'
 
-// Data-channel topic shared with the Python agent worker (agent/agent.py).
 const EVENTS_TOPIC = 'alove-events'
+const TRANSCRIPTION_SEGMENT_ATTRIBUTE = 'lk.segment_id'
+const TRANSCRIPTION_FINAL_ATTRIBUTE = 'lk.transcription_final'
+
+const REDISPATCH_AFTER_MS = 12_000
+const REDISPATCH_MAX_TRIES = 3
+const GIVE_UP_AFTER_MS = REDISPATCH_AFTER_MS * (REDISPATCH_MAX_TRIES + 1)
+
+const tokenResponseSchema = z.object({
+  token: z.string().min(1),
+  sessionToken: z.string().min(1),
+  conversationId: z.string().uuid(),
+  serverUrl: z.string().min(1),
+  roomName: z.string().min(1),
+})
+
+type TokenResponse = z.infer<typeof tokenResponseSchema>
 
 export type LiveKitAgentState = 'idle' | 'listening' | 'thinking' | 'speaking'
 
-// Wait this long with no agent in the room before asking for a fresh dispatch.
-const REDISPATCH_AFTER_MS = 12_000
-const REDISPATCH_MAX_TRIES = 3
-
-// Hết chừng này mà phòng vẫn không có ai thì thôi không đổ chuông nữa: người gọi
-// cần một lối ra, không phải tiếng tút vô tận. Bằng đúng số lần thử dispatch.
-const GIVE_UP_AFTER_MS = REDISPATCH_AFTER_MS * (REDISPATCH_MAX_TRIES + 1)
-
-type LiveKitCallProps = {
+export type LiveKitSession = {
+  attemptId: number
   conversationId: string
-  /** Upsert a transcript segment into the workspace message list (keyed by id). */
-  onTranscript: (segmentId: string, role: 'customer' | 'agent', text: string) => void
-  /** Authoritative booking snapshot published by the agent after each turn. */
-  onBooking: (booking: BookingDraft) => void
-  /** Mirror the worker's listening/thinking/speaking state into the stage orb. */
-  onAgentState?: (state: LiveKitAgentState) => void
-  /** Gọi lại từ đầu sau khi chờ mãi không có tổng đài viên nào vào phòng. */
-  onRetry?: () => void
-  onEnded: () => void
 }
 
-type TokenResponse = { token: string; serverUrl: string; roomName: string }
+export type LiveTranscriptUpdate = {
+  callId: string
+  segmentId: string
+  role: CallRole
+  text: string
+  final: boolean
+}
+
+type LiveKitCallProps = {
+  attemptId: number
+  onSessionStarted: (session: LiveKitSession) => void
+  onTranscript: (update: LiveTranscriptUpdate) => void
+  onBooking: (booking: BookingSnapshot) => void
+  onSemanticAnnotation: (callId: string, annotation: SemanticAnnotation) => void
+  onAgentState?: (callId: string, state: LiveKitAgentState) => void
+  onRetry?: () => void
+  onEnded: (callId: string) => void
+}
+
+type IncomingDataMessage = {
+  payload: Uint8Array
+  from?: { kind: ParticipantKind }
+}
 
 /**
- * LiveKit transport for the customer↔agent auto flow. Replaces the in-browser
- * Web Speech path when NEXT_PUBLIC_LIVEKIT_URL is configured: the browser only
- * publishes mic audio + renders the agent's voice; STT/booking/TTS all run in the
- * agent worker. Booking stays deterministic server-side (@ordervoice/core).
+ * LiveKit-only customer transport. The token endpoint creates the call ID,
+ * participant identity and signed redispatch session; the browser chooses none
+ * of those values.
  */
-export function LiveKitCall(props: LiveKitCallProps) {
+export function LiveKitCall({
+  attemptId,
+  onSessionStarted,
+  onTranscript,
+  onBooking,
+  onSemanticAnnotation,
+  onAgentState,
+  onRetry,
+  onEnded,
+}: LiveKitCallProps) {
   const [connection, setConnection] = useState<TokenResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const requested = useRef(false)
+  const suppressDisconnectRef = useRef(false)
 
   useEffect(() => {
-    if (requested.current) return
-    requested.current = true
+    const controller = new AbortController()
+    let active = true
+
     void (async () => {
       try {
-        const res = await fetch('/api/livekit/token', {
+        const response = await fetch('/api/livekit/token', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId: props.conversationId,
-            role: 'customer',
-          }),
+          signal: controller.signal,
         })
-        if (!res.ok) {
-          const body = (await res.json().catch(() => ({}))) as { error?: string }
-          setError(body.error === 'livekit_not_configured' ? 'LiveKit chưa cấu hình.' : 'Không lấy được token LiveKit.')
+        const body = await response.json().catch(() => null)
+        if (!active) return
+        if (!response.ok) {
+          setError(tokenErrorMessage(response.status, body))
           return
         }
-        setConnection((await res.json()) as TokenResponse)
-      } catch {
-        setError('Không kết nối được dịch vụ token.')
+
+        const parsed = tokenResponseSchema.safeParse(body)
+        if (!parsed.success) {
+          setError('Dịch vụ cuộc gọi trả về dữ liệu không hợp lệ.')
+          return
+        }
+
+        onSessionStarted({ attemptId, conversationId: parsed.data.conversationId })
+        setConnection(parsed.data)
+      } catch (caught) {
+        if (!active || isAbortError(caught)) return
+        setError('Không kết nối được dịch vụ cuộc gọi.')
       }
     })()
-  }, [props.conversationId])
+
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [attemptId, onSessionStarted])
 
   if (error) {
-    return (
-      <div className="rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white/70" role="alert">
-        {error}
-      </div>
-    )
+    return <CallError message={error} onRetry={onRetry} />
   }
   if (!connection) {
     return (
-      <div className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white/70">
-        <Loader2 className="size-4 animate-spin" aria-hidden /> Đang kết nối LiveKit…
+      <div className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white/70" role="status">
+        <Loader2 className="size-4 animate-spin" aria-hidden /> Đang tạo phiên gọi an toàn…
       </div>
     )
   }
@@ -102,21 +146,31 @@ export function LiveKitCall(props: LiveKitCallProps) {
       connect
       audio
       video={false}
-      // Explicit echo cancellation so the mic doesn't re-capture the agent's TTS
-      // from the speakers and treat it as the customer talking.
       options={{
         audioCaptureDefaults: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       }}
-      onDisconnected={props.onEnded}
+      onError={() => {
+        suppressDisconnectRef.current = true
+        setError('Kết nối phòng gọi gặp sự cố. Vui lòng thử lại.')
+      }}
+      onMediaDeviceFailure={() => {
+        suppressDisconnectRef.current = true
+        setError('Không thể truy cập microphone. Hãy cấp quyền microphone rồi thử lại.')
+      }}
+      onDisconnected={() => {
+        if (!suppressDisconnectRef.current) onEnded(connection.conversationId)
+      }}
     >
       <RoomAudioRenderer />
       <RoomBridge
-        conversationId={props.conversationId}
-        onTranscript={props.onTranscript}
-        onBooking={props.onBooking}
-        {...(props.onAgentState ? { onAgentState: props.onAgentState } : {})}
-        {...(props.onRetry ? { onRetry: props.onRetry } : {})}
-        onEnded={props.onEnded}
+        conversationId={connection.conversationId}
+        sessionToken={connection.sessionToken}
+        onTranscript={onTranscript}
+        onBooking={onBooking}
+        onSemanticAnnotation={onSemanticAnnotation}
+        {...(onAgentState ? { onAgentState } : {})}
+        {...(onRetry ? { onRetry } : {})}
+        onEnded={onEnded}
       />
     </LiveKitRoom>
   )
@@ -124,122 +178,177 @@ export function LiveKitCall(props: LiveKitCallProps) {
 
 function RoomBridge({
   conversationId,
+  sessionToken,
   onTranscript,
   onBooking,
+  onSemanticAnnotation,
   onAgentState,
   onRetry,
   onEnded,
-}: Pick<LiveKitCallProps, 'conversationId' | 'onTranscript' | 'onBooking' | 'onAgentState' | 'onRetry' | 'onEnded'>) {
+}: Omit<LiveKitCallProps, 'attemptId' | 'onSessionStarted'> & {
+  conversationId: string
+  sessionToken: string
+}) {
   const connectionState = useConnectionState()
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant()
   const remoteParticipants = useRemoteParticipants()
   const transcriptions = useTranscriptions()
   const [agentState, setAgentState] = useState<LiveKitAgentState>('idle')
   const [gaveUp, setGaveUp] = useState(false)
+  const [micError, setMicError] = useState<string | null>(null)
   const redispatchTries = useRef(0)
+  const lastEventSequence = useRef(0)
+  const forwardedTranscripts = useRef(new Map<string, string>())
 
-  // Chuông chờ chạy tới lúc tổng đài viên cất tiếng, không phải lúc vào phòng:
-  // agent vào room xong vẫn mất vài giây nạp phiên và nghĩ câu chào, im lặng
-  // quãng đó khiến người gọi tưởng máy hỏng.
-  const agentHasSpoken = transcriptions.some(
-    (seg) => seg.participantInfo?.identity !== localParticipant.identity && seg.text.trim().length > 0,
+  const agentParticipants = useMemo(
+    () => remoteParticipants.filter((participant) => participant.kind === ParticipantKind.AGENT),
+    [remoteParticipants],
   )
-  useRingback(!gaveUp && !agentHasSpoken && agentState !== 'speaking')
+  const agentIdentities = useMemo(
+    () => new Set(agentParticipants.map((participant) => participant.identity)),
+    [agentParticipants],
+  )
+  const agentJoined = agentParticipants.length > 0
+  const isConnected = connectionState === ConnectionState.Connected
+  const isConnecting =
+    connectionState === ConnectionState.Connecting
+    || connectionState === ConnectionState.Reconnecting
+    || connectionState === ConnectionState.SignalReconnecting
+  const agentHasSpoken = transcriptions.some(
+    (segment) => agentIdentities.has(segment.participantInfo.identity) && segment.text.trim().length > 0,
+  )
 
-  // Chờ mãi không ai vào phòng thì phải nói thật với người gọi. Không có mốc này
-  // thì chuông cứ đổ vô tận và người gọi ngồi nghe tút giữa buổi demo.
+  useRingback(isConnected && !gaveUp && !agentHasSpoken && agentState !== 'speaking')
+
   useEffect(() => {
-    if (connectionState !== ConnectionState.Connected || remoteParticipants.length > 0) return
+    if (!isConnected || agentJoined) return
     const timer = window.setTimeout(() => setGaveUp(true), GIVE_UP_AFTER_MS)
-    return () => {
-      window.clearTimeout(timer)
-      // Agent vào phòng (hoặc mất kết nối rồi nối lại) thì bắt đầu đếm lại từ
-      // đầu, không mang theo lần bỏ cuộc trước.
-      setGaveUp(false)
-    }
-  }, [connectionState, remoteParticipants.length])
+    return () => window.clearTimeout(timer)
+  }, [agentJoined, isConnected])
 
-  // Self-heal a silent line: the token's agent dispatch is one-shot, so if it
-  // fired while no worker was ready nobody ever joins and the caller just hears
-  // nothing. Ask for a fresh dispatch a few times while the room has no agent.
   useEffect(() => {
-    if (connectionState !== ConnectionState.Connected) return
-    if (remoteParticipants.length > 0) {
-      redispatchTries.current = 0
-      return
-    }
-    const timer = setInterval(() => {
+    if (agentJoined) redispatchTries.current = 0
+  }, [agentJoined])
+
+  useEffect(() => {
+    if (!isConnected || agentJoined) return
+    const controller = new AbortController()
+    const timer = window.setInterval(() => {
       if (redispatchTries.current >= REDISPATCH_MAX_TRIES) {
-        clearInterval(timer)
+        window.clearInterval(timer)
         return
       }
       redispatchTries.current += 1
       void fetch('/api/livekit/redispatch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId }),
-      }).catch(() => {})
-    }, REDISPATCH_AFTER_MS)
-    return () => clearInterval(timer)
-  }, [connectionState, remoteParticipants.length, conversationId])
-
-  // Forward each transcription segment (customer input + agent output) to the
-  // workspace. The key MUST stay stable while a segment grows, otherwise every
-  // interim update appends a new bubble ("Tôi" → "Tôi muốn" → …). streamInfo.id
-  // is not populated by every LiveKit build, so fall back to the segment's index:
-  // useTranscriptions keeps a segment at the same index and mutates it in place.
-  useEffect(() => {
-    transcriptions.forEach((seg, index) => {
-      const identity = seg.participantInfo?.identity
-      const isLocal = identity === localParticipant.identity
-      const id = seg.streamInfo?.id ?? `${identity ?? 'x'}-${index}`
-      onTranscript(id, isLocal ? 'customer' : 'agent', seg.text)
-    })
-  }, [transcriptions, localParticipant.identity, onTranscript])
-
-  useDataChannel(EVENTS_TOPIC, (msg) => {
-    try {
-      const payload = JSON.parse(new TextDecoder().decode(msg.payload)) as
-        | { type: 'booking.update'; booking: BookingDraft }
-        | { type: 'agent.state'; state: string }
-        | { type: 'call.end' }
-      if (payload.type === 'booking.update') {
-        // Soi bằng schema thay vì tin vào cast: vé từng hiện ô trống vì agent
-        // gửi draft thiếu trường mà phía này nhận im lặng, không ai biết. Sai
-        // schema thì vẫn hiển thị — chặn giữa cuộc gọi thật còn tệ hơn — nhưng
-        // phải kêu to trong console.
-        const parsed = bookingDraftSchema.safeParse(payload.booking)
-        if (!parsed.success) {
-          console.error('booking.update sai schema', parsed.error.issues, payload.booking)
-        }
-        onBooking(payload.booking)
-      } else if (payload.type === 'agent.state') {
-        const s = payload.state.toLowerCase()
-        const state: LiveKitAgentState =
-          s.includes('speaking') ? 'speaking' : s.includes('thinking') ? 'thinking' : s.includes('listening') ? 'listening' : 'idle'
-        setAgentState(state)
-        onAgentState?.(state)
-      } else if (payload.type === 'call.end') {
-        onEnded()
-      }
-    } catch {
-      // ignore malformed events
-    }
-  })
-
-  const isConnected = connectionState === ConnectionState.Connected
-  const isConnecting =
-    connectionState === ConnectionState.Connecting || connectionState === ConnectionState.Reconnecting
-  const agentJoined = remoteParticipants.length > 0
-
-  function endTurn() {
-    void localParticipant
-      .publishData(new TextEncoder().encode(JSON.stringify({ type: 'user.end_turn' })), {
-        topic: EVENTS_TOPIC,
-        reliable: true,
+        body: JSON.stringify({ sessionToken }),
+        signal: controller.signal,
+      }).then((response) => {
+        if (response.status === 401 || response.status === 429) setGaveUp(true)
+      }).catch((caught) => {
+        if (!isAbortError(caught)) return
       })
-      .catch(() => {})
-  }
+    }, REDISPATCH_AFTER_MS)
+    return () => {
+      window.clearInterval(timer)
+      controller.abort()
+    }
+  }, [agentJoined, isConnected, sessionToken])
+
+  useEffect(() => {
+    for (const segment of transcriptions) {
+      const identity = segment.participantInfo.identity
+      const isLocal = identity === localParticipant.identity
+      if (!isLocal && !agentIdentities.has(identity)) continue
+
+      const text = segment.text.trim()
+      if (!text) continue
+      const attributes = segment.streamInfo.attributes
+      const segmentId = attributes?.[TRANSCRIPTION_SEGMENT_ATTRIBUTE] ?? segment.streamInfo.id
+      const final = attributes?.[TRANSCRIPTION_FINAL_ATTRIBUTE] === 'true'
+      const role: CallRole = isLocal ? 'customer' : 'agent'
+      const transcriptKey = `${role}:${segmentId}`
+      const fingerprint = `${text}\u0000${String(final)}`
+      if (forwardedTranscripts.current.get(transcriptKey) === fingerprint) continue
+      forwardedTranscripts.current.set(transcriptKey, fingerprint)
+      onTranscript({ callId: conversationId, segmentId, role, text, final })
+    }
+  }, [agentIdentities, conversationId, localParticipant.identity, onTranscript, transcriptions])
+
+  const handleAgentEvent = useCallback((message: IncomingDataMessage) => {
+    const event = parseAgentEventMessage({
+      payload: message.payload,
+      senderKind: message.from?.kind,
+      expectedCallId: conversationId,
+      lastSequence: lastEventSequence.current,
+    })
+    if (!event) return
+
+    lastEventSequence.current = event.sequence
+    if (event.type === 'booking.update') {
+      onBooking(event.booking)
+      return
+    }
+    if (event.type === 'agent.state') {
+      setAgentState(event.state)
+      onAgentState?.(conversationId, event.state)
+      return
+    }
+    if (event.type === 'semantic.annotation') {
+      onSemanticAnnotation(conversationId, {
+        timestamp: event.timestamp,
+        sourceTranscript: event.sourceTranscript,
+        ...(event.correctedText ? { correctedText: event.correctedText } : {}),
+        tags: event.tags,
+        annotations: event.annotations,
+      })
+      return
+    }
+    onEnded(conversationId)
+  }, [conversationId, onAgentState, onBooking, onEnded, onSemanticAnnotation])
+
+  useDataChannel(EVENTS_TOPIC, handleAgentEvent)
+
+  const toggleMicrophone = useCallback(async () => {
+    setMicError(null)
+    try {
+      await localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)
+    } catch {
+      setMicError('Không thể thay đổi microphone. Hãy kiểm tra quyền và thiết bị đầu vào.')
+    }
+  }, [isMicrophoneEnabled, localParticipant])
+
+  const endTurn = useCallback(async () => {
+    try {
+      await localParticipant.publishData(
+        new TextEncoder().encode(JSON.stringify({ type: 'user.end_turn' })),
+        { topic: EVENTS_TOPIC, reliable: true },
+      )
+    } catch {
+      // Reconnect state already tells the caller delivery is unavailable.
+    }
+  }, [localParticipant])
+
+  const endCall = useCallback(async () => {
+    try {
+      await localParticipant.setMicrophoneEnabled(false)
+    } catch {
+      // LiveKitRoom teardown still stops the local track.
+    } finally {
+      onEnded(conversationId)
+    }
+  }, [conversationId, localParticipant, onEnded])
+
+  const retryCall = useCallback(async () => {
+    try {
+      await localParticipant.setMicrophoneEnabled(false)
+    } catch {
+      // LiveKitRoom teardown still stops the local track.
+    } finally {
+      onRetry?.()
+    }
+  }, [localParticipant, onRetry])
 
   if (gaveUp && !agentJoined) {
     return (
@@ -251,7 +360,7 @@ function RoomBridge({
           {onRetry ? (
             <button
               type="button"
-              onClick={onRetry}
+              onClick={() => void retryCall()}
               className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[var(--action)] px-4 text-sm font-medium text-[var(--on-action)] transition hover:bg-[var(--action-hover)]"
             >
               <RotateCcw className="size-4" aria-hidden /> Gọi lại
@@ -259,7 +368,7 @@ function RoomBridge({
           ) : null}
           <button
             type="button"
-            onClick={onEnded}
+            onClick={() => void endCall()}
             className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 text-sm font-medium text-white/90 transition hover:bg-white/15"
           >
             <PhoneOff className="size-4" aria-hidden /> Đóng
@@ -270,36 +379,98 @@ function RoomBridge({
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2">
-      {isConnecting || !agentJoined ? (
-        <span className="inline-flex items-center gap-2 text-xs text-white/50" role="status">
-          <Loader2 className="size-3.5 animate-spin" aria-hidden />
-          {isConnecting ? 'Đang kết nối…' : 'Đang chờ tổng đài viên AI…'}
-        </span>
+    <div className="flex flex-col items-center gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        {isConnecting || !agentJoined ? (
+          <span className="inline-flex items-center gap-2 text-xs text-white/50" role="status">
+            <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            {isConnecting ? 'Đang kết nối…' : 'Đang chờ tổng đài viên AI…'}
+          </span>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => void toggleMicrophone()}
+          disabled={!isConnected}
+          aria-describedby={micError ? 'livekit-mic-error' : undefined}
+          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 text-sm font-medium text-white/90 transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {isMicrophoneEnabled ? <Mic className="size-4" aria-hidden /> : <MicOff className="size-4 text-[var(--danger)]" aria-hidden />}
+          {isMicrophoneEnabled ? 'Tắt mic' : 'Bật mic'}
+        </button>
+        <button
+          type="button"
+          onClick={() => void endTurn()}
+          disabled={!isConnected || agentState === 'speaking' || agentState === 'thinking'}
+          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 text-sm font-medium text-white/90 transition hover:bg-white/15 disabled:opacity-40"
+        >
+          Tôi nói xong
+        </button>
+        <button
+          type="button"
+          onClick={() => void endCall()}
+          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--danger)_55%,transparent)] bg-[color-mix(in_srgb,var(--danger)_22%,transparent)] px-4 text-sm font-medium text-white transition hover:bg-[color-mix(in_srgb,var(--danger)_35%,transparent)]"
+        >
+          <PhoneOff className="size-4" aria-hidden /> Kết thúc
+        </button>
+      </div>
+      {micError ? (
+        <p id="livekit-mic-error" className="text-center text-xs text-[var(--danger)]" role="alert">
+          {micError}
+        </p>
       ) : null}
-      <button
-        type="button"
-        onClick={() => localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
-        className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 text-sm font-medium text-white/90 transition hover:bg-white/15"
-      >
-        {isMicrophoneEnabled ? <Mic className="size-4" aria-hidden /> : <MicOff className="size-4 text-[var(--danger)]" aria-hidden />}
-        {isMicrophoneEnabled ? 'Tắt mic' : 'Bật mic'}
-      </button>
-      <button
-        type="button"
-        onClick={endTurn}
-        disabled={!isConnected || agentState === 'speaking' || agentState === 'thinking'}
-        className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 text-sm font-medium text-white/90 transition hover:bg-white/15 disabled:opacity-40"
-      >
-        Tôi nói xong
-      </button>
-      <button
-        type="button"
-        onClick={onEnded}
-        className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--danger)_55%,transparent)] bg-[color-mix(in_srgb,var(--danger)_22%,transparent)] px-4 text-sm font-medium text-white transition hover:bg-[color-mix(in_srgb,var(--danger)_35%,transparent)]"
-      >
-        <PhoneOff className="size-4" aria-hidden /> Kết thúc
-      </button>
     </div>
   )
+}
+
+export function parseAgentEventMessage({
+  payload,
+  senderKind,
+  expectedCallId,
+  lastSequence,
+}: {
+  payload: Uint8Array
+  senderKind: ParticipantKind | undefined
+  expectedCallId: string
+  lastSequence: number
+}): AgentEvent | null {
+  if (senderKind !== ParticipantKind.AGENT) return null
+  try {
+    const decoded: unknown = JSON.parse(new TextDecoder().decode(payload))
+    const parsed = agentEventSchema.safeParse(decoded)
+    if (!parsed.success) return null
+    const event = parsed.data
+    if (event.callId !== expectedCallId || event.sequence <= lastSequence) return null
+    if (event.type === 'booking.update' && event.booking.conversationId !== expectedCallId) return null
+    return event
+  } catch {
+    return null
+  }
+}
+
+function CallError({ message, onRetry }: { message: string; onRetry: (() => void) | undefined }) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-center" role="alert">
+      <p className="text-sm text-white/75">{message}</p>
+      {onRetry ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[var(--action)] px-4 text-sm font-medium text-[var(--on-action)]"
+        >
+          <RotateCcw className="size-4" aria-hidden /> Thử lại
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+function tokenErrorMessage(status: number, body: unknown): string {
+  const code = z.object({ error: z.string().optional() }).safeParse(body)
+  if (code.success && code.data.error === 'livekit_not_configured') return 'Dịch vụ cuộc gọi chưa được cấu hình.'
+  if (status === 429) return 'Có quá nhiều yêu cầu gọi. Vui lòng chờ một lúc rồi thử lại.'
+  return 'Không tạo được phiên gọi an toàn.'
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError'
 }

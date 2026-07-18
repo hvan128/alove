@@ -1,6 +1,6 @@
 'use client'
 
-import type { BookingDraft } from '@ordervoice/contracts'
+import type { BookingSnapshot } from '@/lib/call-contract'
 import {
   Banknote,
   CalendarDays,
@@ -22,12 +22,12 @@ type FieldPhase = 'idle' | 'filled' | 'amended'
 const UNSET = 'Chưa xác định'
 
 /**
- * Nhãn là mốc quét chính của phiếu: 14px, semibold và dùng mực đầy.
+ * Nhãn là mốc quét chính của phiếu: 16px/24px, semibold và dùng mực đầy.
  * Trạng thái trống ở Value nhỏ hơn để nhãn luôn là thứ được đọc trước.
  */
-const LABEL = 'flex items-center gap-2 text-ui font-semibold text-[var(--ink)]'
+const LABEL = 'flex items-center gap-2 text-base leading-6 font-semibold text-[var(--ink)]'
 
-const STATUS_LABEL: Record<BookingDraft['status'], string> = {
+const STATUS_LABEL: Record<BookingSnapshot['status'], string> = {
   collecting: 'Đang thu thập',
   trip_proposed: 'Đã đề xuất chuyến',
   awaiting_confirmation: 'Chờ xác nhận',
@@ -40,7 +40,7 @@ const STATUS_LABEL: Record<BookingDraft['status'], string> = {
  * chuyến đi. Trục hành trình dọc giãn theo chiều cao còn trống nên phiếu cao
  * bằng khung cuộc gọi mà không phải chèn khoảng trắng chết.
  */
-export function BookingForm({ booking }: { booking: BookingDraft }) {
+export function BookingForm({ booking }: { booking: BookingSnapshot }) {
   const filled = [
     booking.origin,
     booking.destination,
@@ -120,6 +120,8 @@ export function BookingForm({ booking }: { booking: BookingDraft }) {
           <Value
             value={booking.totalFareVnd === null ? null : formatVnd(booking.totalFareVnd)}
             valueClassName="text-section font-bold tabular-nums tracking-[-0.03em] text-[var(--action-hover)]"
+            emptyText="—"
+            emptyClassName="text-body font-semibold tracking-normal text-[var(--action-hover)]"
           />
         </div>
         <p className="mt-2 text-metric text-[var(--muted)]">
@@ -148,9 +150,9 @@ function Section({ title, icon: Icon, children }: { title: string; icon: LucideI
 function RouteRail({ origin, destination }: { origin: string | null; destination: string | null }) {
   return (
     <div className="flex h-28 gap-3">
-      {/* Nhãn UI cao 20px, cách giá trị 2px, dòng giá trị cao 28px:
-          tâm tên bến ở 36px, nên chấm 10px lùi 31px. */}
-      <div aria-hidden className="flex flex-col items-center pb-[9px] pt-[31px]">
+      {/* Nhãn cao 24px, cách giá trị 2px, dòng giá trị cao 28px:
+          tâm tên bến ở 40px, nên chấm 10px lùi 35px. */}
+      <div aria-hidden className="flex flex-col items-center pb-[9px] pt-[35px]">
         <Node active={origin !== null} />
         {/* Sợi nối cũng là một thanh tiến độ: đứt nét khi chưa có bến nào, đổ
             màu dần xuống khi đã có điểm đi, liền mạch khi đủ cả hai đầu. */}
@@ -265,25 +267,33 @@ function Value({
   className,
   valueClassName,
   emptyClassName,
+  emptyText = UNSET,
   as: Tag = 'p',
 }: {
   value: string | null
   className?: string
   valueClassName?: string
   emptyClassName?: string
+  emptyText?: string
   as?: 'p' | 'dd'
 }) {
   const { phase, previous, token } = useValuePhase(value)
 
   if (value === null) {
     return (
-      // Vạch chờ để inline-block nên nó tự theo text-align của ô (dòng hành
-      // khách canh phải), và vẫn chiếm đúng một dòng nên phiếu không co giật
-      // lúc giá trị thật xuất hiện.
+      // Trạng thái trống vẫn chiếm đúng một dòng nên phiếu không co giật
+      // lúc giá trị thật xuất hiện. Cỡ metric + weight 500 giữ nó đủ rõ
+      // nhưng không biến thành một nhãn có độ đậm ngang với tên trường.
       // font-sans đè font-mono của ô giờ và số điện thoại: "Chưa xác định" là
       // chữ tiếng Việt, đánh máy bằng font đẳng khoảng trông như lỗi hiển thị.
-      <Tag className={cn(className, 'font-sans text-metric font-semibold text-[var(--muted)]', emptyClassName)}>
-        {UNSET}
+      <Tag
+        className={cn(
+          className,
+          'font-sans text-metric font-medium tracking-[0.01em] text-[var(--muted)]',
+          emptyClassName,
+        )}
+      >
+        {emptyText}
       </Tag>
     )
   }

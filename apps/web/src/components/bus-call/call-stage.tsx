@@ -1,38 +1,27 @@
 'use client'
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import type { BookingDraft, CallMessage, CallMessageChannel, CallStatus } from '@ordervoice/contracts'
-import { MessagesSquare, Mic, PhoneCall, PhoneOff, RotateCcw, Send, VolumeX, X } from 'lucide-react'
-import type { SpeechRecognitionState } from '@/hooks/use-speech-recognition'
+import { MessagesSquare, PhoneCall, PhoneOff, RotateCcw, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import type { BookingSnapshot, CallMessage, CallStatus, SemanticAnnotation } from '@/lib/call-contract'
 import { cn } from '@/lib/cn'
-
-const PRESETS = [
-  { label: 'Yêu cầu mẫu', text: 'Tôi muốn đi từ Sài Gòn đến Đà Lạt tối thứ Sáu, 2 vé.' },
-  { label: 'Chọn chuyến 22:00', text: 'Tôi chọn chuyến 22 giờ.' },
-  { label: 'Thông tin hành khách', text: 'Tôi là Nguyễn Minh Anh, số điện thoại 0909123456.' },
-  { label: 'Xác nhận đặt vé', text: 'Tôi xác nhận đặt vé.' },
-] as const
 
 type CallStageProps = {
   status: CallStatus
   elapsedSec: number
   messages: CallMessage[]
-  booking: BookingDraft
+  semanticAnnotations: SemanticAnnotation[]
+  booking: BookingSnapshot
   agentSpeaking: boolean
   /** LiveKit worker is processing the turn — shown as "Đang xử lý…". */
   agentThinking?: boolean
-  value: string
-  onValueChange: (value: string) => void
-  onSubmit: (text: string, channel: CallMessageChannel) => void
+  /** LiveKit worker is ready for the caller's next utterance. */
+  agentListening?: boolean
+  /** A validated agent state event has arrived for this room. */
+  agentReady?: boolean
   onStart: () => void
   onEnd: () => void
-  onStopSpeech: () => void
-  recognitionState: SpeechRecognitionState
-  interimText: string
-  onStartMic: () => void
-  onStopMic: () => void
-  /** LiveKit controls replace the local dock when the agent worker owns the call. */
+  /** LiveKit connection and media controls. There is no local/demo fallback. */
   liveKitSlot?: ReactNode
 }
 
@@ -44,26 +33,22 @@ export function CallStage({
   status,
   elapsedSec,
   messages,
+  semanticAnnotations,
   booking,
   agentSpeaking,
   agentThinking = false,
-  value,
-  onValueChange,
-  onSubmit,
+  agentListening = false,
+  agentReady = false,
   onStart,
   onEnd,
-  onStopSpeech,
-  recognitionState,
-  interimText,
-  onStartMic,
-  onStopMic,
   liveKitSlot,
 }: CallStageProps) {
   const connected = status === 'connected'
   const confirmed = booking.status === 'confirmed'
-  const listening = recognitionState === 'listening'
+  const listening = connected && agentListening
   const conversation = messages.filter((message) => message.role === 'customer' || message.role === 'agent')
   const terms = highlightTerms(booking)
+  const latestSemanticAnnotation = semanticAnnotations.at(-1)
   const [showTranscript, setShowTranscript] = useState(false)
 
   // Khung caption chỉ cao ~2 câu: luôn ghim câu mới nhất vào đáy khung, lịch sử
@@ -73,13 +58,6 @@ export function CallStage({
     const el = captionsRef.current
     if (el) el.scrollTop = el.scrollHeight
   })
-
-  const submitText = () => {
-    const trimmed = value.trim()
-    if (!trimmed) return
-    onSubmit(trimmed, 'text')
-    onValueChange('')
-  }
 
   return (
     <section
@@ -113,7 +91,9 @@ export function CallStage({
                   ? 'Đang xử lý…'
                   : listening
                     ? 'Đang nghe bạn nói…'
-                    : 'Đang nghe'}
+                    : agentReady
+                      ? 'Đã kết nối tổng đài'
+                      : 'Đang kết nối tổng đài…'}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -124,15 +104,6 @@ export function CallStage({
               className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 text-xs font-medium text-white/80 transition hover:bg-white/12"
             >
               <MessagesSquare size={14} aria-hidden /> Hội thoại
-            </button>
-          ) : null}
-          {agentSpeaking ? (
-            <button
-              type="button"
-              onClick={onStopSpeech}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 text-xs font-medium text-white/80 transition hover:bg-white/12"
-            >
-              <VolumeX size={14} aria-hidden /> Dừng giọng
             </button>
           ) : null}
           {status !== 'idle' ? (
@@ -160,10 +131,12 @@ export function CallStage({
       <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center gap-8 py-8">
         <Orb speaking={agentSpeaking} listening={listening} connected={connected} />
 
-        {conversation.length === 0 && !interimText ? (
+        {conversation.length === 0 ? (
           <div className="flex flex-col items-center text-center">
             {connected ? (
-              <p className="text-lg font-medium text-white/90">Hãy nói tự nhiên — tổng đài viên đang nghe</p>
+              <p className="text-lg font-medium text-white/90">
+                {agentReady ? 'Hãy nói tự nhiên — tổng đài viên đang nghe' : 'Đang kết nối tổng đài viên…'}
+              </p>
             ) : (
               <Button onClick={onStart} className="px-6">
                 <PhoneCall size={17} aria-hidden /> Bắt đầu Web Call
@@ -197,99 +170,31 @@ export function CallStage({
                       latest ? 'text-xl font-medium text-white sm:text-2xl' : 'text-sm text-white/70 sm:text-base',
                     )}
                   >
-                    {/* Transcript kênh voice đã tự hiện dần theo lời nói thật —
-                        typewriter chỉ dành cho câu xuất hiện nguyên khối. */}
-                    {latest && message.channel !== 'voice' ? (
-                      <TypewriterCaption text={message.text} terms={terms} />
-                    ) : (
-                      renderHighlighted(message.text, terms)
-                    )}
+                    {renderHighlighted(message.text, terms)}
                   </p>
                 </li>
               )
             })}
           </ol>
         )}
-        {interimText ? (
-          <p className="text-lg italic leading-relaxed text-white/55" aria-live="polite">
-            {interimText}…
-          </p>
+
+        {latestSemanticAnnotation ? (
+          <SemanticEvidencePanel annotation={latestSemanticAnnotation} />
         ) : null}
       </div>
 
-      {/* Dock kính mờ — LiveKit thay thế toàn bộ khi agent worker cầm cuộc gọi. */}
+      {/* Dock kính mờ chỉ chứa transport LiveKit; không có text/preset/Web Speech fallback. */}
       <div
         className={cn(
           'relative z-10 border-t border-white/10 pt-4',
           !liveKitSlot && !confirmed && 'hidden',
         )}
       >
-        {liveKitSlot ? (
-          liveKitSlot
-        ) : confirmed ? (
+        {liveKitSlot ?? (confirmed ? (
           <p className="text-center text-sm text-white/60" role="status">
             Vé đã được giữ — mã vé và ghế nằm trên vé bên cạnh. Bấm Kết thúc để đóng cuộc gọi.
           </p>
-        ) : (
-          <>
-            <div className="mb-3 flex flex-wrap justify-center gap-2">
-              {PRESETS.map((preset) => (
-                <button
-                  key={preset.label}
-                  type="button"
-                  disabled={!connected}
-                  onClick={() => onSubmit(preset.text, 'preset')}
-                  className="min-h-9 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-medium text-white/85 transition hover:border-[color-mix(in_srgb,var(--action)_60%,white)] hover:bg-[color-mix(in_srgb,var(--action)_35%,transparent)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-            <form
-              className="flex items-center gap-2"
-              onSubmit={(event) => {
-                event.preventDefault()
-                submitText()
-              }}
-            >
-              <input
-                aria-label="Lời khách hàng"
-                value={value}
-                onChange={(event) => onValueChange(event.target.value)}
-                disabled={!connected}
-                placeholder="Nhập yêu cầu đặt vé…"
-                className="min-h-11 min-w-0 flex-1 rounded-full border border-white/15 bg-white/8 px-4 text-sm text-white outline-none backdrop-blur transition placeholder:text-white/40 focus:border-[color-mix(in_srgb,var(--action)_70%,white)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--action)_35%,transparent)] disabled:opacity-40"
-              />
-              <Button type="submit" aria-label="Gửi lời khách" disabled={!connected || !value.trim()}>
-                <Send size={17} aria-hidden />
-              </Button>
-              <button
-                type="button"
-                aria-label={listening ? 'Dừng mic' : 'Bật mic'}
-                disabled={!connected || recognitionState === 'unsupported'}
-                onClick={listening ? onStopMic : onStartMic}
-                title={recognitionState === 'unsupported' ? 'Trình duyệt không hỗ trợ SpeechRecognition' : undefined}
-                className={cn(
-                  'inline-flex size-11 shrink-0 items-center justify-center rounded-full border transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40',
-                  listening
-                    ? 'border-transparent bg-[var(--action)] text-white shadow-[0_0_24px_color-mix(in_srgb,var(--action)_55%,transparent)]'
-                    : 'border-white/15 bg-white/8 text-white/85 hover:bg-white/15',
-                )}
-              >
-                <Mic size={18} strokeWidth={listening ? 2.6 : 2} aria-hidden />
-              </button>
-            </form>
-            <p className="mt-2 text-center text-xs leading-5 text-white/40" role="status">
-              {recognitionState === 'unsupported'
-                ? 'Mic STT không có trên trình duyệt này. Câu mẫu và nhập text vẫn hoạt động.'
-                : listening
-                  ? 'Đang nghe tiếng Việt…'
-                  : recognitionState === 'error'
-                    ? 'Không thể mở mic. Kiểm tra quyền trình duyệt hoặc dùng câu mẫu.'
-                    : 'Mic tiếng Việt là tùy chọn. Câu mẫu luôn sẵn sàng.'}
-            </p>
-          </>
-        )}
+        ) : null)}
       </div>
 
       {/* Toàn bộ hội thoại — overlay phủ trong sân khấu. */}
@@ -336,59 +241,38 @@ export function CallStage({
   )
 }
 
-/**
- * Máy đánh chữ cho caption mới nhất: gõ dần từng cụm ký tự, xong mới áp
- * highlight. Khi text bị sửa lại (STT thêm dấu, đổi từ) thì giữ vị trí gõ theo
- * phần đầu chung — không bao giờ quay về gõ lại từ đầu. Tắt trong test và khi
- * prefers-reduced-motion.
- */
-function TypewriterCaption({ text, terms }: { text: string; terms: string[] }) {
-  const animate = typewriterEnabled()
-  const [visibleChars, setVisibleChars] = useState(() => (animate ? 0 : text.length))
-  const previousText = useRef(text)
-
-  useEffect(() => {
-    if (!animate) {
-      setVisibleChars(text.length)
-      return
-    }
-    if (!text.startsWith(previousText.current)) {
-      const prefix = commonPrefixLength(text, previousText.current)
-      setVisibleChars((current) => Math.min(current, prefix))
-    }
-    previousText.current = text
-    const timer = window.setInterval(() => {
-      setVisibleChars((current) => {
-        if (current >= text.length) {
-          window.clearInterval(timer)
-          return current
-        }
-        return current + 2
-      })
-    }, 22)
-    return () => window.clearInterval(timer)
-  }, [text, animate])
-
-  if (visibleChars >= text.length) return <>{renderHighlighted(text, terms)}</>
+function SemanticEvidencePanel({ annotation }: { annotation: SemanticAnnotation }) {
   return (
-    <>
-      {text.slice(0, visibleChars)}
-      <span className="tw-caret" aria-hidden />
-    </>
+    <aside
+      aria-label="Bằng chứng semantic VALSEA"
+      className="w-full max-w-xl rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-left backdrop-blur-sm"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">VALSEA semantic</p>
+        <time className="text-[10px] tabular-nums text-white/35" dateTime={annotation.timestamp}>
+          {new Date(annotation.timestamp).toLocaleTimeString('vi-VN')}
+        </time>
+      </div>
+      <p className="mt-1 text-xs leading-5 text-white/55">Nguồn: {annotation.sourceTranscript}</p>
+      {annotation.correctedText ? (
+        <p className="mt-1 text-sm leading-5 text-white/90">
+          <span className="text-white/50">Hiệu chỉnh: </span>{annotation.correctedText}
+        </p>
+      ) : null}
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {annotation.tags.length > 0 ? annotation.tags.map((tag, index) => (
+          <span key={`${tag}-${index}`} className="rounded-full border border-white/12 bg-white/8 px-2 py-0.5 text-[11px] text-white/75">
+            {tag}
+          </span>
+        )) : (
+          <span className="text-xs text-white/45">Không có semantic tag</span>
+        )}
+      </div>
+      {annotation.annotations.length > 0 ? (
+        <p className="mt-1 text-[11px] leading-4 text-white/45">Chú thích: {annotation.annotations.join(', ')}</p>
+      ) : null}
+    </aside>
   )
-}
-
-function commonPrefixLength(a: string, b: string): number {
-  const max = Math.min(a.length, b.length)
-  let index = 0
-  while (index < max && a[index] === b[index]) index += 1
-  return index
-}
-
-function typewriterEnabled(): boolean {
-  if (process.env.NODE_ENV === 'test') return false
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true
-  return !window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 /** Orb kính 3D: thở khi chờ, đập nhanh khi agent nói, lan sóng khi mic nghe. */
@@ -456,7 +340,7 @@ function SpeakBars() {
 }
 
 /** Giá trị booking đã chốt → danh sách từ khóa cần highlight trong caption. */
-function highlightTerms(booking: BookingDraft): string[] {
+function highlightTerms(booking: BookingSnapshot): string[] {
   const raw: Array<string | null | undefined> = [
     booking.origin,
     booking.destination,

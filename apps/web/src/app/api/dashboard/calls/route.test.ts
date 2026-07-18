@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { createDashboardSession } from '@/lib/dashboard-auth'
 import { GET } from './route'
 
-const KEY = 'test-dashboard-key'
+const KEY = 'test-dashboard-key-at-least-32-bytes'
 
 function request(headers: Record<string, string> = {}): Request {
   return new Request('http://localhost/api/dashboard/calls', { headers })
@@ -31,7 +32,7 @@ describe('GET /api/dashboard/calls', () => {
 
   it('accepts the key via cookie', async () => {
     process.env.DASHBOARD_ACCESS_KEY = KEY
-    const res = await GET(request({ cookie: `alove-dashboard-key=${KEY}` }))
+    const res = await GET(request({ cookie: `alove-dashboard-session=${createDashboardSession()}` }))
     expect(res.status).toBe(200)
   })
 

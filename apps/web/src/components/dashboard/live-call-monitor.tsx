@@ -1,18 +1,26 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   LiveKitRoom,
   RoomAudioRenderer,
   useConnectionState,
+  useRemoteParticipants,
   useTranscriptions,
 } from '@livekit/components-react'
-import { ConnectionState } from 'livekit-client'
+import { ConnectionState, ParticipantKind } from 'livekit-client'
 import { Loader2, Radio } from 'lucide-react'
+import { z } from 'zod'
 
 import { TranscriptBubbles } from '@/components/dashboard/transcript-bubbles'
 
-type TokenResponse = { token: string; serverUrl: string; roomName: string }
+const tokenResponseSchema = z.object({
+  token: z.string().min(1),
+  serverUrl: z.string().min(1),
+  roomName: z.string().min(1),
+})
+
+type TokenResponse = z.infer<typeof tokenResponseSchema>
 
 /**
  * Read-only monitor for an in-progress call: joins the room with an observer
@@ -23,18 +31,19 @@ type TokenResponse = { token: string; serverUrl: string; roomName: string }
 export function LiveCallMonitor({ conversationId }: { conversationId: string }) {
   const [connection, setConnection] = useState<TokenResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const requested = useRef(false)
 
   useEffect(() => {
-    if (requested.current) return
-    requested.current = true
+    const controller = new AbortController()
+    let active = true
     void (async () => {
       try {
-        const res = await fetch('/api/livekit/token', {
+        const res = await fetch('/api/livekit/observer-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conversationId, role: 'observer' }),
+          body: JSON.stringify({ conversationId }),
+          signal: controller.signal,
         })
+        if (!active) return
         if (!res.ok) {
           const body = (await res.json().catch(() => ({}))) as { error?: string }
           setError(
@@ -44,11 +53,21 @@ export function LiveCallMonitor({ conversationId }: { conversationId: string }) 
           )
           return
         }
-        setConnection((await res.json()) as TokenResponse)
-      } catch {
+        const parsed = tokenResponseSchema.safeParse(await res.json().catch(() => null))
+        if (!parsed.success) {
+          setError('Dịch vụ token trả về dữ liệu không hợp lệ.')
+          return
+        }
+        setConnection(parsed.data)
+      } catch (caught) {
+        if (!active || (caught instanceof DOMException && caught.name === 'AbortError')) return
         setError('Không kết nối được dịch vụ token.')
       }
     })()
+    return () => {
+      active = false
+      controller.abort()
+    }
   }, [conversationId])
 
   if (error) {
@@ -69,6 +88,7 @@ export function LiveCallMonitor({ conversationId }: { conversationId: string }) 
       connect
       audio={false}
       video={false}
+      onError={() => setError('Kết nối phòng giám sát gặp sự cố.')}
     >
       <RoomAudioRenderer />
       <MonitorBridge />
@@ -78,12 +98,16 @@ export function LiveCallMonitor({ conversationId }: { conversationId: string }) 
 
 function MonitorBridge() {
   const connectionState = useConnectionState()
+  const remoteParticipants = useRemoteParticipants()
   const transcriptions = useTranscriptions()
   const connected = connectionState === ConnectionState.Connected
+  const participantKinds = new Map(
+    remoteParticipants.map((participant) => [participant.identity, participant.kind]),
+  )
 
   const turns = transcriptions.map((seg, index) => {
     const identity = seg.participantInfo?.identity ?? ''
-    const isAgent = identity.startsWith('agent') || identity === ''
+    const isAgent = participantKinds.get(identity) === ParticipantKind.AGENT
     return {
       id: seg.streamInfo?.id ?? index,
       role: isAgent ? ('agent' as const) : ('customer' as const),

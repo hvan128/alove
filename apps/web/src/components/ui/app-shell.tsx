@@ -14,7 +14,6 @@ export function AppShell({ children, className }: { children: ReactNode; classNa
           </Link>
           <nav aria-label="Điều hướng chính" className="flex items-center gap-1 text-sm">
             <Link className="inline-flex min-h-11 items-center rounded-full px-3 py-2 text-[var(--muted)] transition hover:bg-[var(--action-soft)] hover:text-[var(--action)]" href="/console">Web Call</Link>
-            <Link className="inline-flex min-h-11 items-center rounded-full px-3 py-2 text-[var(--muted)] transition hover:bg-[var(--action-soft)] hover:text-[var(--action)]" href="/engine">Lõi giọng nói</Link>
           </nav>
         </div>
       </header>

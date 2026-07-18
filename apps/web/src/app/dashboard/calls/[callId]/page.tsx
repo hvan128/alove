@@ -1,8 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, Globe, MessageCircle, Phone } from 'lucide-react'
-import { bookingDraftSchema } from '@ordervoice/contracts'
-
 import { BookingSummary } from '@/components/bus-call/booking-summary'
 import { AutoRefresh } from '@/components/dashboard/auto-refresh'
 import { LiveCallMonitor } from '@/components/dashboard/live-call-monitor'
@@ -10,6 +8,7 @@ import { CallStatusBadge } from '@/components/dashboard/status-badge'
 import { TranscriptBubbles } from '@/components/dashboard/transcript-bubbles'
 import { Panel } from '@/components/ui/panel'
 import { cn } from '@/lib/cn'
+import { bookingSnapshotSchema } from '@/lib/call-contract'
 import { dashboardAccessKey, hasDashboardCookie } from '@/lib/dashboard-auth'
 import { getCallDetail } from '@/lib/db/dashboard-store'
 
@@ -43,7 +42,7 @@ export default async function CallDetailPage({
   if (!detail) notFound()
 
   const { call, turns, latestSnapshot } = detail
-  const parsedBooking = latestSnapshot ? bookingDraftSchema.safeParse(latestSnapshot.snapshot) : null
+  const parsedBooking = latestSnapshot ? bookingSnapshotSchema.safeParse(latestSnapshot.snapshot) : null
   const isActive = call.status === 'active'
   const channelLabel = call.channel === 'phone' ? 'Điện thoại' : 'Web call'
 

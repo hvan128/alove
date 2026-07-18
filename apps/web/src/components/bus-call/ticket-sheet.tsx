@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import { ChevronUp } from 'lucide-react'
-import type { BookingDraft } from '@ordervoice/contracts'
+import type { BookingSnapshot } from '@/lib/call-contract'
 import { cn } from '@/lib/cn'
 import { TicketCard } from './ticket-card'
 
-const STATUS_LABEL: Record<BookingDraft['status'], string> = {
+const STATUS_LABEL: Record<BookingSnapshot['status'], string> = {
   collecting: 'Đang ghi nhận',
   trip_proposed: 'Đã đề xuất chuyến',
   awaiting_confirmation: 'Chờ xác nhận',
@@ -19,7 +19,7 @@ const STATUS_LABEL: Record<BookingDraft['status'], string> = {
  * lúc đang nói. Thanh peek nằm đáy tóm tắt tuyến và trạng thái, chạm để mở
  * xem toàn bộ phiếu.
  */
-export function TicketSheet({ booking }: { booking: BookingDraft }) {
+export function TicketSheet({ booking }: { booking: BookingSnapshot }) {
   const [open, setOpen] = useState(false)
   const route = booking.origin && booking.destination ? `${booking.origin} → ${booking.destination}` : 'Chưa có hành trình'
 

@@ -5,7 +5,13 @@ import { ChevronRight, Globe, KeyRound, Phone, PhoneCall, RefreshCw } from 'luci
 
 import { Panel } from '@/components/ui/panel'
 import { TextInput } from '@/components/ui/input'
-import { DASHBOARD_COOKIE, dashboardAccessKey, hasDashboardCookie, keyMatches } from '@/lib/dashboard-auth'
+import {
+  createDashboardSession,
+  DASHBOARD_COOKIE,
+  dashboardAccessKey,
+  hasDashboardCookie,
+  keyMatches,
+} from '@/lib/dashboard-auth'
 import { listRecentCalls, type CallSummary } from '@/lib/db/dashboard-store'
 import { AutoRefresh } from '@/components/dashboard/auto-refresh'
 import { BrandMark } from '@/components/ui/brand-mark'
@@ -17,7 +23,7 @@ async function login(formData: FormData) {
   'use server'
   if (keyMatches(String(formData.get('key') ?? ''))) {
     const store = await cookies()
-    store.set(DASHBOARD_COOKIE, dashboardAccessKey() as string, {
+    store.set(DASHBOARD_COOKIE, createDashboardSession(), {
       httpOnly: true,
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
@@ -40,7 +46,7 @@ export default async function DashboardPage({
         <Brand />
         <h1 className="mt-5 text-lg font-semibold tracking-[-0.025em] text-[var(--ink)]">Dashboard chưa được bật</h1>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          Đặt biến môi trường <code className="font-mono text-[var(--ink)]">DASHBOARD_ACCESS_KEY</code> (tối thiểu 8 ký
+          Đặt biến môi trường <code className="font-mono text-[var(--ink)]">DASHBOARD_ACCESS_KEY</code> (tối thiểu 32 ký
           tự) để mở dashboard giám sát cuộc gọi.
         </p>
       </AuthShell>

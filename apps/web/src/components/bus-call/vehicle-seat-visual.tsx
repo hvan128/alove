@@ -1,6 +1,6 @@
 'use client'
 
-import type { BookingDraft } from '@ordervoice/contracts'
+import type { BookingSnapshot } from '@/lib/call-contract'
 import Image from 'next/image'
 import { cn } from '@/lib/cn'
 
@@ -51,31 +51,31 @@ const VEHICLES: Record<'sleeper34' | 'sleeper38' | 'limousine21', VehiclePreset>
   },
 }
 
-export function VehicleSeatVisual({ booking }: { booking: BookingDraft }) {
+export function VehicleSeatVisual({ booking }: { booking: BookingSnapshot }) {
   const trip = booking.selectedTrip
   if (!trip || booking.status === 'confirmed') return null
 
   const preset = vehiclePreset(trip.vehicleType)
-  const suggested = new Set(trip.availableSeats.slice(0, booking.passengerCount ?? 1))
+  const heldSeats = new Set(booking.seats)
   const presetById = new Map(preset.hotspots.map((spot) => [spot.id, spot]))
-  // Catalog cũ dùng mã A05/A06, còn DB nhà xe dùng A1/A2. Nếu mã chưa có
-  // trong preset, lấy lần lượt đúng các vị trí 3D để trạng thái trống vẫn hiện.
-  const availableHotspots = trip.availableSeats.map((id, index) => ({
+  // Mã ghế phụ thuộc từng cấu hình xe. Nếu chưa có trong preset hình ảnh, đặt
+  // lần lượt vào hotspot có sẵn để vẫn biểu diễn đúng những ghế backend đã giữ.
+  const heldHotspots = booking.seats.map((id, index) => ({
     ...(presetById.get(id) ?? preset.hotspots[index % preset.hotspots.length]!),
     id,
   }))
 
   return (
-    <aside aria-label={`Vị trí ghế trống trên ${trip.vehicleType}`} className="vehicle-seat-stage relative h-full min-h-[420px]">
+    <aside aria-label={`Ghế đang giữ trên ${trip.vehicleType}`} className="vehicle-seat-stage relative h-full min-h-[420px]">
       <header className="relative z-20 flex items-start justify-between gap-4 px-2 pt-2 sm:px-4">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Chọn trực tiếp trên xe</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Vị trí trên xe</p>
           <h2 className="mt-1 text-xl font-bold tracking-[-0.025em]">{preset.shortName}</h2>
           <p className="mt-1 text-xs text-[var(--muted)]">{preset.description}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2 pt-0.5 text-xs font-semibold text-[var(--action)]">
           <span aria-hidden className="size-2.5 rounded-full bg-[var(--action)] shadow-[0_0_0_4px_color-mix(in_srgb,var(--action)_14%,transparent)]" />
-          {trip.availableSeats.length} vị trí trống
+          {booking.seats.length > 0 ? `${booking.seats.length} ghế đang giữ` : 'Đang chọn ghế'}
         </div>
       </header>
 
@@ -83,7 +83,7 @@ export function VehicleSeatVisual({ booking }: { booking: BookingDraft }) {
         <span aria-hidden className="vehicle-ground-shadow absolute bottom-[9%] left-[12%] h-[18%] w-[76%] rounded-[50%] bg-black/30 blur-2xl" />
         <Image
           src={preset.image}
-          alt={`Mô hình 3D ${preset.shortName} với các vị trí còn trống được đánh dấu trực tiếp`}
+          alt={`Mô hình 3D ${preset.shortName} với các ghế đang giữ được đánh dấu trực tiếp`}
           fill
           priority
           sizes="(min-width: 1280px) 430px, (min-width: 768px) 380px, 100vw"
@@ -91,12 +91,11 @@ export function VehicleSeatVisual({ booking }: { booking: BookingDraft }) {
         />
 
         <div aria-hidden className="absolute inset-0 z-10">
-          {availableHotspots.map((spot, index) => {
-            const isSuggested = suggested.has(spot.id)
+          {heldHotspots.map((spot, index) => {
             return (
               <span
                 key={spot.id}
-                className={cn('vehicle-hotspot absolute', isSuggested && 'vehicle-hotspot-suggested')}
+                className={cn('vehicle-hotspot vehicle-hotspot-suggested absolute')}
                 style={{ left: `${spot.x}%`, top: `${spot.y}%`, animationDelay: `${Math.min(index, 5) * 45}ms` }}
               >
                 <span className="vehicle-hotspot-pin">{spot.id}</span>
@@ -108,19 +107,18 @@ export function VehicleSeatVisual({ booking }: { booking: BookingDraft }) {
 
       <div className="relative z-20 -mt-3 flex flex-wrap items-center justify-between gap-3 px-2 sm:px-4">
         <div className="flex items-center gap-4 text-[11px] text-[var(--muted)]">
-          <Legend tone="available" label="Còn trống" />
-          <Legend tone="suggested" label="Gợi ý gần nhau" />
+          <Legend tone="suggested" label="Ghế đang giữ" />
         </div>
         <p className="text-right text-xs leading-5 text-[var(--muted)]">
-          {suggested.size
-            ? `Đang gợi ý ${Array.from(suggested).join(', ')} cho ${booking.passengerCount ?? 1} khách`
-            : 'Đang tìm vị trí phù hợp'}
+          {heldSeats.size
+            ? `Đang giữ ${Array.from(heldSeats).join(', ')} cho ${booking.passengerCount ?? 1} khách`
+            : 'Tổng đài đang tìm vị trí phù hợp'}
         </p>
       </div>
 
       <ul className="sr-only">
-        {availableHotspots.map((spot) => (
-          <li key={spot.id}>Vị trí {spot.id}: {suggested.has(spot.id) ? 'đang được gợi ý' : 'còn trống'}</li>
+        {heldHotspots.map((spot) => (
+          <li key={spot.id}>Vị trí {spot.id}: đang được giữ cho cuộc gọi này</li>
         ))}
       </ul>
     </aside>

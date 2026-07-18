@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, LazyMotion, domAnimation, m, useReducedMotion } from 'framer-motion'
 import { PhoneCall } from 'lucide-react'
-import { createInitialBusDemoWorkspace } from '@/lib/bus-demo'
 import { cn } from '@/lib/cn'
 import { BusCallWorkspace, type BusCallControls } from './bus-call-workspace'
 
@@ -40,9 +39,10 @@ export function CallOverlay({ layoutKey, label = 'Gọi để đặt xe', classN
   const morphProps = reduceMotion ? {} : { layoutId: `call-cta-${layoutKey}`, transition: MORPH_SPRING }
 
   const startOnce = useCallback(() => {
-    if (started.current) return
+    if (started.current || !controls.current) return false
     started.current = true
-    controls.current?.start()
+    controls.current.start()
+    return true
   }, [])
 
   const close = useCallback(() => {
@@ -89,11 +89,20 @@ export function CallOverlay({ layoutKey, label = 'Gọi để đặt xe', classN
     }
     window.addEventListener('keydown', onKey)
     // reduced-motion không có morph để chờ — bắt đầu gọi ngay, khỏi bắt khách đợi 800ms.
-    const fallback = window.setTimeout(startOnce, reduceMotion ? 0 : START_FALLBACK_MS)
+    let poll: number | undefined
+    const fallback = window.setTimeout(() => {
+      if (startOnce()) return
+      // The workspace may commit just after the morph callback. Poll briefly so
+      // we never mark a call started before its imperative controls exist.
+      poll = window.setInterval(() => {
+        if (startOnce() && poll !== undefined) window.clearInterval(poll)
+      }, 50)
+    }, reduceMotion ? 0 : START_FALLBACK_MS)
     return () => {
       document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', onKey)
       window.clearTimeout(fallback)
+      if (poll !== undefined) window.clearInterval(poll)
       previouslyFocused?.focus?.()
     }
   }, [open, close, startOnce, reduceMotion])
@@ -144,7 +153,7 @@ export function CallOverlay({ layoutKey, label = 'Gọi để đặt xe', classN
               aria-label="Cuộc gọi đặt vé nhà xe Mai Anh"
               tabIndex={-1}
               style={{ borderRadius: 24 }}
-              onLayoutAnimationComplete={startOnce}
+              onLayoutAnimationComplete={() => startOnce()}
               className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-[var(--canvas)] shadow-[var(--shadow-panel)] sm:h-[min(760px,92dvh)] sm:max-w-6xl"
               {...(reduceMotion
                 ? {
@@ -163,7 +172,6 @@ export function CallOverlay({ layoutKey, label = 'Gọi để đặt xe', classN
                 exit={{ opacity: 0, transition: { duration: 0.1 } }}
               >
                 <BusCallWorkspace
-                  initialWorkspace={createInitialBusDemoWorkspace()}
                   variant="overlay"
                   controlRef={controls}
                   onEnded={() => setOpen(false)}

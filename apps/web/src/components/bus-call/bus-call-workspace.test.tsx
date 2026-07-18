@@ -1,153 +1,281 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createInitialBusDemoWorkspace } from '@/lib/bus-demo'
-import { BusCallWorkspace } from './bus-call-workspace'
+import { describe, expect, it, vi } from 'vitest'
 
-function renderWorkspace() {
-  return render(<BusCallWorkspace initialWorkspace={createInitialBusDemoWorkspace()} />)
+import {
+  createInitialCallWorkspace,
+  type BookingSnapshot,
+  type SemanticAnnotation,
+} from '@/lib/call-contract'
+import { BusCallWorkspace, callWorkspaceReducer } from './bus-call-workspace'
+
+const CALL_ID = '11111111-1111-4111-8111-111111111111'
+
+type MockLiveKitProps = {
+  attemptId: number
+  onSessionStarted: (session: { attemptId: number; conversationId: string }) => void
+  onTranscript: (update: {
+    callId: string
+    segmentId: string
+    role: 'customer' | 'agent'
+    text: string
+    final: boolean
+  }) => void
+  onBooking: (booking: BookingSnapshot) => void
+  onSemanticAnnotation: (callId: string, annotation: SemanticAnnotation) => void
+  onRetry: () => void
+  onEnded: (callId: string) => void
 }
 
-afterEach(() => vi.unstubAllGlobals())
+vi.mock('./livekit-call', () => ({
+  LiveKitCall: (props: MockLiveKitProps) => (
+    <div aria-label="LiveKit giả lập">
+      <span data-testid="attempt">{props.attemptId}</span>
+      <button
+        type="button"
+        onClick={() => props.onSessionStarted({ attemptId: props.attemptId, conversationId: CALL_ID })}
+      >
+        Kết nối phiên
+      </button>
+      <button
+        type="button"
+        onClick={() => props.onTranscript({
+          callId: CALL_ID,
+          segmentId: 'customer-1',
+          role: 'customer',
+          text: 'Tôi cần một vé đi Hà Nội.',
+          final: true,
+        })}
+      >
+        Nhận transcript
+      </button>
+      <button
+        type="button"
+        onClick={() => props.onSemanticAnnotation(CALL_ID, {
+          timestamp: '2026-07-18T12:00:00.000Z',
+          sourceTranscript: 'toi muon di da lat',
+          correctedText: 'Tôi muốn đi Đà Lạt.',
+          tags: ['destination'],
+          annotations: ['Đà Lạt'],
+        })}
+      >
+        Nhận semantic
+      </button>
+      <button
+        type="button"
+        onClick={() => props.onSemanticAnnotation(CALL_ID, {
+          timestamp: '2026-07-18T12:00:01.000Z',
+          sourceTranscript: 'Tôi muốn đi Đà Lạt.',
+          tags: [],
+          annotations: [],
+        })}
+      >
+        Nhận semantic rỗng
+      </button>
+      <button type="button" onClick={() => props.onBooking(confirmedBooking())}>Nhận vé</button>
+      <button type="button" onClick={() => props.onEnded(CALL_ID)}>Agent cúp</button>
+      <button type="button" onClick={props.onRetry}>Thử phiên mới</button>
+    </div>
+  ),
+}))
 
-async function startCall(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: 'Bắt đầu Web Call' }))
-}
-
-// The local text/preset dock is CSS-hidden (the stage is voice-first; LiveKit
-// owns the dock in production), so drive presets with fireEvent — it skips
-// the visibility check while still exercising the real handlers.
-function sendPreset(label: string) {
-  fireEvent.click(screen.getByText(label))
-}
-
-function ticket() {
-  return within(screen.getByRole('region', { name: 'Vé xe' }))
-}
-
-describe('minimal voice-first web call console', () => {
-  it('replies automatically and fills the ticket from the first request', async () => {
-    const speak = vi.fn()
-    vi.stubGlobal('speechSynthesis', { cancel: vi.fn(), speak })
-    vi.stubGlobal('SpeechSynthesisUtterance', class {
-      lang = ''
-      constructor(public text: string) {}
+describe('LiveKit-only call workspace reducer', () => {
+  it('deduplicates unchanged transcript revisions and keeps distinct segments', () => {
+    const startedAt = '2026-07-18T00:00:00.000Z'
+    let state = callWorkspaceReducer(createInitialCallWorkspace(), { type: 'call.start', startedAt })
+    state = callWorkspaceReducer(state, { type: 'session.ready', conversationId: CALL_ID })
+    state = callWorkspaceReducer(state, {
+      type: 'transcript.upsert',
+      callId: CALL_ID,
+      segmentId: 'segment-1',
+      role: 'customer',
+      text: 'Tôi cần',
+      final: false,
+      createdAt: startedAt,
     })
-    const user = userEvent.setup()
-    renderWorkspace()
-    expect(speak).not.toHaveBeenCalled()
-    await startCall(user)
-    expect(speak).not.toHaveBeenCalled()
-    sendPreset('Yêu cầu mẫu')
 
-    // Highlight <mark> splits caption text nodes, so match on the list's
-    // combined text content instead of a single node.
-    expect(screen.getByRole('list', { name: 'Hội thoại' })).toHaveTextContent(/đề xuất chuyến giường nằm 34 chỗ 22:00/i)
-    expect(ticket().getByText('2 hành khách')).toBeVisible()
-    expect(ticket().getByText('Sài Gòn')).toBeVisible()
-    expect(ticket().getByText('Đà Lạt')).toBeVisible()
-    expect(speak).toHaveBeenCalledOnce()
+    const unchanged = callWorkspaceReducer(state, {
+      type: 'transcript.upsert',
+      callId: CALL_ID,
+      segmentId: 'segment-1',
+      role: 'customer',
+      text: 'Tôi cần',
+      final: false,
+      createdAt: startedAt,
+    })
+    expect(unchanged).toBe(state)
+
+    const revised = callWorkspaceReducer(state, {
+      type: 'transcript.upsert',
+      callId: CALL_ID,
+      segmentId: 'segment-1',
+      role: 'customer',
+      text: 'Tôi cần một vé',
+      final: true,
+      createdAt: startedAt,
+    })
+    expect(revised.messages).toHaveLength(1)
+    expect(revised.messages[0]).toMatchObject({ text: 'Tôi cần một vé', final: true })
+
+    const second = callWorkspaceReducer(revised, {
+      type: 'transcript.upsert',
+      callId: CALL_ID,
+      segmentId: 'segment-2',
+      role: 'customer',
+      text: 'Đi Hà Nội',
+      final: true,
+      createdAt: '2026-07-18T00:00:01.000Z',
+    })
+    expect(second.messages).toHaveLength(2)
   })
 
-  it('opens the full conversation from the captions', async () => {
-    const user = userEvent.setup()
-    renderWorkspace()
-    await startCall(user)
-    sendPreset('Yêu cầu mẫu')
-    sendPreset('Chọn chuyến 22:00')
+  it('ignores transcript and booking updates from another call', () => {
+    let state = callWorkspaceReducer(createInitialCallWorkspace(), {
+      type: 'call.start',
+      startedAt: '2026-07-18T00:00:00.000Z',
+    })
+    state = callWorkspaceReducer(state, { type: 'session.ready', conversationId: CALL_ID })
 
-    expect(screen.getByText('Tôi chọn chuyến 22 giờ.')).toBeVisible()
+    expect(callWorkspaceReducer(state, {
+      type: 'transcript.upsert',
+      callId: 'another-call',
+      segmentId: 'segment-1',
+      role: 'agent',
+      text: 'stale',
+      final: true,
+      createdAt: '2026-07-18T00:00:01.000Z',
+    })).toBe(state)
 
-    await user.click(screen.getByRole('button', { name: 'Hội thoại' }))
-    const dialog = screen.getByRole('dialog', { name: 'Toàn bộ hội thoại' })
-    expect(dialog).toHaveTextContent(/Tôi muốn đi từ/)
-    expect(dialog).toHaveTextContent(/Tôi chọn chuyến 22 giờ\./)
-
-    await user.click(screen.getByRole('button', { name: 'Đóng hội thoại' }))
-    expect(screen.queryByRole('dialog', { name: 'Toàn bộ hội thoại' })).toBeNull()
+    expect(callWorkspaceReducer(state, {
+      type: 'booking.update',
+      booking: { ...confirmedBooking(), conversationId: 'another-call' },
+    })).toBe(state)
   })
 
-  it('confirms a complete booking with code and seats on the ticket', async () => {
+  it('stores semantic evidence without mutating the authoritative booking snapshot', () => {
+    let state = callWorkspaceReducer(createInitialCallWorkspace(), {
+      type: 'call.start',
+      startedAt: '2026-07-18T00:00:00.000Z',
+    })
+    state = callWorkspaceReducer(state, { type: 'session.ready', conversationId: CALL_ID })
+    const booking = state.booking
+    const annotation: SemanticAnnotation = {
+      timestamp: '2026-07-18T12:00:00.000Z',
+      sourceTranscript: 'toi muon di da lat',
+      correctedText: 'Tôi muốn đi Đà Lạt.',
+      tags: ['destination'],
+      annotations: ['Đà Lạt'],
+    }
+
+    const updated = callWorkspaceReducer(state, {
+      type: 'semantic.annotation',
+      callId: CALL_ID,
+      annotation,
+    })
+
+    expect(updated.booking).toBe(booking)
+    expect(updated.semanticAnnotations).toEqual([annotation])
+    expect(callWorkspaceReducer(updated, {
+      type: 'semantic.annotation',
+      callId: 'another-call',
+      annotation,
+    })).toBe(updated)
+  })
+})
+
+describe('LiveKit-only web call console', () => {
+  it('starts a server-issued session without exposing demo controls', async () => {
     const user = userEvent.setup()
-    renderWorkspace()
-    await startCall(user)
-    sendPreset('Yêu cầu mẫu')
-    sendPreset('Chọn chuyến 22:00')
-    sendPreset('Thông tin hành khách')
+    render(<BusCallWorkspace />)
 
-    expect(ticket().getByText('Nguyễn Minh Anh')).toBeVisible()
-    expect(ticket().getByText('0909123456')).toBeVisible()
-
-    sendPreset('Xác nhận đặt vé')
-
-    expect(ticket().getByText(/^VD-240718-\d{4}$/u)).toBeVisible()
-    expect(ticket().getByText(/Ghế A05, A06/)).toBeVisible()
-    // Preset dock is replaced by the done state once the ticket is held.
+    await user.click(screen.getByRole('button', { name: 'Bắt đầu Web Call' }))
+    expect(screen.getByLabelText('LiveKit giả lập')).toBeVisible()
     expect(screen.queryByRole('button', { name: 'Yêu cầu mẫu' })).toBeNull()
+    expect(screen.queryByRole('textbox', { name: 'Lời khách hàng' })).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Kết nối phiên' }))
+    await user.click(screen.getByRole('button', { name: 'Nhận transcript' }))
+    expect(screen.getByRole('list', { name: 'Hội thoại' })).toHaveTextContent('Tôi cần một vé đi Hà Nội.')
   })
 
-  it('shows the ticket screen after ending a confirmed call instead of closing', async () => {
+  it('shows the authoritative ticket after a confirmed call ends', async () => {
     const onEnded = vi.fn()
     const user = userEvent.setup()
-    render(<BusCallWorkspace initialWorkspace={createInitialBusDemoWorkspace()} onEnded={onEnded} />)
-    await startCall(user)
-    sendPreset('Yêu cầu mẫu')
-    sendPreset('Chọn chuyến 22:00')
-    sendPreset('Thông tin hành khách')
-    sendPreset('Xác nhận đặt vé')
+    render(<BusCallWorkspace onEnded={onEnded} />)
 
+    await user.click(screen.getByRole('button', { name: 'Bắt đầu Web Call' }))
+    await user.click(screen.getByRole('button', { name: 'Kết nối phiên' }))
+    await user.click(screen.getByRole('button', { name: 'Nhận vé' }))
     await user.click(screen.getByRole('button', { name: 'Kết thúc' }))
 
-    // Vé đã chốt: không đóng overlay mà chuyển sang màn "Vé của bạn".
     expect(onEnded).not.toHaveBeenCalled()
     const result = screen.getByRole('region', { name: 'Vé của bạn' })
     expect(within(result).getByRole('heading', { name: 'Vé của bạn' })).toBeVisible()
-    expect(within(result).getAllByText(/^VD-240718-\d{4}$/u).length).toBeGreaterThan(0)
+    expect(within(result).getAllByText('MA-260718-0001').length).toBeGreaterThan(0)
 
     await user.click(within(result).getByRole('button', { name: 'Đóng' }))
     expect(onEnded).toHaveBeenCalledOnce()
   })
 
-  it('closes straight away when the call ends without a confirmed booking', async () => {
+  it('renders corrected semantic evidence and an honest empty-tag state', async () => {
+    const user = userEvent.setup()
+    render(<BusCallWorkspace />)
+
+    await user.click(screen.getByRole('button', { name: 'Bắt đầu Web Call' }))
+    await user.click(screen.getByRole('button', { name: 'Kết nối phiên' }))
+    await user.click(screen.getByRole('button', { name: 'Nhận semantic' }))
+
+    const evidence = screen.getByRole('complementary', { name: 'Bằng chứng semantic VALSEA' })
+    expect(evidence).toHaveTextContent('Tôi muốn đi Đà Lạt.')
+    expect(evidence).toHaveTextContent('destination')
+    expect(evidence).toHaveTextContent('Đà Lạt')
+
+    await user.click(screen.getByRole('button', { name: 'Nhận semantic rỗng' }))
+    expect(screen.getByRole('complementary', { name: 'Bằng chứng semantic VALSEA' }))
+      .toHaveTextContent('Không có semantic tag')
+  })
+
+  it('closes an unconfirmed overlay and creates a fresh transport attempt on retry', async () => {
     const onEnded = vi.fn()
     const user = userEvent.setup()
-    render(<BusCallWorkspace initialWorkspace={createInitialBusDemoWorkspace()} onEnded={onEnded} />)
-    await startCall(user)
-    sendPreset('Yêu cầu mẫu')
-    await user.click(screen.getByRole('button', { name: 'Kết thúc' }))
+    const view = render(<BusCallWorkspace onEnded={onEnded} />)
 
+    await user.click(screen.getByRole('button', { name: 'Bắt đầu Web Call' }))
+    expect(screen.getByTestId('attempt')).toHaveTextContent('1')
+    await user.click(screen.getByRole('button', { name: 'Thử phiên mới' }))
+    expect(screen.getByTestId('attempt')).toHaveTextContent('2')
+
+    view.rerender(<BusCallWorkspace onEnded={onEnded} />)
+    await user.click(screen.getByRole('button', { name: 'Kết thúc' }))
     expect(onEnded).toHaveBeenCalledOnce()
-    expect(screen.queryByRole('region', { name: 'Vé của bạn' })).toBeNull()
-  })
-
-  it('starts a fresh call from the ticket screen', async () => {
-    const user = userEvent.setup()
-    renderWorkspace()
-    await startCall(user)
-    sendPreset('Yêu cầu mẫu')
-    sendPreset('Chọn chuyến 22:00')
-    sendPreset('Thông tin hành khách')
-    sendPreset('Xác nhận đặt vé')
-    await user.click(screen.getByRole('button', { name: 'Kết thúc' }))
-
-    await user.click(screen.getByRole('button', { name: 'Đặt chuyến khác' }))
-
-    expect(screen.queryByRole('region', { name: 'Vé của bạn' })).toBeNull()
-    expect(screen.getByRole('button', { name: 'Kết thúc' })).toBeVisible()
-    expect(ticket().queryByText(/^VD-240718-\d{4}$/u)).toBeNull()
-  })
-
-  it('restarts a fresh call after ending', async () => {
-    const user = userEvent.setup()
-    renderWorkspace()
-    await startCall(user)
-    sendPreset('Yêu cầu mẫu')
-    await user.click(screen.getByRole('button', { name: 'Kết thúc' }))
-
-    await user.click(screen.getByRole('button', { name: 'Gọi lại từ đầu' }))
-
-    expect(screen.getByRole('button', { name: 'Kết thúc' })).toBeVisible()
-    expect(screen.queryByText(/đề xuất chuyến giường nằm/)).toBeNull()
-    expect(ticket().queryByText('Sài Gòn')).toBeNull()
   })
 })
+
+function confirmedBooking(): BookingSnapshot {
+  return {
+    id: `booking-${CALL_ID}`,
+    conversationId: CALL_ID,
+    status: 'confirmed',
+    origin: 'Hải Phòng',
+    destination: 'Hà Nội',
+    travelDateLabel: '18/07/2026',
+    passengerCount: 1,
+    selectedTrip: {
+      id: 'trip-1',
+      origin: 'Hải Phòng',
+      destination: 'Hà Nội',
+      departureTime: '08:00',
+      arrivalTime: '10:00',
+      vehicleType: 'Limousine 21 phòng',
+      priceVnd: 250_000,
+      pickupPoint: 'Bến xe Vĩnh Niệm',
+      dropoffPoint: 'Bến xe Mỹ Đình',
+      seatNoun: 'ghế',
+    },
+    seats: ['A1'],
+    passengerName: 'Nguyễn Minh Anh',
+    phone: '0909123456',
+    totalFareVnd: 250_000,
+    bookingCode: 'MA-260718-0001',
+  }
+}

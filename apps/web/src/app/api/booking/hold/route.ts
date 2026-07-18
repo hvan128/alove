@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { requireAgent } from '@/lib/agent-auth'
 import { holdSeats } from '@/lib/db/booking-store'
+import { isDbConfigured } from '@/lib/db/client'
 
 export const runtime = 'nodejs'
 
@@ -19,19 +20,19 @@ export async function POST(req: Request): Promise<Response> {
   if (!parsed.success) {
     return Response.json({ error: 'invalid_request', issues: parsed.error.issues }, { status: 400 })
   }
+  if (!isDbConfigured()) {
+    return Response.json({ error: 'database_not_configured' }, { status: 503 })
+  }
   const { conversationId, tripId, passengers } = parsed.data
 
   const held = await holdSeats({ tripId, callId: conversationId, passengers })
   if (!held) {
     return Response.json({ held: false, reason: 'no_seats' })
   }
-  // Fewer seats than asked means the bus filled up mid-conversation; the agent
-  // must offer what is genuinely left instead of promising the original count.
   return Response.json({
     held: true,
     seatCodes: held.seatCodes,
     seatsHeld: held.seatCodes.length,
-    shortfall: passengers - held.seatCodes.length,
     priceVnd: held.priceVnd,
     totalVnd: held.totalVnd,
     seatNoun: held.seatNoun,
