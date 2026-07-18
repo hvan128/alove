@@ -115,7 +115,7 @@ export function advanceBookingAgent(draft: BookingDraft, message: CallMessage): 
     if (unserved.length > 0) {
       return {
         draft: { ...next, status: 'collecting' },
-        reply: `Dạ VéĐi chưa chạy tuyến ${unserved.join(' – ')} ạ. Hiện em chỉ có tuyến ${SERVED_ORIGIN} đi ${SERVED_DESTINATION}. Anh chị có muốn đặt tuyến này không ạ?`,
+        reply: `Dạ nhà xe Mai Anh chưa chạy tuyến ${unserved.join(' – ')} ạ. Hiện nhà xe chỉ có tuyến ${SERVED_ORIGIN} đi ${SERVED_DESTINATION}. Anh chị có muốn đặt tuyến này không ạ?`,
       }
     }
     return { draft: { ...next, status: 'collecting' }, reply: 'Anh chị cho em xin điểm đi và điểm đến ạ.' }
@@ -288,4 +288,3 @@ function normalize(value: string): string {
     .replace(/[^a-z0-9:]+/gu, ' ')
     .trim()
 }
-

@@ -7,7 +7,7 @@ export const LIVEKIT_WS_URL = process.env.LIVEKIT_URL ?? process.env.NEXT_PUBLIC
 // Named agent for explicit dispatch. A deployed Cloud Agent is not auto-dispatched,
 // so the room must request it by name when the customer joins. Must match the agent
 // worker's registered name (LIVEKIT_AGENT_NAME in agent/.env).
-const LIVEKIT_AGENT_NAME = process.env.LIVEKIT_AGENT_NAME ?? 'vedi'
+const LIVEKIT_AGENT_NAME = process.env.LIVEKIT_AGENT_NAME ?? 'alove'
 
 const ROOM_PREFIX = 'booking-'
 

@@ -20,8 +20,8 @@ export default function DesignSystemPage() {
     <AppShell>
       <main className="mx-auto max-w-[1180px] px-4 py-10 sm:px-6">
         <header className="max-w-2xl">
-          <p className="text-sm font-semibold text-[var(--action)]">VéĐi foundations</p>
-          <h1 className="mt-2 text-4xl font-semibold tracking-[-0.05em]">VéĐi design system</h1>
+          <p className="text-sm font-semibold text-[var(--action)]">Alove foundations</p>
+          <h1 className="mt-2 text-4xl font-semibold tracking-[-0.05em]">Alove design system</h1>
           <p className="mt-4 text-base leading-7 text-[var(--muted)]">
             Một bề mặt SaaS trung tính, gọn gàng, rõ ràng và đáng tin cho hành trình đặt vé. Font IBM Plex, primary indigo dẫn hướng, semantic colors chỉ báo trạng thái, elevation ngữ nghĩa và dark mode đi theo thiết bị.
           </p>

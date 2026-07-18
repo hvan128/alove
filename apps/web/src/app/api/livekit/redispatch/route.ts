@@ -6,7 +6,7 @@ import { isLiveKitConfigured, LIVEKIT_WS_URL, roomNameForConversation } from '@/
 
 export const runtime = 'nodejs'
 
-const LIVEKIT_AGENT_NAME = process.env.LIVEKIT_AGENT_NAME ?? 'vedi'
+const LIVEKIT_AGENT_NAME = process.env.LIVEKIT_AGENT_NAME ?? 'alove'
 
 const BodySchema = z.object({
   conversationId: z.string().min(1).max(120),

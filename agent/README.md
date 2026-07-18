@@ -1,6 +1,6 @@
-# VéĐi bus agent worker (LiveKit)
+# Alove bus agent worker (LiveKit)
 
-Voice agent for the VéĐi bus-ticket demo. Ported from the project-4 interview
+Voice agent for the Alove bus-ticket demo operated by nhà xe Mai Anh. Ported from the project-4 interview
 agent, domain-swapped to bus booking. Booking stays **deterministic and
 server-authoritative**: the worker never invents prices, trips, seats, passenger
 info or ticket codes — every customer turn is relayed to the Next.js
@@ -36,19 +36,19 @@ python agent.py dev
 ```
 
 The web app must run with matching env: `NEXT_PUBLIC_LIVEKIT_URL`, `LIVEKIT_URL`,
-`LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_AGENT_NAME=vedi`, and the SAME
+`LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_AGENT_NAME=alove`, and the SAME
 `AGENT_WEBHOOK_SECRET`. Open `/console`, pick **Agent tự động**, **Bắt đầu Web Call**.
 
 ## Deploy
 
 ```bash
-docker build -t vedi-bus-agent .
+docker build -t alove-bus-agent .
 # Run on any host that keeps a long-lived outbound WebSocket to LiveKit
 # (Railway, Fly.io, Cloud Run w/ min-instances, a VM/container).
 ```
 
 Production runs `python agent.py start`. Keep the bare `LIVEKIT_AGENT_NAME`
-(`vedi`) in prod; local `dev`/`console` auto-isolate under `vedi-dev`.
+(`alove`) in prod; local `dev`/`console` auto-isolate under `alove-dev`.
 
 ## Not verified in this workspace
 

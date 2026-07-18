@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 test('design system and health route are available', async ({ page, request }) => {
   await page.goto('/design-system')
-  await expect(page.getByRole('heading', { name: 'VéĐi design system' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Alove design system' })).toBeVisible()
   await expect(page.getByText('gọn gàng, rõ ràng và đáng tin', { exact: false })).toBeVisible()
 
   const health = await request.get('/api/health')

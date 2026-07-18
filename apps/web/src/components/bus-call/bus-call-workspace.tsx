@@ -1,32 +1,30 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import type { BookingDraft, BusDemoWorkspace, CallMessage, CallMessageChannel, CallMode, CallRole } from '@ordervoice/contracts'
-import { advanceBookingAgent, confirmBooking, createInitialBooking } from '@ordervoice/core/bus-booking'
+import type { BookingDraft, BusDemoWorkspace, CallMessage, CallMessageChannel, CallRole } from '@ordervoice/contracts'
+import { advanceBookingAgent, createInitialBooking } from '@ordervoice/core/bus-booking'
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
 import { speakVietnamese, stopVietnameseSpeech } from '@/lib/device-speech'
-import { CallHeader } from './call-header'
-import { CustomerCallCard } from './customer-call-card'
-import { CareDeskCard } from './care-desk-card'
-import { LiveKitCall } from './livekit-call'
+import { CallStage } from './call-stage'
+import { TicketCard } from './ticket-card'
+import { LiveKitCall, type LiveKitAgentState } from './livekit-call'
 
-// Set NEXT_PUBLIC_LIVEKIT_URL to make LiveKit the transport for auto mode. Unset
-// (public zero-key demo) → the in-browser Web Speech path below stays the default.
+// Set NEXT_PUBLIC_LIVEKIT_URL to make LiveKit the transport. Unset (public
+// zero-key demo) → the in-browser Web Speech path below stays the default.
 const LIVEKIT_ENABLED = Boolean(process.env.NEXT_PUBLIC_LIVEKIT_URL)
 
 export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDemoWorkspace }) {
   const [workspace, setWorkspace] = useState(initialWorkspace)
   const [customerText, setCustomerText] = useState('')
-  const [staffReply, setStaffReply] = useState('')
   const [elapsedSec, setElapsedSec] = useState(0)
-  const [speechStatus, setSpeechStatus] = useState<string | null>(null)
-  const [lastSpoken, setLastSpoken] = useState('')
+  const [agentSpeaking, setAgentSpeaking] = useState(false)
+  const [liveAgentState, setLiveAgentState] = useState<LiveKitAgentState>('idle')
   const sequence = useRef(0)
 
-  // LiveKit transport (auto mode only): the agent worker owns STT, booking and
-  // TTS. Declared before the handlers below because they all read it to stay
-  // inert while the worker holds the call.
-  const liveKitActive = LIVEKIT_ENABLED && workspace.mode === 'auto' && workspace.callStatus === 'connected'
+  // LiveKit transport: the agent worker owns STT, booking and TTS. Declared
+  // before the handlers below because they all read it to stay inert while the
+  // worker holds the call.
+  const liveKitActive = LIVEKIT_ENABLED && workspace.callStatus === 'connected'
 
   useEffect(() => {
     if (workspace.callStatus !== 'connected' || !workspace.startedAt) return
@@ -58,38 +56,30 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
     // line just stayed silent. A fresh id also stops every call collapsing onto
     // one `calls` row and inheriting the previous booking. Generated on click
     // (not at render) so server and client markup still match.
-    const conversationId = `vedi-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
-    const system: CallMessage = {
-      id: `system-${conversationId}`,
-      conversationId,
-      role: 'system',
-      text: 'Cuộc gọi đã kết nối.',
-      createdAt: now,
-      channel: 'text',
-      final: true,
-    }
+    const conversationId = `alove-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
     sequence.current = 0
+    setAgentSpeaking(false)
+    setLiveAgentState('idle')
+    setCustomerText('')
     setWorkspace({
       ...workspace,
       conversationId,
       callStatus: 'connected',
       startedAt: now,
       endedAt: null,
-      messages: [system],
+      messages: [],
       booking: createInitialBooking(conversationId),
     })
   }
 
   const endCall = () => {
+    stopVietnameseSpeech()
+    setAgentSpeaking(false)
+    setLiveAgentState('idle')
     setWorkspace((current) => {
       if (current.callStatus === 'ended') return current
-      const ended = createMessage('system', 'Cuộc gọi đã kết thúc. Nội dung và phiếu vé được giữ lại.', 'text')
-      return { ...current, callStatus: 'ended', endedAt: new Date().toISOString(), messages: [...current.messages, ended] }
+      return { ...current, callStatus: 'ended', endedAt: new Date().toISOString() }
     })
-  }
-
-  const changeMode = (mode: CallMode) => {
-    setWorkspace({ ...workspace, mode })
   }
 
   const submitCustomer = (text: string, channel: CallMessageChannel = 'preset') => {
@@ -101,32 +91,9 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
     if (workspace.callStatus !== 'connected' || workspace.booking.status === 'confirmed') return
     const customer = createMessage('customer', text, channel)
     const turn = advanceBookingAgent(workspace.booking, customer)
-    const messages = [...workspace.messages, customer]
-    if (workspace.mode === 'auto') {
-      messages.push(createMessage('agent', turn.reply, 'text'))
-      speakReply(turn.reply)
-    }
+    const messages = [...workspace.messages, customer, createMessage('agent', turn.reply, 'text')]
+    speakReply(turn.reply)
     setWorkspace({ ...workspace, messages, booking: turn.draft })
-  }
-
-  const sendStaffReply = () => {
-    if (liveKitActive) return
-    const text = staffReply.trim()
-    if (!text) return
-    if (workspace.callStatus !== 'connected') return
-    setWorkspace({ ...workspace, messages: [...workspace.messages, createMessage('staff', text, 'text')] })
-    speakReply(text)
-    setStaffReply('')
-  }
-
-  const confirmByStaff = () => {
-    if (liveKitActive) return
-    if (workspace.callStatus !== 'connected' || workspace.booking.status === 'confirmed') return
-    const booking = confirmBooking(workspace.booking, 'staff')
-    const reply = `Em đã xác nhận vé. Mã vé ${booking.bookingCode}, ghế ${booking.seats.join(', ')}.`
-    const message = createMessage('staff', reply, 'text')
-    setWorkspace({ ...workspace, booking, messages: [...workspace.messages, message] })
-    speakReply(reply)
   }
 
   const recognition = useSpeechRecognition({
@@ -191,26 +158,48 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
     // with the device voice is what put a second, different-sounding agent on the
     // call and fed the microphone.
     if (liveKitActive) return
-    setLastSpoken(text)
-    const result = speakVietnamese(text)
-    setSpeechStatus(result === 'speaking' ? 'Đang phát giọng tiếng Việt của thiết bị.' : 'Thiết bị không hỗ trợ giọng đọc. Nội dung text vẫn đầy đủ.')
-  }
-
-  const replayLast = () => {
-    if (lastSpoken) speakReply(lastSpoken)
+    const result = speakVietnamese(text, { onEnd: () => setAgentSpeaking(false) })
+    setAgentSpeaking(result === 'speaking')
   }
 
   const stopSpeech = () => {
     stopVietnameseSpeech()
-    setSpeechStatus('Đã dừng giọng đọc.')
+    setAgentSpeaking(false)
   }
 
   return (
-    <div className="mx-auto min-h-[100dvh] max-w-[1460px] px-4 py-5 sm:px-6 lg:py-7">
-      <CallHeader status={workspace.callStatus} mode={workspace.mode} elapsedSec={elapsedSec} onModeChange={changeMode} onStart={startCall} onEnd={endCall} />
-      <main className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.08fr)_minmax(380px,0.92fr)]">
-        <CustomerCallCard status={workspace.callStatus} messages={workspace.messages} booking={workspace.booking} value={customerText} onValueChange={setCustomerText} onSubmit={submitCustomer} recognitionState={recognition.state} interimText={recognition.interimText} onStartMic={recognition.start} onStopMic={recognition.stop} liveKitSlot={liveKitActive ? <LiveKitCall conversationId={workspace.conversationId} onTranscript={upsertLiveTranscript} onBooking={applyLiveBooking} onEnded={endCall} /> : undefined} />
-        <CareDeskCard mode={workspace.mode} status={workspace.callStatus} messages={workspace.messages} booking={workspace.booking} reply={staffReply} onReplyChange={setStaffReply} onSendReply={sendStaffReply} onConfirm={confirmByStaff} speechStatus={speechStatus} onReplay={replayLast} onStopSpeech={stopSpeech} />
+    <div className="mx-auto flex min-h-[100dvh] w-full max-w-6xl flex-col px-4 py-5 sm:px-6 lg:py-7">
+      <main className="grid flex-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <CallStage
+          status={workspace.callStatus}
+          elapsedSec={elapsedSec}
+          messages={workspace.messages}
+          booking={workspace.booking}
+          agentSpeaking={agentSpeaking || liveAgentState === 'speaking'}
+          agentThinking={liveAgentState === 'thinking'}
+          value={customerText}
+          onValueChange={setCustomerText}
+          onSubmit={submitCustomer}
+          onStart={startCall}
+          onEnd={endCall}
+          onStopSpeech={stopSpeech}
+          recognitionState={recognition.state}
+          interimText={recognition.interimText}
+          onStartMic={recognition.start}
+          onStopMic={recognition.stop}
+          liveKitSlot={
+            liveKitActive ? (
+              <LiveKitCall
+                conversationId={workspace.conversationId}
+                onTranscript={upsertLiveTranscript}
+                onBooking={applyLiveBooking}
+                onAgentState={setLiveAgentState}
+                onEnded={endCall}
+              />
+            ) : undefined
+          }
+        />
+        <TicketCard booking={workspace.booking} />
       </main>
     </div>
   )

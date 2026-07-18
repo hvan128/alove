@@ -102,6 +102,79 @@ button, input, select { font: inherit; }
   scrollbar-color: var(--hairline) transparent;
 }
 
+/* Chuyển động màn Web Call: caption trượt vào, ô vé lóe sáng khi có dữ liệu,
+   mã vé "đóng dấu", thanh equalizer khi agent nói. Tất cả bị vô hiệu bởi
+   prefers-reduced-motion bên dưới. */
+@keyframes caption-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* Ô vé vừa nhận dữ liệu: lóe nền + vòng sáng + phồng nhẹ để kéo ánh mắt. */
+@keyframes field-fill {
+  0% {
+    background-color: color-mix(in srgb, var(--action) 32%, transparent);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--action) 16%, transparent);
+    transform: scale(1.06);
+  }
+  55% { transform: scale(1); }
+  100% { background-color: transparent; box-shadow: 0 0 0 0 transparent; }
+}
+@keyframes caret-blink {
+  50% { opacity: 0; }
+}
+@keyframes stamp-in {
+  0% { opacity: 0; transform: scale(0.82); }
+  55% { transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes speak-bar {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+@keyframes listen-ring {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--action) 35%, transparent); }
+  100% { box-shadow: 0 0 0 16px transparent; }
+}
+@keyframes orb-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+@keyframes orb-speak {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+.animate-caption-in { animation: caption-in 0.35s ease-out both; }
+.animate-field-fill { animation: field-fill 1.2s ease-out both; transform-origin: left center; }
+.tw-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.12em;
+  background: currentColor;
+  animation: caret-blink 0.8s steps(1) infinite;
+}
+/* Mã vạch trên cuống vé — thuần CSS, không cần ảnh. */
+.barcode {
+  background-image: repeating-linear-gradient(
+    90deg,
+    currentColor 0 2px, transparent 2px 4px,
+    currentColor 4px 5px, transparent 5px 9px,
+    currentColor 9px 12px, transparent 12px 14px,
+    currentColor 14px 15px, transparent 15px 18px,
+    currentColor 18px 20px, transparent 20px 23px
+  );
+}
+.animate-stamp-in { animation: stamp-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.animate-listen-ring { animation: listen-ring 1.6s ease-out infinite; }
+.animate-orb-breathe { animation: orb-breathe 3.4s ease-in-out infinite; }
+.animate-orb-speak { animation: orb-speak 0.8s ease-in-out infinite; }
+.speak-bar {
+  animation: speak-bar 0.9s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     scroll-behavior: auto !important;

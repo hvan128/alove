@@ -38,7 +38,7 @@ export default function HomePage() {
               Đặt vé nhà xe bằng cuộc gọi, có người kiểm soát khi cần.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 tracking-[-0.02em] text-[var(--muted)]">
-              VéĐi cho khách nói nhu cầu tự nhiên, để nhân viên trả lời trực tiếp hoặc bật Agent tự động thu thập hành trình, chọn chuyến và đọc lại xác nhận.
+              Alove cho khách nói nhu cầu tự nhiên, để nhân viên trả lời trực tiếp hoặc bật Agent tự động thu thập hành trình, chọn chuyến và đọc lại xác nhận.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--action)] px-5 py-2 text-sm font-medium text-[var(--on-action)] transition hover:bg-[var(--action-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action-focus)] active:scale-[0.98]" href="/console">
@@ -67,7 +67,7 @@ export default function HomePage() {
                 <p className="mt-2 text-sm leading-6">Tôi cần hai vé đi Đà Lạt tối thứ Sáu.</p>
               </div>
               <div className="rounded-2xl bg-[var(--surface-tint)] p-4">
-                <p className="text-xs font-semibold text-[var(--success)]">Agent VéĐi</p>
+                <p className="text-xs font-semibold text-[var(--success)]">Agent Alove</p>
                 <p className="mt-2 text-sm leading-6">Em đề xuất chuyến giường nằm lúc 22:00, giá 320.000 ₫ mỗi vé.</p>
               </div>
             </div>

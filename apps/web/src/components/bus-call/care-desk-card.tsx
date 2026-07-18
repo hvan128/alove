@@ -33,7 +33,7 @@ export function CareDeskCard({ mode, status, messages, booking, reply, onReplyCh
           </span>
           <div>
             <p className="text-xs font-medium text-[var(--muted)]">Nhân viên chăm sóc</p>
-            <h2 id="care-side-title" className="font-semibold text-[var(--ink)]">{mode === 'auto' ? 'Agent VéĐi đang trực' : 'Thu Hà đang tiếp quản'}</h2>
+            <h2 id="care-side-title" className="font-semibold text-[var(--ink)]">{mode === 'auto' ? 'Agent Alove đang trực' : 'Thu Hà đang tiếp quản'}</h2>
           </div>
         </div>
         <span className="rounded-full bg-[var(--pearl)] px-3 py-1.5 text-xs font-medium text-[var(--muted)]">{mode === 'auto' ? 'Auto reply' : 'Human reply'}</span>

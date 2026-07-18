@@ -3,7 +3,7 @@ import type { BookingDraft } from '@ordervoice/contracts'
 import { POST } from './route'
 
 const SECRET = 'test-agent-secret'
-const CONVERSATION = 'vedi-test-001'
+const CONVERSATION = 'alove-test-001'
 
 function request(body: unknown, auth: string | null = `Bearer ${SECRET}`): Request {
   return new Request('http://localhost/api/booking/advance', {

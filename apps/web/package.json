@@ -16,6 +16,7 @@
     "@neondatabase/serverless": "^1.1.0",
     "@ordervoice/contracts": "workspace:*",
     "@ordervoice/core": "workspace:*",
+    "@ordervoice/providers": "workspace:*",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "livekit-client": "^2.19.0",

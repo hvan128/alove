@@ -19,8 +19,8 @@ const plexMono = IBM_Plex_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'VéĐi | Trợ lý đặt vé qua cuộc gọi',
-  description: 'Demo Web Call đặt vé nhà xe với nhân viên chăm sóc và Agent tự động nói tiếng Việt.',
+  title: 'Alove | Alo là có vé',
+  description: 'Đặt vé nhà xe Mai Anh qua cuộc gọi với nhân viên chăm sóc và Agent tự động nói tiếng Việt.',
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -5,7 +5,7 @@ import { cn } from '@/lib/cn'
 const ROLE_LABEL: Record<CallMessage['role'], string> = {
   customer: 'Khách hàng',
   staff: 'Nhân viên',
-  agent: 'Agent VéĐi',
+  agent: 'Agent Alove',
   system: 'Hệ thống',
 }
 
