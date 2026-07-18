@@ -32,12 +32,14 @@ export function VehicleTemplateEditor({
   const [selected, setSelected] = useState<{ row: number; column: number } | null>(null)
   const [code, setCode] = useState('')
   const [kind, setKind] = useState<SeatKind>('seat')
+  const [seatClassId, setSeatClassId] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const rowCount = Math.max(8, ...seats.map((seat) => seat.row + 1))
   const columnCount = Math.max(4, ...seats.map((seat) => seat.column + 1))
   const capacity = seats.filter((seat) => seat.kind === 'seat' || seat.kind === 'double-bed').length
+  const seatClasses = catalogState?.seatClasses ?? []
   const cells = useMemo(() => Array.from({ length: rowCount * columnCount }, (_, index) => ({
     row: Math.floor(index / columnCount),
     column: index % columnCount,
@@ -48,6 +50,7 @@ export function VehicleTemplateEditor({
     setSelected({ row, column })
     setCode(existing?.code ?? '')
     setKind(existing?.kind ?? 'seat')
+    setSeatClassId(existing?.seatClassId ?? seatClasses[0]?.id ?? '')
     setError(null)
   }
 
@@ -63,7 +66,20 @@ export function VehicleTemplateEditor({
       setError(`Mã ghế ${normalized} bị trùng`)
       return
     }
-    const next: TemplateSeat = { code: normalized, floor, row: selected.row, column: selected.column, kind }
+    const sellable = kind === 'seat' || kind === 'double-bed'
+    if (sellable && seatClasses.length > 0 && !seatClassId) {
+      setError('Ghế bán được phải chọn loại ghế.')
+      return
+    }
+    const next: TemplateSeat = {
+      code: normalized,
+      floor,
+      row: selected.row,
+      column: selected.column,
+      kind,
+      // Only sellable cells carry a commercial class; aisle/driver/blocked stay null.
+      seatClassId: sellable ? (seatClassId || null) : null,
+    }
     setSeats((current) => [...current.filter((seat) => !(seat.floor === floor && seat.row === selected.row && seat.column === selected.column)), next])
     setSelected(null)
     setCode('')
@@ -145,6 +161,23 @@ export function VehicleTemplateEditor({
             <div className="mt-5 space-y-4">
               <label className="block text-xs font-medium text-[var(--muted)]">Mã ghế<input aria-label="Mã ghế" value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} className="mt-1 min-h-11 w-full rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] px-3 text-[var(--ink)]" /></label>
               <label className="block text-xs font-medium text-[var(--muted)]">Loại ô<select value={kind} onChange={(event) => setKind(event.target.value as SeatKind)} className="mt-1 min-h-11 w-full rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] px-3 text-[var(--ink)]">{kinds.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+              {(kind === 'seat' || kind === 'double-bed') && seatClasses.length > 0 ? (
+                <label className="block text-xs font-medium text-[var(--muted)]">Loại ghế
+                  <select
+                    aria-label="Loại ghế"
+                    value={seatClassId}
+                    onChange={(event) => setSeatClassId(event.target.value)}
+                    className="mt-1 min-h-11 w-full rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] px-3 text-[var(--ink)]"
+                  >
+                    <option value="">— Chọn loại ghế —</option>
+                    {seatClasses.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name} (×{(item.priceMultiplierBps / 10_000).toFixed(2)})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               <button type="button" onClick={placeSeat} className="min-h-11 w-full rounded-full bg-[var(--action)] px-4 text-sm font-medium text-[var(--on-action)]">Đặt ghế</button>
               <button type="button" onClick={removeCell} className="min-h-11 w-full rounded-full px-4 text-sm font-medium text-[var(--danger)]">Xóa ô</button>
             </div>

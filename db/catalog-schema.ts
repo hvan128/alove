@@ -1,7 +1,6 @@
 import {
   boolean,
   integer,
-  jsonb,
   pgTable,
   text,
   timestamp,
@@ -47,9 +46,31 @@ export const catalogRoutes = pgTable('catalog_routes', {
   externalId: text('external_id').notNull(),
   origin: text('origin').notNull(),
   destination: text('destination').notNull(),
-  stopExternalIds: jsonb('stop_external_ids').notNull().default([]),
 }, (table) => [
   uniqueIndex('catalog_routes_version_external_unique').on(table.catalogVersionId, table.externalId),
+])
+
+/** Ordered pickup/drop-off points of a route (điểm đón/trả). */
+export const catalogRouteStops = pgTable('catalog_route_stops', {
+  id: text('id').primaryKey(),
+  catalogRouteId: text('catalog_route_id').notNull().references(() => catalogRoutes.id, { onDelete: 'cascade' }),
+  stopExternalId: text('stop_external_id').notNull(),
+  role: text('role').notNull(),
+  sequence: integer('sequence').notNull(),
+  offsetMinutes: integer('offset_minutes').notNull().default(0),
+}, (table) => [
+  uniqueIndex('catalog_route_stops_route_stop_unique').on(table.catalogRouteId, table.stopExternalId),
+])
+
+/** Commercial seat class (loại ghế) priced as a multiple of the route fare. */
+export const catalogSeatClasses = pgTable('catalog_seat_classes', {
+  id: text('id').primaryKey(),
+  catalogVersionId: text('catalog_version_id').notNull().references(() => catalogVersions.id, { onDelete: 'cascade' }),
+  externalId: text('external_id').notNull(),
+  name: text('name').notNull(),
+  priceMultiplierBps: integer('price_multiplier_bps').notNull().default(10_000),
+}, (table) => [
+  uniqueIndex('catalog_seat_classes_version_external_unique').on(table.catalogVersionId, table.externalId),
 ])
 
 export const vehicleTemplates = pgTable('vehicle_templates', {
@@ -70,6 +91,7 @@ export const vehicleTemplateSeats = pgTable('vehicle_template_seats', {
   row: integer('row').notNull(),
   column: integer('column').notNull(),
   kind: text('kind').notNull(),
+  seatClassExternalId: text('seat_class_external_id'),
 }, (table) => [
   uniqueIndex('vehicle_template_seats_template_code_unique').on(table.vehicleTemplateId, table.seatCode),
   uniqueIndex('vehicle_template_seats_template_cell_unique').on(
@@ -97,8 +119,29 @@ export const fareRules = pgTable('fare_rules', {
   externalId: text('external_id').notNull(),
   routeExternalId: text('route_external_id').notNull(),
   priceVnd: integer('price_vnd').notNull(),
+  seatClassExternalId: text('seat_class_external_id'),
+  effectiveFrom: timestamp('effective_from', { withTimezone: true }),
+  effectiveTo: timestamp('effective_to', { withTimezone: true }),
 }, (table) => [
   uniqueIndex('fare_rules_version_external_unique').on(table.catalogVersionId, table.externalId),
+])
+
+/** Recurring departure pattern (lịch chạy) expanded into concrete trips. */
+export const catalogSchedules = pgTable('catalog_schedules', {
+  id: text('id').primaryKey(),
+  catalogVersionId: text('catalog_version_id').notNull().references(() => catalogVersions.id, { onDelete: 'cascade' }),
+  externalId: text('external_id').notNull(),
+  routeExternalId: text('route_external_id').notNull(),
+  vehicleExternalId: text('vehicle_external_id').notNull(),
+  fareExternalId: text('fare_external_id').notNull(),
+  /** Comma-separated ISO weekday numbers, 0 = Sunday. */
+  weekdays: text('weekdays').notNull(),
+  departureTime: text('departure_time').notNull(),
+  durationMinutes: integer('duration_minutes').notNull(),
+  activeFrom: timestamp('active_from', { withTimezone: true }).notNull(),
+  activeTo: timestamp('active_to', { withTimezone: true }),
+}, (table) => [
+  uniqueIndex('catalog_schedules_version_external_unique').on(table.catalogVersionId, table.externalId),
 ])
 
 export const catalogTrips = pgTable('catalog_trips', {
@@ -108,8 +151,10 @@ export const catalogTrips = pgTable('catalog_trips', {
   routeExternalId: text('route_external_id').notNull(),
   vehicleExternalId: text('vehicle_external_id').notNull(),
   fareExternalId: text('fare_external_id').notNull(),
+  scheduleExternalId: text('schedule_external_id'),
   departureAt: timestamp('departure_at', { withTimezone: true }).notNull(),
   arrivalAt: timestamp('arrival_at', { withTimezone: true }).notNull(),
+  declaredCapacity: integer('declared_capacity'),
 }, (table) => [
   uniqueIndex('catalog_trips_version_external_unique').on(table.catalogVersionId, table.externalId),
 ])

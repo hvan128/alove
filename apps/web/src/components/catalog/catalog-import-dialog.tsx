@@ -3,7 +3,7 @@
 import type { CatalogDraft } from '@ordervoice/contracts'
 import { UploadSimpleIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
-import { dryRunCatalogCsv, type CatalogCsvDryRun } from '@/lib/catalog/catalog-csv'
+import { csvKinds, dryRunCatalogCsv, type CatalogCsvDryRun } from '@/lib/catalog/catalog-csv'
 
 export function CatalogImportDialog({ draft, onApply }: { draft: CatalogDraft; onApply: (csv: string) => Promise<void> }) {
   const [csv, setCsv] = useState('')
@@ -32,7 +32,10 @@ export function CatalogImportDialog({ draft, onApply }: { draft: CatalogDraft; o
         <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--action-soft)] text-[var(--action)]"><UploadSimpleIcon size={20} aria-hidden /></span>
         <div>
           <h3 id="csv-import-title" className="font-semibold">Nhập dữ liệu CSV</h3>
-          <p className="mt-1 text-sm text-[var(--muted)]">Chỉ preview trước. Không thay đổi catalog khi còn lỗi.</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">Chỉ preview trước. Chỉ ghi vào draft, không bao giờ tự publish.</p>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            Cột <code>kind</code> nhận: {csvKinds.join(', ')}.
+          </p>
         </div>
       </div>
       <label className="mt-4 flex min-h-11 cursor-pointer items-center justify-center rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] px-4 text-sm font-medium">
@@ -42,8 +45,14 @@ export function CatalogImportDialog({ draft, onApply }: { draft: CatalogDraft; o
       {preview ? (
         <div className="mt-4" aria-live="polite">
           <p className="text-sm font-medium">{preview.validRows} dòng hợp lệ · {preview.invalidRows} dòng lỗi</p>
-          <ul className="mt-2 space-y-1 text-xs text-[var(--danger)]">
-            {preview.rows.flatMap((row) => row.errors.map((error) => <li key={`${row.row}-${error}`}>Dòng {row.row} · {error}</li>))}
+          <ul className="mt-2 space-y-2 text-xs text-[var(--danger)]">
+            {preview.rows.filter((row) => row.errors.length > 0).map((row) => (
+              <li key={row.row}>
+                <span className="font-medium">Dòng {row.row}</span>
+                <span className="text-[var(--muted)]"> · {row.kind}{row.id ? ` · ${row.id}` : ''}</span>
+                <span className="block">{row.errors.join(', ')}</span>
+              </li>
+            ))}
           </ul>
           <button type="button" disabled={preview.invalidRows > 0 || preview.validRows === 0 || busy} onClick={() => void apply()} className="mt-4 min-h-11 rounded-full bg-[var(--ink)] px-4 text-sm font-medium text-[var(--on-ink)] disabled:cursor-not-allowed disabled:opacity-40">
             {busy ? 'Đang áp dụng…' : 'Áp dụng dòng hợp lệ'}

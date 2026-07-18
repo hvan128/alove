@@ -7,10 +7,15 @@ import {
   busCallEvents,
   busCallMessages,
   busCalls,
+  catalogRouteStops,
+  catalogRoutes,
+  catalogSchedules,
+  catalogSeatClasses,
   catalogTrips,
   catalogVersions,
   bookingConfirmations,
   confirmedBookings,
+  fareRules,
   inventoryEvents,
   seatHoldItems,
   seatHolds,
@@ -91,6 +96,38 @@ describe('Neon database initialization', () => {
       'vehicle_templates',
       'vehicle_template_seats',
     ])
+  })
+
+  it('exports F-13 seat class, route stop and schedule tables', () => {
+    expect([
+      catalogSeatClasses,
+      catalogRouteStops,
+      catalogSchedules,
+    ].map(getTableName)).toEqual([
+      'catalog_seat_classes',
+      'catalog_route_stops',
+      'catalog_schedules',
+    ])
+  })
+
+  it('carries seat class, capacity and effective-date columns', () => {
+    expect(Object.keys(getTableColumns(vehicleTemplateSeats))).toContain('seatClassExternalId')
+    expect(Object.keys(getTableColumns(fareRules))).toEqual(expect.arrayContaining([
+      'seatClassExternalId',
+      'effectiveFrom',
+      'effectiveTo',
+    ]))
+    expect(Object.keys(getTableColumns(catalogTrips))).toEqual(expect.arrayContaining([
+      'declaredCapacity',
+      'scheduleExternalId',
+    ]))
+    // Route stops carry a pickup/drop-off role instead of the old jsonb id list.
+    expect(Object.keys(getTableColumns(catalogRoutes))).not.toContain('stopExternalIds')
+    expect(Object.keys(getTableColumns(catalogRouteStops))).toEqual(expect.arrayContaining([
+      'role',
+      'sequence',
+      'offsetMinutes',
+    ]))
   })
 
   it('exports authoritative trip seat inventory tables', () => {

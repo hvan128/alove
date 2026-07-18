@@ -7,7 +7,10 @@ import type {
 import { catalogDraftSchema, catalogVersionSchema } from '@ordervoice/contracts'
 import { publishCatalogDraft, retireCatalogVersion, validateCatalogDraft } from '@ordervoice/core'
 import {
+  catalogRouteStops,
   catalogRoutes,
+  catalogSchedules,
+  catalogSeatClasses,
   catalogStops,
   catalogTrips,
   catalogVehicles,
@@ -254,13 +257,15 @@ async function readVersion(
     .where(eq(catalogVersions.id, id)).limit(1)
   if (!root) return null
 
-  const [branches, stops, routes, templates, vehicles, fares, trips] = await Promise.all([
+  const [branches, stops, routes, seatClasses, templates, vehicles, fares, schedules, trips] = await Promise.all([
     transaction.select().from(operatorBranches).where(eq(operatorBranches.catalogVersionId, id)),
     transaction.select().from(catalogStops).where(eq(catalogStops.catalogVersionId, id)),
     transaction.select().from(catalogRoutes).where(eq(catalogRoutes.catalogVersionId, id)),
+    transaction.select().from(catalogSeatClasses).where(eq(catalogSeatClasses.catalogVersionId, id)),
     transaction.select().from(vehicleTemplates).where(eq(vehicleTemplates.catalogVersionId, id)),
     transaction.select().from(catalogVehicles).where(eq(catalogVehicles.catalogVersionId, id)),
     transaction.select().from(fareRules).where(eq(fareRules.catalogVersionId, id)),
+    transaction.select().from(catalogSchedules).where(eq(catalogSchedules.catalogVersionId, id)),
     transaction.select().from(catalogTrips).where(eq(catalogTrips.catalogVersionId, id)),
   ])
   const templateIds = templates.map((template) => template.id)
@@ -269,6 +274,12 @@ async function readVersion(
     : await transaction.select().from(vehicleTemplateSeats)
       .where(inArray(vehicleTemplateSeats.vehicleTemplateId, templateIds))
       .orderBy(asc(vehicleTemplateSeats.floor), asc(vehicleTemplateSeats.row), asc(vehicleTemplateSeats.column))
+  const routeIds = routes.map((route) => route.id)
+  const routeStops = routeIds.length === 0
+    ? []
+    : await transaction.select().from(catalogRouteStops)
+      .where(inArray(catalogRouteStops.catalogRouteId, routeIds))
+      .orderBy(asc(catalogRouteStops.sequence))
 
   return catalogVersionSchema.parse({
     id: root.id,
@@ -284,7 +295,17 @@ async function readVersion(
       id: item.externalId,
       origin: item.origin,
       destination: item.destination,
-      stopIds: item.stopExternalIds,
+      stops: routeStops.filter((stop) => stop.catalogRouteId === item.id).map((stop) => ({
+        stopId: stop.stopExternalId,
+        role: stop.role,
+        sequence: stop.sequence,
+        offsetMinutes: stop.offsetMinutes,
+      })),
+    })),
+    seatClasses: seatClasses.map((item) => ({
+      id: item.externalId,
+      name: item.name,
+      priceMultiplierBps: item.priceMultiplierBps,
     })),
     vehicleTemplates: templates.map((template) => ({
       id: template.externalId,
@@ -296,6 +317,7 @@ async function readVersion(
         row: seat.row,
         column: seat.column,
         kind: seat.kind,
+        seatClassId: seat.seatClassExternalId,
       })),
     })),
     vehicles: vehicles.map((item) => ({
@@ -304,7 +326,25 @@ async function readVersion(
       templateId: item.templateExternalId,
       active: item.active,
     })),
-    fares: fares.map((item) => ({ id: item.externalId, routeId: item.routeExternalId, priceVnd: item.priceVnd })),
+    fares: fares.map((item) => ({
+      id: item.externalId,
+      routeId: item.routeExternalId,
+      priceVnd: item.priceVnd,
+      seatClassId: item.seatClassExternalId,
+      effectiveFrom: item.effectiveFrom?.toISOString() ?? null,
+      effectiveTo: item.effectiveTo?.toISOString() ?? null,
+    })),
+    schedules: schedules.map((item) => ({
+      id: item.externalId,
+      routeId: item.routeExternalId,
+      vehicleId: item.vehicleExternalId,
+      fareId: item.fareExternalId,
+      weekdays: item.weekdays.split(',').filter(Boolean).map(Number),
+      departureTime: item.departureTime,
+      durationMinutes: item.durationMinutes,
+      activeFrom: item.activeFrom.toISOString(),
+      activeTo: item.activeTo?.toISOString() ?? null,
+    })),
     trips: trips.map((item) => ({
       id: item.externalId,
       routeId: item.routeExternalId,
@@ -312,15 +352,20 @@ async function readVersion(
       fareId: item.fareExternalId,
       departureAt: item.departureAt.toISOString(),
       arrivalAt: item.arrivalAt.toISOString(),
+      declaredCapacity: item.declaredCapacity,
+      scheduleId: item.scheduleExternalId,
     })),
   })
 }
 
 async function replaceChildren(transaction: NeonTransaction, version: CatalogVersion): Promise<void> {
+  // Route stops and template seats cascade from their parent delete.
   await transaction.delete(catalogTrips).where(eq(catalogTrips.catalogVersionId, version.id))
+  await transaction.delete(catalogSchedules).where(eq(catalogSchedules.catalogVersionId, version.id))
   await transaction.delete(fareRules).where(eq(fareRules.catalogVersionId, version.id))
   await transaction.delete(catalogVehicles).where(eq(catalogVehicles.catalogVersionId, version.id))
   await transaction.delete(vehicleTemplates).where(eq(vehicleTemplates.catalogVersionId, version.id))
+  await transaction.delete(catalogSeatClasses).where(eq(catalogSeatClasses.catalogVersionId, version.id))
   await transaction.delete(catalogRoutes).where(eq(catalogRoutes.catalogVersionId, version.id))
   await transaction.delete(catalogStops).where(eq(catalogStops.catalogVersionId, version.id))
   await transaction.delete(operatorBranches).where(eq(operatorBranches.catalogVersionId, version.id))
@@ -349,7 +394,24 @@ async function replaceChildren(transaction: NeonTransaction, version: CatalogVer
       externalId: item.id,
       origin: item.origin,
       destination: item.destination,
-      stopExternalIds: item.stopIds,
+    })))
+    const routeStops = version.routes.flatMap((route) => route.stops.map((stop) => ({
+      id: rowId(version.id, `route:${route.id}:stop`, stop.stopId),
+      catalogRouteId: rowId(version.id, 'route', route.id),
+      stopExternalId: stop.stopId,
+      role: stop.role,
+      sequence: stop.sequence,
+      offsetMinutes: stop.offsetMinutes,
+    })))
+    if (routeStops.length > 0) await transaction.insert(catalogRouteStops).values(routeStops)
+  }
+  if (version.seatClasses.length > 0) {
+    await transaction.insert(catalogSeatClasses).values(version.seatClasses.map((item) => ({
+      id: rowId(version.id, 'seat-class', item.id),
+      catalogVersionId: version.id,
+      externalId: item.id,
+      name: item.name,
+      priceMultiplierBps: item.priceMultiplierBps,
     })))
   }
   if (version.vehicleTemplates.length > 0) {
@@ -368,6 +430,7 @@ async function replaceChildren(transaction: NeonTransaction, version: CatalogVer
       row: seat.row,
       column: seat.column,
       kind: seat.kind,
+      seatClassExternalId: seat.seatClassId,
     })))
     if (seats.length > 0) await transaction.insert(vehicleTemplateSeats).values(seats)
   }
@@ -388,6 +451,24 @@ async function replaceChildren(transaction: NeonTransaction, version: CatalogVer
       externalId: item.id,
       routeExternalId: item.routeId,
       priceVnd: item.priceVnd,
+      seatClassExternalId: item.seatClassId,
+      effectiveFrom: item.effectiveFrom ? new Date(item.effectiveFrom) : null,
+      effectiveTo: item.effectiveTo ? new Date(item.effectiveTo) : null,
+    })))
+  }
+  if (version.schedules.length > 0) {
+    await transaction.insert(catalogSchedules).values(version.schedules.map((item) => ({
+      id: rowId(version.id, 'schedule', item.id),
+      catalogVersionId: version.id,
+      externalId: item.id,
+      routeExternalId: item.routeId,
+      vehicleExternalId: item.vehicleId,
+      fareExternalId: item.fareId,
+      weekdays: item.weekdays.join(','),
+      departureTime: item.departureTime,
+      durationMinutes: item.durationMinutes,
+      activeFrom: new Date(item.activeFrom),
+      activeTo: item.activeTo ? new Date(item.activeTo) : null,
     })))
   }
   if (version.trips.length > 0) {
@@ -398,8 +479,10 @@ async function replaceChildren(transaction: NeonTransaction, version: CatalogVer
       routeExternalId: item.routeId,
       vehicleExternalId: item.vehicleId,
       fareExternalId: item.fareId,
+      scheduleExternalId: item.scheduleId,
       departureAt: new Date(item.departureAt),
       arrivalAt: new Date(item.arrivalAt),
+      declaredCapacity: item.declaredCapacity,
     })))
   }
 }

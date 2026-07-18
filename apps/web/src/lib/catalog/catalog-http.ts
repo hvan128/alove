@@ -4,16 +4,19 @@ import { z, ZodError } from 'zod'
 import { getOperatorActor, requireOperatorRole } from '../auth/operator-actor'
 import { applyCatalogCsv, dryRunCatalogCsv } from './catalog-csv'
 import { createCatalogRepository, type CatalogRepository } from './catalog-repository'
+import { assertLiveSyncContracted, readLiveSyncStatus } from './catalog-sync'
 
 export type CatalogRouteContext = { params: Promise<{ versionId: string }> }
 export type CatalogHttpDependencies = {
   getActor: () => OperatorActor
   getRepository: () => CatalogRepository
+  getEnv: () => Record<string, string | undefined>
 }
 
 const defaultDependencies: CatalogHttpDependencies = {
   getActor: () => getOperatorActor(process.env),
   getRepository: () => createCatalogRepository(),
+  getEnv: () => process.env,
 }
 
 const expectedRevisionSchema = z.object({
@@ -174,6 +177,32 @@ export async function importCatalogCsv(
   })
 }
 
+/** Reports whether live operator sync is contracted. Never performs a sync itself. */
+export async function getSyncStatus(
+  _request: Request,
+  dependencies: CatalogHttpDependencies = defaultDependencies,
+): Promise<Response> {
+  return handleCatalogRequest(async () => {
+    const actor = dependencies.getActor()
+    requireOperatorRole(actor, ['admin', 'dispatcher', 'customer-care', 'read-only'])
+    return noStoreJson(readLiveSyncStatus(dependencies.getEnv()))
+  })
+}
+
+export async function triggerSync(
+  _request: Request,
+  dependencies: CatalogHttpDependencies = defaultDependencies,
+): Promise<Response> {
+  return handleCatalogRequest(async () => {
+    const actor = dependencies.getActor()
+    requireOperatorRole(actor, ['admin'])
+    // Throws unless a contract and passing reconciliation both exist.
+    assertLiveSyncContracted(dependencies.getEnv())
+    // Contracted but unimplemented: no adapter may claim a live operator sync yet.
+    return noStoreJson({ error: 'LIVE_SYNC_ADAPTER_UNAVAILABLE' }, 501)
+  })
+}
+
 export function catalogError(error: unknown): Response {
   if (error instanceof SyntaxError || error instanceof ZodError) {
     return noStoreJson({ error: 'INVALID_CATALOG_REQUEST' }, 400)
@@ -187,7 +216,7 @@ export function catalogError(error: unknown): Response {
         ? 409
         : code === 'CATALOG_VALIDATION_FAILED' || code === 'CATALOG_CSV_INVALID'
           ? 422
-          : code === 'OPERATOR_AUTH_UNCONFIGURED'
+          : code === 'OPERATOR_AUTH_UNCONFIGURED' || code === 'LIVE_SYNC_NOT_CONTRACTED'
             ? 503
             : 400
   return noStoreJson({ error: code }, status)

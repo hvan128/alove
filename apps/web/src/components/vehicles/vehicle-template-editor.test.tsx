@@ -8,7 +8,7 @@ const template: CatalogVersion['vehicleTemplates'][number] = {
   id: 'limousine-22',
   name: 'Limousine 22 phòng',
   floors: 1,
-  seats: [{ code: 'A01', floor: 1, row: 0, column: 1, kind: 'seat' }],
+  seats: [{ code: 'A01', floor: 1, row: 0, column: 1, kind: 'seat', seatClassId: null }],
 }
 
 describe('VehicleTemplateEditor', () => {

@@ -12,8 +12,10 @@ import type { CatalogTab } from './types'
 const tabs: Array<{ id: CatalogTab; label: string }> = [
   { id: 'locations', label: 'Chi nhánh & điểm' },
   { id: 'routes', label: 'Tuyến' },
+  { id: 'schedules', label: 'Lịch chạy' },
   { id: 'trips', label: 'Chuyến' },
   { id: 'vehicles', label: 'Xe' },
+  { id: 'seatClasses', label: 'Loại ghế' },
   { id: 'fares', label: 'Giá' },
 ]
 

@@ -1,5 +1,9 @@
 import type { CatalogDraft } from '@ordervoice/contracts'
 
+/**
+ * Reference draft shared by the catalog tests. Mirrors `packages/core/test/fixtures/catalog.ts`
+ * so a contract change breaks both layers together instead of silently diverging.
+ */
 const base: CatalogDraft = {
   id: 'catalog-v1',
   version: 1,
@@ -25,10 +29,7 @@ const base: CatalogDraft = {
     id: 'tpl-34',
     name: 'Giường nằm 34',
     floors: 1,
-    seats: [
-      { code: 'A01', floor: 1, row: 1, column: 1, kind: 'seat', seatClassId: 'class-bed' },
-      { code: 'A02', floor: 1, row: 1, column: 2, kind: 'seat', seatClassId: 'class-bed' },
-    ],
+    seats: [{ code: 'A01', floor: 1, row: 1, column: 1, kind: 'seat', seatClassId: 'class-bed' }],
   }],
   vehicles: [{ id: 'vehicle-1', label: '51B-123.45', templateId: 'tpl-34', active: true }],
   fares: [{
