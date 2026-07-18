@@ -1,4 +1,4 @@
-import { CheckCircleIcon, MicrophoneIcon, WarningCircleIcon } from '@phosphor-icons/react/dist/ssr'
+import { CircleAlert, CircleCheck, Mic } from 'lucide-react'
 import { AppShell } from '@/components/ui/app-shell'
 import { Button } from '@/components/ui/button'
 import { TextInput } from '@/components/ui/input'
@@ -9,7 +9,7 @@ const colors = [
   ['Canvas', 'var(--canvas)', '--canvas'],
   ['Surface', 'var(--surface)', '--surface'],
   ['Ink', 'var(--ink)', '--ink'],
-  ['Journey', 'var(--action)', '--action'],
+  ['Primary', 'var(--action)', '--action'],
   ['Success', 'var(--success)', '--success'],
   ['Warning', 'var(--warning)', '--warning'],
   ['Danger', 'var(--danger)', '--danger'],
@@ -23,7 +23,7 @@ export default function DesignSystemPage() {
           <p className="text-sm font-semibold text-[var(--action)]">VéĐi foundations</p>
           <h1 className="mt-2 text-4xl font-semibold tracking-[-0.05em]">VéĐi design system</h1>
           <p className="mt-4 text-base leading-7 text-[var(--muted)]">
-            Một bề mặt Apple-like calm, rõ ràng và đáng tin cho hành trình đặt vé. Màu xanh hành trình dẫn hướng, semantic colors chỉ báo trạng thái, light và dark mode đi theo thiết bị.
+            Một bề mặt SaaS trung tính, gọn gàng, rõ ràng và đáng tin cho hành trình đặt vé. Font IBM Plex, primary indigo dẫn hướng, semantic colors chỉ báo trạng thái, elevation ngữ nghĩa và dark mode đi theo thiết bị.
           </p>
         </header>
 
@@ -65,17 +65,17 @@ export default function DesignSystemPage() {
         </section>
 
         <section className="mt-5 grid gap-5 lg:grid-cols-3">
-          <Panel title="Thang chữ">
+          <Panel title="Thang chữ · IBM Plex">
             <p className="text-[34px] font-semibold leading-none tracking-[-0.05em]">34px Display</p>
             <p className="mt-4 text-[21px] font-semibold tracking-[-0.03em]">21px Section</p>
             <p className="mt-4 text-[17px] leading-7">17px body giúp đọc hội thoại dài mà không mỏi.</p>
-            <p className="mt-4 font-mono text-xs text-[var(--muted)]">12px · mã vé · thời lượng · trạng thái</p>
+            <p className="mt-4 font-mono text-xs text-[var(--muted)]">12px mono · mã vé · thời lượng · trạng thái</p>
           </Panel>
           <Panel title="Ngữ nghĩa trạng thái">
             <div className="space-y-4">
-              <div className="flex gap-2"><CheckCircleIcon className="text-[var(--success)]" size={20} weight="fill" aria-hidden /><p className="text-sm">Xanh lá: hoàn tất hoặc có thể tiếp tục.</p></div>
-              <div className="flex gap-2"><WarningCircleIcon className="text-[var(--warning)]" size={20} weight="fill" aria-hidden /><p className="text-sm">Cam: cần người dùng hoặc nhân viên xác nhận.</p></div>
-              <div className="flex gap-2"><MicrophoneIcon className="text-[var(--action)]" size={20} weight="fill" aria-hidden /><p className="text-sm">Xanh hành trình: hành động, mic và focus.</p></div>
+              <div className="flex gap-2"><CircleCheck className="text-[var(--success)]" size={20} aria-hidden /><p className="text-sm">Xanh lá: hoàn tất hoặc có thể tiếp tục.</p></div>
+              <div className="flex gap-2"><CircleAlert className="text-[var(--warning)]" size={20} aria-hidden /><p className="text-sm">Cam: cần người dùng hoặc nhân viên xác nhận.</p></div>
+              <div className="flex gap-2"><Mic className="text-[var(--action)]" size={20} aria-hidden /><p className="text-sm">Indigo: hành động, mic và focus.</p></div>
             </div>
           </Panel>
           <Panel title="Quy tắc responsive">

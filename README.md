@@ -15,7 +15,7 @@ Demo Web Call chạy ngay trong trình duyệt, không cần số điện thoạ
 - Agent đặt vé xác định, không phụ thuộc LLM nên demo không bị lỗi do quota hoặc mạng.
 - Web Speech Recognition `vi-VN` tùy chọn và device Speech Synthesis có phát lại/dừng.
 - Điều kiện xác nhận đầy đủ, giữ ghế theo số hành khách và idempotency cho mã vé.
-- Next.js App Router, design tokens Apple-like calm, light/dark mode, Playwright E2E.
+- Next.js App Router, design system SaaS trung tính (IBM Plex, icon lucide, token `oklch`, primary indigo, elevation ngữ nghĩa), light/dark mode, Playwright E2E.
 - Các adapter VALSEA, OpenAI, Twilio và Neon từ kiến trúc trước được giữ làm seam cho pilot, không bị trình bày là live khi chưa có credentials.
 
 ## Kiến trúc

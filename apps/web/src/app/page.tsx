@@ -1,12 +1,6 @@
 import type { BookingDraft } from '@ordervoice/contracts'
 import { createBusDemoCatalog, createInitialBooking } from '@ordervoice/core/bus-booking'
-import {
-  ArrowRightIcon,
-  CheckCircleIcon,
-  HeadphonesIcon,
-  ShieldCheckIcon,
-  SpeakerHighIcon,
-} from '@phosphor-icons/react/dist/ssr'
+import { ArrowRight, CircleCheck, Headphones, ShieldCheck, Volume2 } from 'lucide-react'
 import Link from 'next/link'
 import { BookingSummary } from '@/components/bus-call/booking-summary'
 import { AppShell } from '@/components/ui/app-shell'
@@ -28,9 +22,9 @@ const previewBooking = {
 } satisfies BookingDraft
 
 const capabilities = [
-  ['Hai phía, một màn hình', 'Khách hàng và nhân viên chăm sóc cùng xuất hiện trong một Web Call dễ kiểm chứng.', HeadphonesIcon],
-  ['Agent có thể tiếp quản', 'Chuyển giữa nhân viên và Agent tự động mà không mất nội dung hay phiếu đặt vé.', ShieldCheckIcon],
-  ['Luôn demo được', 'Mic và giọng đọc là nâng cấp tùy chọn. Câu mẫu và text chạy ngay, không cần số điện thoại.', SpeakerHighIcon],
+  ['Hai phía, một màn hình', 'Khách hàng và nhân viên chăm sóc cùng xuất hiện trong một Web Call dễ kiểm chứng.', Headphones],
+  ['Agent có thể tiếp quản', 'Chuyển giữa nhân viên và Agent tự động mà không mất nội dung hay phiếu đặt vé.', ShieldCheck],
+  ['Luôn demo được', 'Mic và giọng đọc là nâng cấp tùy chọn. Câu mẫu và text chạy ngay, không cần số điện thoại.', Volume2],
 ] as const
 
 export default function HomePage() {
@@ -48,7 +42,7 @@ export default function HomePage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--action)] px-5 py-2 text-sm font-medium text-[var(--on-action)] transition hover:bg-[var(--action-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action-focus)] active:scale-[0.98]" href="/console">
-                Mở demo Web Call <ArrowRightIcon size={18} weight="bold" aria-hidden />
+                Mở demo Web Call <ArrowRight size={18} aria-hidden />
               </Link>
               <Link className="inline-flex min-h-11 items-center rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-5 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--pearl)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action-focus)]" href="/design-system">
                 Xem design system
@@ -59,7 +53,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="rounded-[28px] border border-[var(--hairline)] bg-[var(--surface)] p-3 shadow-[0_28px_90px_color-mix(in_srgb,var(--ink)_10%,transparent)] sm:p-5">
+          <div className="rounded-[28px] border border-[var(--hairline)] bg-[var(--surface)] p-3 shadow-[var(--shadow-panel)] sm:p-5">
             <div className="flex items-center justify-between gap-4 border-b border-[var(--divider)] px-1 pb-4">
               <div>
                 <p className="text-xs font-medium text-[var(--muted)]">Web Call đang kết nối</p>
@@ -85,7 +79,7 @@ export default function HomePage() {
           <div className="mx-auto grid max-w-[1180px] px-4 sm:grid-cols-3 sm:px-6">
             {capabilities.map(([title, body, Icon], index) => (
               <article key={title} className={`py-10 sm:px-7 ${index > 0 ? 'sm:border-l sm:border-[var(--divider)]' : ''}`}>
-                <Icon size={25} className="text-[var(--action)]" weight="duotone" aria-hidden />
+                <Icon size={25} className="text-[var(--action)]" aria-hidden />
                 <h2 className="mt-4 text-lg font-semibold tracking-[-0.025em]">{title}</h2>
                 <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{body}</p>
               </article>
@@ -95,7 +89,7 @@ export default function HomePage() {
 
         <section className="mx-auto max-w-[1180px] px-4 py-14 sm:px-6">
           <div className="flex items-start gap-3 rounded-[18px] border border-[var(--hairline)] bg-[var(--pearl)] p-5 text-sm leading-6 text-[var(--muted)]">
-            <CheckCircleIcon size={20} className="mt-0.5 shrink-0 text-[var(--success)]" weight="fill" aria-hidden />
+            <CircleCheck size={20} className="mt-0.5 shrink-0 text-[var(--success)]" aria-hidden />
             <span>Luồng demo hoàn tất từ yêu cầu, chọn chuyến, thông tin hành khách đến mã vé ổn định. Nhân viên có thể tiếp quản và xác nhận thủ công.</span>
           </div>
         </section>

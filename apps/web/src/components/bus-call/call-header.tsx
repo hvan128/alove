@@ -1,5 +1,5 @@
 import type { CallMode, CallStatus } from '@ordervoice/contracts'
-import { Bus, Headset, PhoneCall, PhoneDisconnect, Robot } from '@phosphor-icons/react'
+import { Bot, Bus, Headset, PhoneCall, PhoneOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 
@@ -15,11 +15,11 @@ type CallHeaderProps = {
 export function CallHeader({ status, mode, elapsedSec, onModeChange, onStart, onEnd }: CallHeaderProps) {
   const connected = status === 'connected'
   return (
-    <header className="rounded-2xl border border-[var(--hairline)] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] p-4 shadow-[0_18px_50px_color-mix(in_srgb,var(--ink)_7%,transparent)] backdrop-blur-xl sm:p-5">
+    <header className="rounded-2xl border border-[var(--hairline)] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] p-4 shadow-[var(--shadow-panel)] backdrop-blur-xl sm:p-5">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--ink)] text-[var(--on-ink)]">
-            <Bus size={23} weight="fill" aria-hidden />
+            <Bus size={22} aria-hidden />
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -43,7 +43,7 @@ export function CallHeader({ status, mode, elapsedSec, onModeChange, onStart, on
               onClick={() => onModeChange('human')}
               className={cn('inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium transition active:scale-[0.98]', mode === 'human' ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm' : 'text-[var(--muted)]')}
             >
-              <Headset size={17} aria-hidden /> Nhân viên
+              <Headset size={16} aria-hidden /> Nhân viên
             </button>
             <button
               type="button"
@@ -51,15 +51,15 @@ export function CallHeader({ status, mode, elapsedSec, onModeChange, onStart, on
               onClick={() => onModeChange('auto')}
               className={cn('inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium transition active:scale-[0.98]', mode === 'auto' ? 'bg-[var(--ink)] text-[var(--on-ink)] shadow-sm' : 'text-[var(--muted)]')}
             >
-              <Robot size={17} weight="duotone" aria-hidden /> Agent tự động
+              <Bot size={16} aria-hidden /> Agent tự động
             </button>
           </div>
 
           <span className="min-w-14 text-center font-mono text-sm tabular-nums text-[var(--muted)]">{formatTimer(elapsedSec)}</span>
           {connected ? (
-            <Button variant="danger" onClick={onEnd}><PhoneDisconnect size={18} aria-hidden /> Kết thúc</Button>
+            <Button variant="danger" onClick={onEnd}><PhoneOff size={17} aria-hidden /> Kết thúc</Button>
           ) : (
-            <Button onClick={onStart} disabled={status === 'ended'}><PhoneCall size={18} weight="fill" aria-hidden /> Bắt đầu Web Call</Button>
+            <Button onClick={onStart} disabled={status === 'ended'}><PhoneCall size={17} aria-hidden /> Bắt đầu Web Call</Button>
           )}
         </div>
       </div>

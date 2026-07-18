@@ -11,7 +11,7 @@ type PanelProps = {
 
 export function Panel({ title, eyebrow, action, children, className }: PanelProps) {
   return (
-    <section className={cn('rounded-[18px] border border-[var(--hairline)] bg-[var(--surface)]', className)}>
+    <section className={cn('rounded-[18px] border border-[var(--hairline)] bg-[var(--surface)] shadow-[var(--shadow-card)]', className)}>
       {title || eyebrow || action ? (
         <header className="flex items-start justify-between gap-4 border-b border-[var(--divider)] px-5 py-4">
           <div>

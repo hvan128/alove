@@ -1,5 +1,5 @@
 import type { BookingDraft, CallMessage, CallMessageChannel, CallStatus } from '@ordervoice/contracts'
-import { Microphone, PaperPlaneTilt, UserCircle } from '@phosphor-icons/react'
+import { CircleUser, Mic, Send } from 'lucide-react'
 import type { SpeechRecognitionState } from '@/hooks/use-speech-recognition'
 import { Button } from '@/components/ui/button'
 import { TextInput } from '@/components/ui/input'
@@ -36,10 +36,10 @@ export function CustomerCallCard({ status, messages, booking, value, onValueChan
   }
 
   return (
-    <section className="flex min-h-[650px] flex-col rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] p-4 shadow-[0_18px_60px_color-mix(in_srgb,var(--ink)_6%,transparent)] sm:p-5" aria-labelledby="customer-side-title">
+    <section className="flex min-h-[650px] flex-col rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] p-4 shadow-[var(--shadow-panel)] sm:p-5" aria-labelledby="customer-side-title">
       <div className="flex items-center justify-between gap-3 border-b border-[var(--divider)] pb-4">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-full bg-[var(--action-soft)] text-[var(--action)]"><UserCircle size={24} weight="duotone" aria-hidden /></span>
+          <span className="flex size-10 items-center justify-center rounded-full bg-[var(--action-soft)] text-[var(--action)]"><CircleUser size={22} aria-hidden /></span>
           <div>
             <p className="text-xs font-medium text-[var(--muted)]">Phía khách hàng</p>
             <h2 id="customer-side-title" className="font-semibold text-[var(--ink)]">Nguyễn Minh Anh</h2>
@@ -69,7 +69,7 @@ export function CustomerCallCard({ status, messages, booking, value, onValueChan
 
         <form className="flex items-end gap-2" onSubmit={(event) => { event.preventDefault(); submitText() }}>
           <div className="min-w-0 flex-1"><TextInput label="Lời khách hàng" id="customer-message" value={value} onChange={(event) => onValueChange(event.target.value)} disabled={!connected || confirmed} placeholder="Nhập yêu cầu đặt vé..." /></div>
-          <Button type="submit" aria-label="Gửi lời khách" disabled={!connected || confirmed || !value.trim()}><PaperPlaneTilt size={18} weight="fill" aria-hidden /></Button>
+          <Button type="submit" aria-label="Gửi lời khách" disabled={!connected || confirmed || !value.trim()}><Send size={17} aria-hidden /></Button>
           <Button
             type="button"
             variant="secondary"
@@ -78,7 +78,7 @@ export function CustomerCallCard({ status, messages, booking, value, onValueChan
             onClick={recognitionState === 'listening' ? onStopMic : onStartMic}
             title={recognitionState === 'unsupported' ? 'Trình duyệt không hỗ trợ SpeechRecognition' : undefined}
           >
-            <Microphone size={18} weight={recognitionState === 'listening' ? 'fill' : 'regular'} aria-hidden />
+            <Mic size={18} strokeWidth={recognitionState === 'listening' ? 2.6 : 2} aria-hidden />
           </Button>
         </form>
         <p className="mt-2 text-xs leading-5 text-[var(--muted)]" role="status">

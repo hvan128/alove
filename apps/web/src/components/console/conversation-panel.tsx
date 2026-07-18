@@ -1,6 +1,6 @@
 'use client'
 
-import { FileVideoIcon, MicrophoneIcon, PlayIcon, WarningCircleIcon, WaveformIcon } from '@phosphor-icons/react'
+import { AudioWaveform, CircleAlert, Mic, Play, Video } from 'lucide-react'
 import type { DemoWorkspace, Source } from '@ordervoice/contracts'
 import { Button } from '@/components/ui/button'
 import { Callout } from './shared'
@@ -35,15 +35,15 @@ export function ConversationPanel({ workspace, onRunDemo, onRunAmbiguousDemo, on
       <div className="rounded-[18px] bg-[var(--ink)] p-5 text-white">
         <div className="flex items-start justify-between gap-3">
           <div><p className="text-xs font-semibold uppercase tracking-[0.1em] text-white/60">Nguồn đang chọn</p><h3 className="mt-1 text-xl font-semibold tracking-[-0.03em]">{isBrowser ? 'Web gọi trực tiếp' : isReplay ? 'Zalo audio/video replay' : 'Điện thoại trực tiếp'}</h3></div>
-          <WaveformIcon size={26} weight="duotone" className="text-[#2997ff]" />
+          <AudioWaveform size={24} className="text-[#7c96ff]" />
         </div>
         <p className="mt-3 max-w-prose text-sm leading-6 text-white/70">{isBrowser ? 'Âm thanh browser đi qua gateway theo PCM16 16 kHz. Chỉ transcript cuối cùng mới sửa đơn.' : isReplay ? 'Tệp được phát đồng bộ theo thời gian. Đây là replay tệp Zalo, không phải giả lập gọi Zalo trực tiếp.' : 'Cần số Twilio, webhook đã ký và WSS public. Fixture demo kiểm tra decoder nhưng không tuyên bố có cuộc gọi PSTN thật.'}</p>
         <div className="mt-4 flex flex-wrap gap-2">
-          {isBrowser ? <Button variant="secondary" className="border-white/20 bg-white text-[var(--ink)]" onClick={onStartMic} leadingIcon={<MicrophoneIcon size={17} />}>{micState === 'live' ? 'Mic đang mở' : micState === 'connecting' ? 'Đang kết nối gateway…' : micState === 'requesting' ? 'Đang xin quyền mic…' : 'Bật microphone'}</Button> : null}
-          {isReplay ? <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-[var(--ink)]"><FileVideoIcon size={17} />{replayName ?? 'Chọn audio / video'}<input aria-label="Tải tệp Zalo audio hoặc video" className="sr-only" type="file" accept="audio/*,video/*" onChange={(event) => onReplayFile(event.target.files?.[0] ?? null)} /></label> : null}
-          {isReplay && replayName ? <Button variant="quiet" className="text-white hover:bg-white/10" onClick={replayState === 'playing' || replayState === 'connecting' ? onStopReplay : onStartReplay} leadingIcon={<PlayIcon size={17} weight="fill" />}>{replayState === 'playing' || replayState === 'connecting' ? 'Dừng replay' : 'Phát & chuyển transcript'}</Button> : null}
-          <Button variant="quiet" className="text-white hover:bg-white/10" onClick={onRunAmbiguousDemo} leadingIcon={<WarningCircleIcon size={17} />}>Chạy demo ngoại lệ</Button>
-          <Button variant="quiet" className="text-white hover:bg-white/10" onClick={onRunDemo} leadingIcon={<PlayIcon size={17} weight="fill" />}>Chạy demo đơn hàng</Button>
+          {isBrowser ? <Button variant="secondary" className="border-white/20 bg-white text-[var(--ink)]" onClick={onStartMic} leadingIcon={<Mic size={16} />}>{micState === 'live' ? 'Mic đang mở' : micState === 'connecting' ? 'Đang kết nối gateway…' : micState === 'requesting' ? 'Đang xin quyền mic…' : 'Bật microphone'}</Button> : null}
+          {isReplay ? <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-[var(--ink)]"><Video size={16} />{replayName ?? 'Chọn audio / video'}<input aria-label="Tải tệp Zalo audio hoặc video" className="sr-only" type="file" accept="audio/*,video/*" onChange={(event) => onReplayFile(event.target.files?.[0] ?? null)} /></label> : null}
+          {isReplay && replayName ? <Button variant="quiet" className="text-white hover:bg-white/10" onClick={replayState === 'playing' || replayState === 'connecting' ? onStopReplay : onStartReplay} leadingIcon={<Play size={16} />}>{replayState === 'playing' || replayState === 'connecting' ? 'Dừng replay' : 'Phát & chuyển transcript'}</Button> : null}
+          <Button variant="quiet" className="text-white hover:bg-white/10" onClick={onRunAmbiguousDemo} leadingIcon={<CircleAlert size={16} />}>Chạy demo ngoại lệ</Button>
+          <Button variant="quiet" className="text-white hover:bg-white/10" onClick={onRunDemo} leadingIcon={<Play size={16} />}>Chạy demo đơn hàng</Button>
         </div>
       </div>
 
