@@ -7,6 +7,7 @@ import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
 import { speakVietnamese, stopVietnameseSpeech } from '@/lib/device-speech'
 import { CallStage } from './call-stage'
 import { TicketCard } from './ticket-card'
+import { ticketViewFromDraft } from './ticket-view'
 import { LiveKitCall, type LiveKitAgentState } from './livekit-call'
 
 // Set NEXT_PUBLIC_LIVEKIT_URL to make LiveKit the transport. Unset (public
@@ -199,7 +200,7 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
             ) : undefined
           }
         />
-        <TicketCard booking={workspace.booking} />
+        <TicketCard view={ticketViewFromDraft(workspace.booking)} />
       </main>
     </div>
   )

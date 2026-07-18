@@ -288,6 +288,98 @@ export async function findBookings(input: {
     }))
 }
 
+export type CustomerTicket = {
+  code: string
+  passengerName: string
+  phoneMasked: string
+  seatCodes: string[]
+  totalVnd: number
+  status: string
+  departureAt: string // ISO, so the page formats in the reader's own locale
+  originCity: string
+  destinationCity: string
+  pickupPoint: string
+  dropoffPoint: string
+}
+
+/** '0909123456' → '0909 *** 456' — enough for the caller to recognise, useless to a stranger. */
+function maskPhone(phone: string): string {
+  if (phone.length < 7) return '***'
+  return `${phone.slice(0, 4)} *** ${phone.slice(-3)}`
+}
+
+/** Timing-independent compare, so a guesser learns nothing from how fast we answer. */
+function secretEquals(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
+}
+
+/**
+ * Look up one ticket for the passenger who owns it.
+ *
+ * `bookings.code` is `VD-<yymmdd>-<sequential id>`, so it is guessable by design —
+ * it has to be short enough for the agent to read aloud over a bad phone line.
+ * The last four digits of the phone are therefore not decoration: they are the
+ * only thing standing between a sequential scan and every passenger's name and
+ * journey. Rate limiting at the route is the other half of that guard.
+ *
+ * Returns null for "no such ticket" and for "wrong digits" alike — telling those
+ * two apart would confirm which codes exist.
+ */
+export async function findTicketForCustomer(input: {
+  code: string
+  phoneLast4: string
+}): Promise<CustomerTicket | null> {
+  const db = getDb()
+  if (!db) return null
+
+  const code = input.code.trim().toUpperCase()
+  const last4 = input.phoneLast4.trim()
+  if (!code || !/^\d{4}$/u.test(last4)) return null
+
+  const rows = await db
+    .select({
+      code: bookings.code,
+      passengerName: bookings.passengerName,
+      phone: bookings.phone,
+      seatCodes: bookings.seatCodes,
+      totalFareVnd: bookings.totalFareVnd,
+      status: bookings.status,
+      departureAt: trips.departureAt,
+      pickupPoint: trips.pickupPoint,
+      dropoffPoint: trips.dropoffPoint,
+      originCity: routes.originCity,
+      destinationCity: routes.destinationCity,
+    })
+    .from(bookings)
+    .innerJoin(trips, eq(trips.id, bookings.tripId))
+    .innerJoin(routes, eq(routes.id, trips.routeId))
+    .where(eq(bookings.code, code))
+    .limit(1)
+
+  const row = rows[0]
+  if (!row) return null
+  if (!secretEquals(row.phone.slice(-4), last4)) return null
+  // A cancelled ticket still belongs to this passenger, so it is shown rather
+  // than hidden — arriving at the station with a dead ticket is the worse bug.
+
+  return {
+    code: row.code,
+    passengerName: row.passengerName,
+    phoneMasked: maskPhone(row.phone),
+    seatCodes: row.seatCodes,
+    totalVnd: row.totalFareVnd,
+    status: row.status,
+    departureAt: row.departureAt.toISOString(),
+    originCity: row.originCity,
+    destinationCity: row.destinationCity,
+    pickupPoint: row.pickupPoint,
+    dropoffPoint: row.dropoffPoint,
+  }
+}
+
 /**
  * Cancel this call's booking and put its seats back on sale. Without this the
  * agent could only apologise when a caller changed their mind after confirming —

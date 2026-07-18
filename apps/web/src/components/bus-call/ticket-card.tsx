@@ -1,12 +1,17 @@
-import type { BookingDraft } from '@ordervoice/contracts'
 import { Armchair as Seat, Bus } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import type { TicketView } from './ticket-view'
 
-const STATUS_LABEL: Record<BookingDraft['status'], string> = {
-  collecting: 'Đang thu thập',
-  trip_proposed: 'Đã đề xuất chuyến',
-  awaiting_confirmation: 'Chờ xác nhận',
-  confirmed: 'Đã giữ vé',
+const TONE_BORDER: Record<TicketView['tone'], string> = {
+  pending: 'border-[var(--hairline)]',
+  issued: 'border-[color-mix(in_srgb,var(--success)_50%,var(--hairline))]',
+  cancelled: 'border-[color-mix(in_srgb,var(--danger)_50%,var(--hairline))]',
+}
+
+const TONE_BADGE: Record<TicketView['tone'], string> = {
+  pending: 'bg-white/15 text-white',
+  issued: 'bg-white text-[var(--success)]',
+  cancelled: 'bg-white text-[var(--danger)]',
 }
 
 /**
@@ -14,15 +19,18 @@ const STATUS_LABEL: Record<BookingDraft['status'], string> = {
  * đứt đoạn có xe ở giữa, đường xé với khấc hai bên, cuống vé mang mã vạch.
  * Mỗi ô lóe sáng + phồng nhẹ khi dữ liệu mới đổ vào (remount qua key); chốt vé
  * thì cuống vé "đóng dấu" và viền chuyển màu thành công.
+ *
+ * Nhận `TicketView` chứ không phải bản nháp trong cuộc gọi, nên cùng một thiết kế
+ * dùng được cho vé đang hình thành lẫn vé đã lưu (xem `ticket-view.ts`).
  */
-export function TicketCard({ booking }: { booking: BookingDraft }) {
-  const confirmed = booking.status === 'confirmed'
+export function TicketCard({ view }: { view: TicketView }) {
+  const issued = view.tone === 'issued'
   return (
     <section
       aria-label="Vé xe"
       className={cn(
         'relative flex flex-col overflow-hidden rounded-3xl border bg-[var(--surface)] shadow-[var(--shadow-panel)] transition-colors duration-500',
-        confirmed ? 'border-[color-mix(in_srgb,var(--success)_50%,var(--hairline))]' : 'border-[var(--hairline)]',
+        TONE_BORDER[view.tone],
       )}
     >
       {/* Dải màu thương hiệu */}
@@ -33,13 +41,8 @@ export function TicketCard({ booking }: { booking: BookingDraft }) {
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/70">Vé xe khách</p>
             <p className="mt-0.5 text-xl font-bold tracking-[-0.02em]">Alove</p>
           </div>
-          <span
-            className={cn(
-              'rounded-full px-2.5 py-1 text-xs font-semibold',
-              confirmed ? 'bg-white text-[var(--success)]' : 'bg-white/15 text-white',
-            )}
-          >
-            {STATUS_LABEL[booking.status]}
+          <span className={cn('rounded-full px-2.5 py-1 text-xs font-semibold', TONE_BADGE[view.tone])}>
+            {view.statusLabel}
           </span>
         </div>
       </div>
@@ -47,24 +50,24 @@ export function TicketCard({ booking }: { booking: BookingDraft }) {
       {/* Hai bến + xe chạy giữa đường kẻ đứt */}
       <div className="px-5 pb-1 pt-5">
         <div className="flex items-center gap-2">
-          <RoutePoint label="Điểm đi" value={booking.origin} />
+          <RoutePoint label="Điểm đi" value={view.origin} />
           <div className="relative mx-1 min-w-14 flex-1" aria-hidden>
             <div className="border-t-2 border-dashed border-[var(--hairline)]" />
             <span className="absolute left-1/2 top-1/2 flex size-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--action-soft)] text-[var(--action)]">
               <Bus size={16} />
             </span>
           </div>
-          <RoutePoint label="Điểm đến" value={booking.destination} align="right" />
+          <RoutePoint label="Điểm đến" value={view.destination} align="right" />
         </div>
       </div>
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3.5 px-5 py-4">
-        <Field label="Ngày đi" value={booking.travelDateLabel} />
-        <Field label="Giờ khởi hành" value={booking.selectedTrip?.departureTime ?? null} />
-        <Field label="Hành khách" value={booking.passengerCount ? `${booking.passengerCount} hành khách` : null} />
-        <Field label="Tổng tiền" value={booking.totalFareVnd === null ? null : formatVnd(booking.totalFareVnd)} />
-        <Field label="Người đi" value={booking.passengerName} />
-        <Field label="Số điện thoại" value={booking.phone} mono />
+        <Field label="Ngày đi" value={view.travelDateLabel} />
+        <Field label="Giờ khởi hành" value={view.departureTime} />
+        <Field label="Hành khách" value={view.passengerCount ? `${view.passengerCount} hành khách` : null} />
+        <Field label="Tổng tiền" value={view.totalFareVnd === null ? null : formatVnd(view.totalFareVnd)} />
+        <Field label="Người đi" value={view.passengerName} />
+        <Field label="Số điện thoại" value={view.phone} mono />
       </dl>
 
       {/* Đường xé vé + khấc hai bên */}
@@ -76,12 +79,18 @@ export function TicketCard({ booking }: { booking: BookingDraft }) {
 
       {/* Cuống vé: mã vạch + mã vé + ghế */}
       <div className="px-5 pb-5 pt-4">
-        {confirmed && booking.bookingCode ? (
-          <div className="animate-stamp-in rounded-2xl bg-[var(--ink)] px-4 py-4 text-[var(--on-ink)]">
+        {view.bookingCode && view.tone !== 'pending' ? (
+          <div
+            className={cn(
+              'animate-stamp-in rounded-2xl bg-[var(--ink)] px-4 py-4 text-[var(--on-ink)]',
+              // Vé đã huỷ vẫn hiện mã để đối chiếu, nhưng phải nhìn là biết không dùng được.
+              !issued && 'opacity-60 grayscale',
+            )}
+          >
             <div className="barcode h-10 w-full opacity-90" aria-hidden />
-            <p className="mt-2.5 text-center font-mono text-lg font-semibold tracking-[0.14em]">{booking.bookingCode}</p>
+            <p className="mt-2.5 text-center font-mono text-lg font-semibold tracking-[0.14em]">{view.bookingCode}</p>
             <p className="mt-1.5 flex items-center justify-center gap-1.5 text-sm opacity-85">
-              <Seat size={15} aria-hidden /> Ghế {booking.seats.join(', ')}
+              <Seat size={15} aria-hidden /> Ghế {view.seats.join(', ')}
             </p>
           </div>
         ) : (
