@@ -74,7 +74,7 @@ _MONEY_RE = re.compile(r"\b(\d{1,3}(?:[.,]\d{3})+|\d{4,})\s*(đồng|đ|vnđ|vnd
 _ISO_DATE_RE = re.compile(r"\b(?:ngày\s+)?(\d{4})-(\d{2})-(\d{2})\b", re.IGNORECASE)
 _TIME_RE = re.compile(r"\b(\d{1,2}):(\d{2})\b")
 # Ngày dạng "19-07" hay "19/07" do định dạng vi-VN sinh ra. Chốt chặn hai đầu để
-# không cắn vào mã vé VD-260719-0009: hai bên không được là chữ số hay dấu nối.
+# không cắn vào mã vé MA-260719-0009: hai bên không được là chữ số hay dấu nối.
 _DAY_MONTH_RE = re.compile(r"(?<![\d\-/])(0?[1-9]|[12]\d|3[01])[-/](0?[1-9]|1[0-2])(?![\d\-/])")
 # "anh/chị", "và/hoặc" — dấu gạch chéo giữa hai chữ bị đọc thành "trên".
 _SLASH_RE = re.compile(r"(?<=[^\W\d_])\s*/\s*(?=[^\W\d_])", re.UNICODE)

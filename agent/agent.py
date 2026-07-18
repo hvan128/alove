@@ -15,6 +15,7 @@ import asyncio
 import json
 import logging
 import os
+import random
 import re
 import sys
 import time
@@ -25,13 +26,11 @@ from typing import Optional
 
 import httpx
 from dotenv import load_dotenv
-from livekit import agents
+from livekit import agents, rtc
 from livekit.agents import (
     Agent,
     AgentServer,
     AgentSession,
-    AudioConfig,
-    BackgroundAudioPlayer,
     JobContext,
     JobProcess,
     RunContext,
@@ -51,6 +50,13 @@ from booking_helpers import (
     build_confirmation_request,
     build_realtime_event,
 )
+from call_lifecycle import terminate_livekit_call
+from provider_config import (
+    non_valsea_warning,
+    resolve_engine_and_stt,
+    validate_required_credentials,
+)
+from valsea_api import ValseaAPIClient
 
 # Load agent/.env by absolute path so engine mode is picked up regardless of cwd.
 load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -59,18 +65,20 @@ logger = logging.getLogger(__name__)
 
 # --- Engine + provider selection -------------------------------------------------
 # cascade = STT -> LLM -> TTS (default). gemini-sts = single Gemini Live S2S model.
-AGENT_ENGINE = os.getenv("AGENT_ENGINE", "cascade").lower()
-# Cascade STT backend: valsea | speechmatics | openai.
-STT_PROVIDER = os.getenv("STT_PROVIDER", "speechmatics").lower()
+AGENT_ENGINE, STT_PROVIDER = resolve_engine_and_stt(
+    os.getenv("AGENT_ENGINE"), os.getenv("STT_PROVIDER")
+)
+# Cascade STT backend: valsea | speechmatics | openai. Gemini does not use this
+# setting, so stale cascade-only STT env cannot block a Gemini worker startup.
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai/gpt-4.1")
 TTS_PROVIDER = os.getenv("TTS_PROVIDER", "cartesia/sonic-3")
 
 # Direct provider keys — when set, the cascade talks to the provider directly
 # (bypasses LiveKit's inference gateway + its credit quota). Absent → gateway string.
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-CARTESIA_API_KEY = os.getenv("CARTESIA_API_KEY", "")
-SPEECHMATICS_API_KEY = os.getenv("SPEECHMATICS_API_KEY", "")
-VALSEA_API_KEY = os.getenv("VALSEA_API_KEY", "")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+CARTESIA_API_KEY = os.getenv("CARTESIA_API_KEY", "").strip()
+SPEECHMATICS_API_KEY = os.getenv("SPEECHMATICS_API_KEY", "").strip()
+VALSEA_API_KEY = os.getenv("VALSEA_API_KEY", "").strip()
 
 # Google Cloud TTS (Chirp3-HD) — preferred TTS when a GCP service account is set:
 # native-ish Vietnamese + true streaming. Provide inline JSON (rides --env-file) or a path.
@@ -82,7 +90,7 @@ GOOGLE_TTS_VOICE = os.getenv("GOOGLE_TTS_VOICE", "Kore")
 # Gemini Live (speech-to-speech) config, only used when AGENT_ENGINE=gemini-sts.
 GEMINI_LIVE_MODEL = os.getenv("GEMINI_LIVE_MODEL", "gemini-2.5-flash-native-audio-latest")
 GEMINI_LIVE_VOICE = os.getenv("GEMINI_LIVE_VOICE", "Puck")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_THINKING = os.getenv("GEMINI_THINKING", "off").lower() == "on"
 GEMINI_END_SENSITIVITY = os.getenv("GEMINI_END_SENSITIVITY", "high").lower()
 GEMINI_SILENCE_MS = int(os.getenv("GEMINI_SILENCE_MS", "400"))
@@ -128,39 +136,41 @@ EVENTS_TOPIC = "alove-events"
 
 ROOM_PREFIX = "booking-"
 
-# Câu đệm lấp đúng chặng mô hình đang nghĩ, đo được 700 tới 970 mili giây. Ghi sẵn
-# bằng chính giọng Chirp3 của agent nên nghe như cùng một người, không phải chèn
-# giọng lạ. Chỉ dùng clip ngắn hơn khoảng nghĩ: clip dài sẽ bị cắt giữa chừng khi
-# agent bắt đầu nói câu thật. Xác suất khác nhau để không lặp mãi một chữ.
-THINKING_SOUNDS = [
-    ("um.wav", 0.30),        # 0.28s
-    ("da.wav", 0.30),        # 0.68s
-    ("da-vang.wav", 0.22),   # 0.88s
-    ("vang.wav", 0.18),      # 1.12s
+# Câu đệm lấp chặng im lặng ngay sau khi khách nói xong. Phát bằng session.say
+# kèm text nên vừa đúng giọng ghi sẵn vừa hiện lên transcript như một lượt nói
+# thật — BackgroundAudioPlayer không làm được điều thứ hai.
+#
+# Bắn ngay lúc lượt khách chốt, KHÔNG chờ mô hình nghĩ xong, nên nó phủ trọn
+# khoảng chờ chứ không phải chỉ phần đuôi.
+THINKING_CLIPS = [
+    ("da.wav", "Dạ."),
+    ("um.wav", "Ừm."),
+    ("da-vang.wav", "Dạ vâng."),
+    ("vang.wav", "Vâng ạ."),
 ]
-THINKING_VOLUME = float(os.getenv("THINKING_VOLUME", "0.85"))
 THINKING_SOUND_ON = os.getenv("THINKING_SOUND", "on").lower() == "on"
+SOUND_SAMPLE_RATE = 24000
 
 
-def thinking_audio() -> list:
-    """AudioConfig cho các câu đệm, bỏ qua clip không tìm thấy."""
+def _load_wav(path: Path) -> Optional[bytes]:
+    """PCM thô của tệp WAV 16-bit mono, bỏ header 44 byte."""
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        logger.warning("không đọc được câu đệm %s: %s", path, exc)
+        return None
+    return raw[44:] if len(raw) > 44 else None
+
+
+def load_thinking_clips() -> list:
     base = Path(__file__).resolve().parent / "sounds"
     clips = []
-    for name, probability in THINKING_SOUNDS:
-        path = base / name
-        if not path.exists():
-            logger.warning("thiếu câu đệm %s", path)
-            continue
-        clips.append(
-            AudioConfig(
-                str(path),
-                volume=THINKING_VOLUME,
-                probability=probability,
-                # Vào/ra mượt để khi bị cắt lúc agent nói không nghe cụt ngủn.
-                fade_in=0.05,
-                fade_out=0.15,
-            )
-        )
+    for name, text in THINKING_CLIPS:
+        pcm = _load_wav(base / name)
+        if pcm:
+            clips.append((text, pcm))
+        else:
+            logger.warning("thiếu câu đệm %s", name)
     return clips
 
 def bus_agent_instructions(today_vn: str) -> str:
@@ -204,11 +214,10 @@ def bus_agent_instructions(today_vn: str) -> str:
         "- hold_seats, confirm_booking, cancel_booking: hệ thống TỰ ĐỌC kết quả cho khách ngay "
         "sau khi công cụ chạy xong. Bạn chỉ cần nói câu báo đang xử lý trước khi gọi, rồi "
         "dừng lại. Đừng nói lại số ghế, giá tiền hay mã vé nữa — khách đã nghe rồi.\n\n"
-        "LẤP KHOẢNG CHỜ:\n"
-        "- Trước khi gọi bất kỳ công cụ nào (tra chuyến, giữ chỗ, xuất vé), hãy nói một câu "
-        "ngắn báo cho khách biết mình đang làm gì rồi hãy gọi: \"Dạ anh chờ em chút, em kiểm "
-        "tra chuyến ạ\", \"Vâng để em giữ chỗ cho mình nhé\", \"Dạ em đang xuất vé ạ\". "
-        "Đổi cách nói mỗi lần. Việc này giúp khách không phải nghe im lặng lúc hệ thống tra cứu.\n\n"
+        "IM LẶNG KHI GỌI CÔNG CỤ:\n"
+        "- Trước khi gọi công cụ, ĐỪNG nói gì cả. Hệ thống đã tự phát câu đệm ngay khi khách "
+        "vừa dứt lời, nên bạn nói thêm 'em kiểm tra nhé' nữa là khách phải nghe hai câu chờ "
+        "rồi mới tới kết quả. Cứ gọi công cụ, có kết quả thì nói luôn.\n\n"
         "CÁCH ĐỌC SỐ VÀ NGÀY:\n"
         "- Viết tiền bằng chữ số kèm \"đồng\" (ví dụ 530.000 đồng), hệ thống sẽ tự đọc thành lời.\n"
         "- Nói ngày kiểu người Việt: \"ngày 20 tháng 7\", không đọc dạng năm-tháng-ngày.\n"
@@ -276,6 +285,8 @@ def detect_sip_caller(room) -> tuple[str, Optional[str]]:
 # of it inside the caller's wait for a reply. Keep-alive drops that to the round
 # trip alone.
 _http_client: Optional[httpx.AsyncClient] = None
+_valsea_http_client: Optional[httpx.AsyncClient] = None
+_valsea_api_client: Optional[ValseaAPIClient] = None
 _background_tasks: set[asyncio.Task] = set()
 
 
@@ -295,6 +306,44 @@ def api_client() -> httpx.AsyncClient:
             limits=httpx.Limits(max_keepalive_connections=4, keepalive_expiry=300.0),
         )
     return _http_client
+
+
+def valsea_annotation_client() -> Optional[ValseaAPIClient]:
+    """Return a lazy keep-alive client when advisory annotations are configured."""
+    global _valsea_http_client, _valsea_api_client
+    if not VALSEA_API_KEY:
+        return None
+    if _valsea_http_client is None or _valsea_http_client.is_closed:
+        _valsea_http_client = httpx.AsyncClient(
+            timeout=3.0,
+            limits=httpx.Limits(max_keepalive_connections=2, keepalive_expiry=300.0),
+        )
+        _valsea_api_client = ValseaAPIClient(
+            api_key=VALSEA_API_KEY,
+            http_client=_valsea_http_client,
+        )
+    return _valsea_api_client
+
+
+async def annotate_final_customer_transcript(agent, source_transcript: str) -> None:
+    """Publish advisory VALSEA evidence without touching conversation/booking state."""
+    try:
+        client = valsea_annotation_client()
+        if client is None:
+            return
+        annotation = await client.annotate(source_transcript)
+        payload: dict = {
+            "type": "semantic.annotation",
+            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "sourceTranscript": source_transcript,
+            "tags": [tag.display for tag in annotation.semantic_tags],
+            "annotations": [item.display for item in annotation.annotations],
+        }
+        if annotation.text != source_transcript:
+            payload["correctedText"] = annotation.text
+        await agent._publish(payload)
+    except Exception as exc:  # noqa: BLE001 — advisory evidence must never break a call
+        logger.warning("VALSEA annotation failed: %s", exc)
 
 
 async def post_call_event(
@@ -395,11 +444,18 @@ def _cascade_stt(language: str):
     openai      : OpenAI realtime transcription.
     """
     if STT_PROVIDER == "valsea":
+        if not VALSEA_API_KEY:
+            raise ValueError("VALSEA_API_KEY is required when STT_PROVIDER=valsea")
         from valsea_stt import VALSEASTT
-        return VALSEASTT(language=("en" if language == "en" else "vi"))
-    if STT_PROVIDER == "openai" and OPENAI_API_KEY:
+        return VALSEASTT(
+            api_key=VALSEA_API_KEY,
+            language=("en" if language == "en" else "vi"),
+        )
+    if STT_PROVIDER == "openai":
+        if not OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY is required when STT_PROVIDER=openai")
         return _openai_stt(language)
-    # speechmatics (default)
+    # speechmatics (explicit A/B route)
     locale = "en" if language == "en" else "vi"
     if not SPEECHMATICS_API_KEY:
         return f"speechmatics/enhanced:{locale}"
@@ -420,6 +476,13 @@ def _turn_detector():
 
 
 def build_agent_session(language: str, vad=None) -> AgentSession:
+    validate_required_credentials(
+        AGENT_ENGINE,
+        STT_PROVIDER,
+        valsea_api_key=VALSEA_API_KEY,
+        openai_api_key=OPENAI_API_KEY,
+        gemini_api_key=GEMINI_API_KEY,
+    )
     if AGENT_ENGINE == "gemini-sts":
         logger.info("Engine: gemini-sts (model=%s voice=%s)", GEMINI_LIVE_MODEL, GEMINI_LIVE_VOICE)
         end_sens = (
@@ -449,7 +512,7 @@ def build_agent_session(language: str, vad=None) -> AgentSession:
     # and a log that names the wrong provider sends every debug down a dead end.
     stt_route = (
         "valsea" if STT_PROVIDER == "valsea"
-        else "openai" if (STT_PROVIDER == "openai" and OPENAI_API_KEY)
+        else "openai" if STT_PROVIDER == "openai"
         else "speechmatics+openai-fallback" if (SPEECHMATICS_API_KEY and OPENAI_API_KEY)
         else "speechmatics" if SPEECHMATICS_API_KEY
         else "gateway"
@@ -463,6 +526,9 @@ def build_agent_session(language: str, vad=None) -> AgentSession:
         "Engine: cascade (stt=%s llm=%s tts=%s turn_detector=%s)",
         stt_route, "direct" if OPENAI_API_KEY else "gateway", tts_route, CASCADE_TURN_DETECTOR,
     )
+    warning = non_valsea_warning(STT_PROVIDER)
+    if warning:
+        logger.warning(warning)
     turn_handling: dict = {
         "endpointing": {"min_delay": CASCADE_MIN_ENDPOINTING_DELAY, "max_delay": CASCADE_MAX_ENDPOINTING_DELAY},
         "interruption": {"min_duration": CASCADE_MIN_INTERRUPTION_DURATION, "min_words": CASCADE_MIN_INTERRUPTION_WORDS},
@@ -498,6 +564,8 @@ class BusBookingAgent(Agent):
         # what the caller is being told.
         self._selected_trip: Optional[dict] = None
         self._offers: dict[str, dict] = {}
+        self._thinking_clips = load_thinking_clips() if THINKING_SOUND_ON else []
+        self._last_filler: Optional[str] = None
         # Epoch-millisecond buckets keep ordering monotonic across a worker
         # redispatch/restart; the final three digits order same-process events.
         self._event_sequence = (time.time_ns() // 1_000_000) * 1_000
@@ -511,6 +579,39 @@ class BusBookingAgent(Agent):
             (time.time_ns() // 1_000_000) * 1_000,
         )
         return self._event_sequence
+
+    async def on_user_turn_completed(self, turn_ctx, new_message) -> None:
+        """Phát câu đệm ngay khi lượt khách chốt, trước cả khi mô hình kịp nghĩ.
+
+        Đặt ở đây chứ không bám trạng thái "đang nghĩ" của phiên: trạng thái đó
+        vào lần thứ hai sau khi agent vừa nói câu báo đang tra cứu, nên câu đệm
+        chen vào giữa hai câu của chính agent, nghe rất giả."""
+        if not self._thinking_clips:
+            return
+        choices = [c for c in self._thinking_clips if c[0] != self._last_filler] or self._thinking_clips
+        text, pcm = random.choice(choices)
+        self._last_filler = text
+
+        async def frames():
+            step = SOUND_SAMPLE_RATE * 2 // 10  # khung 100ms
+            for start in range(0, len(pcm), step):
+                chunk = pcm[start:start + step]
+                if len(chunk) < 2:
+                    continue
+                yield rtc.AudioFrame(
+                    data=chunk,
+                    sample_rate=SOUND_SAMPLE_RATE,
+                    num_channels=1,
+                    samples_per_channel=len(chunk) // 2,
+                )
+
+        try:
+            # add_to_chat_ctx=False: câu đệm không phải nội dung hội thoại, đưa vào
+            # ngữ cảnh chỉ làm mô hình tưởng mình đã trả lời rồi.
+            self.session.say(text, audio=frames(), allow_interruptions=True,
+                             add_to_chat_ctx=False)
+        except Exception as exc:  # noqa: BLE001 — câu đệm hỏng không được làm chết lượt
+            logger.warning("không phát được câu đệm: %s", exc)
 
     async def tts_node(self, text, model_settings):
         """Chuẩn hoá ngay trước khi tổng hợp giọng.
@@ -808,7 +909,10 @@ class BusBookingAgent(Agent):
         self._ended = True
         handle = context.speech_handle
         try:
-            await handle.wait_for_playout()
+            # LiveKit 1.6 forbids awaiting the owning SpeechHandle from inside
+            # its function tool (that is a circular wait). RunContext exposes
+            # the pre-tool playout boundary specifically for this case.
+            await context.wait_for_playout()
         except Exception:
             pass
         spoke = False
@@ -826,6 +930,10 @@ class BusBookingAgent(Agent):
             except Exception as exc:
                 logger.warning("closing line failed: %s", exc)
         await self._publish({"type": "call.end"})
+        # StopResponse only stops model generation. Deleting the LiveKit room is
+        # what disconnects every remote participant, including an inbound SIP
+        # caller; then shut down the worker job so its audit callbacks run.
+        await terminate_livekit_call(agents.get_job_context())
         raise StopResponse()
 
 
@@ -859,8 +967,6 @@ async def entrypoint(ctx: JobContext):
 
         ctx.add_shutdown_callback(_post_call_ended)
 
-    # The model resolves "mai" / "thứ sáu tuần này" itself, so it needs today's
-    # date in Vietnam time — the worker runs UTC.
     today_vn = datetime.now(timezone(timedelta(hours=7))).strftime("%d/%m/%Y")
     agent = BusBookingAgent(conversation_id=conversation_id, room=ctx.room, today_vn=today_vn)
     session = build_agent_session("vi", vad=ctx.proc.userdata.get("vad"))
@@ -893,6 +999,10 @@ async def entrypoint(ctx: JobContext):
                     text=text,
                 )
             )
+            if audit_role == "customer":
+                # Annotation is advisory and deliberately runs after the final
+                # transcript has claimed its ordered sequence number.
+                schedule_background(annotate_final_customer_transcript(agent, text))
 
     session.on("conversation_item_added", _on_conversation_item_added)
 
@@ -987,21 +1097,6 @@ async def entrypoint(ctx: JobContext):
             audio_input=room_io.AudioInputOptions(noise_cancellation=cancellation),
         ),
     )
-
-    # Câu đệm: BackgroundAudioPlayer tự phát khi phiên vào trạng thái "đang nghĩ"
-    # (lượt khách đã chốt, mô hình đang sinh câu) và tự tắt ngay khi agent cất
-    # tiếng. Đúng chặng im lặng thật; chặng chờ chốt lượt tuyệt đối không chèn gì
-    # vì khách có thể còn đang nói dở.
-    if THINKING_SOUND_ON:
-        clips = thinking_audio()
-        if clips:
-            player = BackgroundAudioPlayer(thinking_sound=clips)
-            try:
-                await player.start(room=ctx.room, agent_session=session)
-                ctx.add_shutdown_callback(player.aclose)
-                logger.info("Câu đệm: %d clip, âm lượng %.2f", len(clips), THINKING_VOLUME)
-            except Exception as exc:  # noqa: BLE001 — câu đệm hỏng không được làm chết cuộc gọi
-                logger.warning("không bật được câu đệm: %s", exc)
 
     # AI speaks first — greet AFTER the session is live so the greeting isn't dropped.
     await session.generate_reply(
