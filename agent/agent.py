@@ -131,8 +131,11 @@ def bus_agent_instructions(today_vn: str) -> str:
         "- ĐỪNG XÁC NHẬN LẠI SAU MỖI THÔNG TIN. Nghe xong thì đi tiếp. Chỉ xác nhận ở ba "
         "chỗ có rủi ro thật: khi khách đổi hẳn điểm đến, trước khi chốt vé, và sau khi đặt "
         "xong. Xác nhận từng ly từng tí nghe như máy hỏi cung.\n"
-        "- Biết tên khách rồi thì gọi thẳng tên và giữ một cách xưng hô (\"anh Văn\"), đừng "
-        "quay lại \"anh chị\". Chưa biết giới tính thì \"anh chị\" một lần rồi thôi.\n"
+        "- CHỈ gọi tên khách khi chính khách đã nói tên trong cuộc gọi này. Khách chưa xưng "
+        "tên thì tuyệt đối không được gọi bằng tên nào cả — không suy đoán, không lấy tên ở "
+        "đâu khác. Gọi nhầm tên người lạ là hỏng cả cuộc gọi.\n"
+        "- Khi khách đã cho tên rồi thì dùng tên đó nhất quán, đừng quay lại \"anh chị\". "
+        "Chưa biết giới tính thì \"anh chị\" một lần rồi thôi.\n"
         "- Đừng mở đầu câu nào cũng \"Dạ\". Xen kẽ, hoặc vào thẳng nội dung.\n"
         "- Không dùng từ của phần mềm khi nói với khách: đừng nói \"loại xe không chọn lọc\", "
         "\"bộ lọc\", \"hệ thống\". Nói như người: \"xe nào cũng được\".\n"
@@ -185,7 +188,11 @@ def bus_agent_instructions(today_vn: str) -> str:
 
 # Spoken when the booking backend is unreachable — never leave the caller in silence.
 BACKEND_ERROR_REPLY = "Dạ xin lỗi anh chị, hệ thống đặt vé đang bận, anh chị chờ em một chút ạ."
-CLOSING_LINE = "Dạ cảm ơn anh chị đã đặt vé nhà xe Mai Anh qua Alove. Chúc anh chị đi đường bình an ạ!"
+# Hai câu kết khác nhau. Câu cảm ơn đã đặt vé từng được đọc cho cả khách bỏ
+# ngang giữa chừng — khách vừa nói "bỏ" mà tổng đài chúc đi đường bình an thì
+# lộ ngay là máy đọc kịch bản. Chọn theo việc có vé thật hay không.
+CLOSING_BOOKED = "Dạ cảm ơn anh chị đã đặt vé nhà xe Mai Anh. Chúc anh chị đi đường bình an ạ!"
+CLOSING_NO_BOOKING = "Dạ vâng, cảm ơn anh chị đã gọi nhà xe Mai Anh. Khi nào cần anh chị cứ gọi lại nhé ạ."
 
 
 def conversation_id_from_room(room_name: str) -> Optional[str]:
@@ -390,6 +397,8 @@ class BusBookingAgent(Agent):
         self._conversation_id = conversation_id
         self._room = room
         self._ended = False
+        # Chỉ bật khi confirm_booking thật sự ra vé, dùng để chọn câu kết.
+        self._booked = False
         # Last offers/hold, mirrored to the browser so the ticket card matches
         # what the caller is being told.
         self._selected_trip: Optional[dict] = None
@@ -566,6 +575,7 @@ class BusBookingAgent(Agent):
         if data is None:
             return {"error": "backend_unavailable"}
         if data.get("confirmed"):
+            self._booked = True
             await self._publish({
                 "type": "booking.update",
                 "booking": self._draft_payload(
@@ -649,7 +659,8 @@ class BusBookingAgent(Agent):
             pass
         if not spoke:
             try:
-                await context.session.say(CLOSING_LINE, allow_interruptions=False)
+                closing = CLOSING_BOOKED if self._booked else CLOSING_NO_BOOKING
+                await context.session.say(closing, allow_interruptions=False)
             except Exception as exc:
                 logger.warning("closing line failed: %s", exc)
         await self._publish({"type": "call.end"})
