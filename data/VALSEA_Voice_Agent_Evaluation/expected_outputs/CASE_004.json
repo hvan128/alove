@@ -1,0 +1,470 @@
+{
+  "schema_version": "1.0",
+  "case_id": "CASE_004",
+  "title": "Cặp đôi so sánh ba loại xe rồi nâng cấp phòng VIP",
+  "metadata": {
+    "scenario_type": "core_booking",
+    "customer_region": "Hà Nội",
+    "audio_conditions": [
+      "clean_hotline"
+    ],
+    "languages": [
+      "vi"
+    ],
+    "difficulty": "medium",
+    "call_datetime": "2026-07-18T15:00:00+07:00",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "coverage_tags": [
+      "vehicle_choice",
+      "change_options",
+      "vip"
+    ]
+  },
+  "turn_expectations": [
+    {
+      "turn": 1,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "GREET_AND_DISCOVER",
+        "missing_fields": [
+          "departure_time"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "origin": "Hà Nội",
+          "destination": "Nghệ An",
+          "travel_date": "2026-07-20",
+          "passenger_count": 2
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 2,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "SEARCH_TRIPS",
+        "missing_fields": [],
+        "arguments": {
+          "origin": "Hà Nội",
+          "destination": "Nghệ An",
+          "travel_date": "2026-07-20",
+          "passenger_count": 2
+        },
+        "expected_result": {
+          "trip_ids": [
+            "HN-NA-20260720-2000-VIP21",
+            "HN-NA-20260720-2130-GN34",
+            "HN-NA-20260720-2215-GN38"
+          ]
+        }
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 3,
+      "action": {
+        "intent": "ASK_INFORMATION",
+        "action": "PRESENT_TRIP_OPTIONS",
+        "missing_fields": [
+          "trip_id"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 4,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "seat_preference"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "departure_time": "22:15",
+          "trip_id": "HN-NA-20260720-2215-GN38",
+          "vehicle_type": "Giường nằm 38 chỗ"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 5,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "PRESENT_TRIP_OPTIONS",
+        "missing_fields": [
+          "assigned_seats"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "seat_preference": "Hai ghế tầng dưới liền nhau"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 6,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "HOLD_SEATS",
+        "missing_fields": [],
+        "arguments": {
+          "trip_id": "HN-NA-20260720-2215-GN38",
+          "passenger_count": 2,
+          "seat_preference": "Hai ghế tầng dưới liền nhau"
+        },
+        "expected_result": {
+          "assigned_seats": [
+            "B01",
+            "B02"
+          ],
+          "unit_fare_vnd": 340000,
+          "total_fare_vnd": 680000
+        }
+      },
+      "state_update": {
+        "set": {
+          "assigned_seats": [
+            "B01",
+            "B02"
+          ]
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 7,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "seat_preference",
+          "assigned_seats"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "departure_time": "20:00",
+          "trip_id": "HN-NA-20260720-2000-VIP21",
+          "vehicle_type": "Limousine 21 Phòng VIP"
+        },
+        "clear": [
+          "seat_preference",
+          "assigned_seats"
+        ]
+      }
+    },
+    {
+      "turn": 8,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "HOLD_SEATS",
+        "missing_fields": [],
+        "arguments": {
+          "trip_id": "HN-NA-20260720-2000-VIP21",
+          "passenger_count": 2,
+          "seat_preference": "Hai phòng tầng dưới liền nhau"
+        },
+        "expected_result": {
+          "assigned_seats": [
+            "A01",
+            "A02"
+          ],
+          "unit_fare_vnd": 530000,
+          "total_fare_vnd": 1060000
+        }
+      },
+      "state_update": {
+        "set": {
+          "seat_preference": "Hai phòng tầng dưới liền nhau",
+          "assigned_seats": [
+            "A01",
+            "A02"
+          ]
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 9,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PASSENGER_DETAILS",
+        "missing_fields": [
+          "pickup_location"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "customer_name": "Đỗ Thành Nam",
+          "passenger_details": [
+            {
+              "name": "Đỗ Thành Nam",
+              "type": "ADULT",
+              "seat": "A01"
+            },
+            {
+              "name": "Nguyễn Ngọc Mai",
+              "type": "ADULT",
+              "seat": "A02"
+            }
+          ]
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 10,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "dropoff_location"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "pickup_location": "Văn phòng Hà Nội"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 11,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "customer_phone",
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "dropoff_location": "Văn phòng Vinh"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 12,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PASSENGER_DETAILS",
+        "missing_fields": [
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "customer_phone": "0945678904"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 13,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PAYMENT_PREFERENCE",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "payment_method": "QR",
+          "payment_status": "PENDING"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 14,
+      "action": {
+        "intent": "ASK_INFORMATION",
+        "action": "ANSWER_AND_REDIRECT",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 15,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 16,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "explicit_confirmation": true
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 17,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_BOOKING",
+        "missing_fields": [],
+        "arguments": {
+          "trip_id": "HN-NA-20260720-2000-VIP21",
+          "customer_name": "Đỗ Thành Nam",
+          "customer_phone": "0945678904"
+        },
+        "expected_result": {
+          "booking_id": "VA-CASE_004",
+          "booking_status": "CONFIRMED"
+        }
+      },
+      "state_update": {
+        "set": {
+          "booking_id": "VA-CASE_004",
+          "booking_status": "CONFIRMED"
+        },
+        "clear": []
+      }
+    }
+  ],
+  "final_state": {
+    "origin": "Hà Nội",
+    "destination": "Nghệ An",
+    "travel_date": "2026-07-20",
+    "departure_time": "20:00",
+    "trip_id": "HN-NA-20260720-2000-VIP21",
+    "passenger_count": 2,
+    "vehicle_type": "Limousine 21 Phòng VIP",
+    "seat_preference": "Hai phòng tầng dưới liền nhau",
+    "assigned_seats": [
+      "A01",
+      "A02"
+    ],
+    "pickup_location": "Văn phòng Hà Nội",
+    "dropoff_location": "Văn phòng Vinh",
+    "customer_name": "Đỗ Thành Nam",
+    "customer_phone": "0945678904",
+    "passenger_details": [
+      {
+        "name": "Đỗ Thành Nam",
+        "type": "ADULT",
+        "seat": "A01"
+      },
+      {
+        "name": "Nguyễn Ngọc Mai",
+        "type": "ADULT",
+        "seat": "A02"
+      }
+    ],
+    "payment_method": "QR",
+    "payment_status": "PENDING",
+    "booking_id": "VA-CASE_004",
+    "booking_status": "CONFIRMED",
+    "explicit_confirmation": true
+  },
+  "final_workflow_output": {
+    "customer": {
+      "name": "Đỗ Thành Nam",
+      "phone": "0945678904"
+    },
+    "passengers": {
+      "count": 2,
+      "details": [
+        {
+          "name": "Đỗ Thành Nam",
+          "type": "ADULT",
+          "seat": "A01"
+        },
+        {
+          "name": "Nguyễn Ngọc Mai",
+          "type": "ADULT",
+          "seat": "A02"
+        }
+      ]
+    },
+    "trip": {
+      "trip_id": "HN-NA-20260720-2000-VIP21",
+      "origin": "Hà Nội",
+      "destination": "Nghệ An",
+      "travel_date": "2026-07-20",
+      "departure_time": "20:00",
+      "arrival_time": "01:00"
+    },
+    "vehicle": {
+      "type": "Limousine 21 Phòng VIP",
+      "seat_preference": "Hai phòng tầng dưới liền nhau",
+      "assigned_seats": [
+        "A01",
+        "A02"
+      ]
+    },
+    "pickup_dropoff": {
+      "pickup_location": "Văn phòng Hà Nội",
+      "dropoff_location": "Văn phòng Vinh"
+    },
+    "payment": {
+      "method": "QR",
+      "status": "PENDING",
+      "unit_fare_vnd": 530000,
+      "total_fare_vnd": 1060000
+    },
+    "booking": {
+      "booking_id": "VA-CASE_004",
+      "booking_status": "CONFIRMED"
+    },
+    "outcome": {
+      "completed_goal": true,
+      "confirmation_turn": 16
+    }
+  }
+}

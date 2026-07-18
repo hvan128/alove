@@ -1,42 +1,47 @@
-# Feature Specification — VéĐi
+# Feature Specification — Alove
 
-## F-01: Two-sided Web Call
+## F-01: LiveKit-only call
 
-`/console` shows `Phía khách hàng` and `Nhân viên chăm sóc` together. Start/end state and elapsed time are shared. Copy explicitly states that the demo runs in one browser.
+`/` và `/console` mở cùng một luồng LiveKit. Token endpoint tạo room/identity ở
+server. Thiếu cấu hình hiển thị lỗi có thể hành động; không có zero-key fallback.
 
-## F-02: Human and automatic modes
+## F-02: Authoritative trip search
 
-The mode selector offers `Nhân viên` and `Agent tự động`. Human mode never sends an automatic reply. Auto mode responds after each final customer message. Switching to human stops later automation and keeps current state.
+Agent chỉ mời trip active trong Neon, đúng chiều tuyến/ngày và đủ ghế còn hiệu
+lực. Hold hết hạn được coi là available.
 
-## F-03: Guaranteed customer input
+## F-03: Atomic seat hold và confirmation
 
-Customer text and four ordered demo presets always work. Browser speech recognition may provide Vietnamese interim/final text when supported. Unsupported or denied recognition never blocks the demo.
+Hai caller không thể giữ cùng ghế. Đổi chuyến/số lượng trả hold cũ. Confirm chỉ
+nhận hold chưa hết hạn, explicit confirmation và idempotency key của call/trip.
 
-## F-04: Deterministic booking agent
+## F-04: Ticket result
 
-The agent supports Sài Gòn → Đà Lạt, 1–6 passengers, evening travel, static trip proposals, passenger name/phone and explicit confirmation. Unknown input produces one safe clarification. Replies remain compact enough for speech.
+Booking confirmed hiển thị mã vé, trip, hành khách, ghế, tổng tiền và QR từ
+server snapshot đã validate. UI không tự tạo mã hoặc giá.
 
-## F-05: Human customer care
+## F-05: Secure lookup/cancel
 
-Staff can send a text reply, speak it through device TTS, use a suggested response and take over from auto mode. Staff sees the same transcript and current booking facts.
+Booking của cuộc gọi cũ cần cả code và phone khớp. Booking vừa tạo có thể hủy
+trong chính call ID. Cancel và release seats là một thao tác atomic.
 
-## F-06: Evidence-backed draft
+## F-06: Persisted call audit
 
-Origin, destination, date, passenger count, selected trip and passenger data retain customer-message IDs. Missing required values keep the draft in `collecting` or `awaiting_confirmation`.
+Call lifecycle, transcript final và booking snapshot được ghi idempotent từ agent,
+với bounded retry. Không lưu partial transcript hoặc raw audio; external durable
+queue chưa nằm trong phạm vi hiện tại.
 
-## F-07: Confirmation invariant
+## F-07: Operations dashboard
 
-Booking confirmation requires selected trip, passenger count, passenger name, valid Vietnamese mobile number, enough seats and explicit customer/staff action. Repeated confirmation reuses one booking code.
+Dashboard có authentication, danh sách/detail call, persisted transcript, booking
+projection và observer token subscribe-only cho call đang active.
 
-## F-08: Audible reply
+## F-08: Readiness
 
-Agent/staff replies can use `speechSynthesis` with `vi-VN`. Audio follows a user-triggered flow, has visible replay/stop controls, and degrades to readable text.
+Health/readiness kiểm tra database, LiveKit và server secrets cần thiết. Production
+không được báo healthy khi booking không thể hoạt động.
 
-## F-09: LiveKit pilot seam
+## F-09: Responsive and accessible UI
 
-This release does not use or claim LiveKit. Pilot architecture uses a server-only token endpoint, LiveKit room transport and a named agent worker after credentials exist. Booking intelligence remains transport-independent.
-
-## F-10: Design system
-
-`/design-system` documents VéĐi semantic colors, type, buttons, inputs, mode/status controls, conversation bubbles and booking facts. Console remains responsive and reduced-motion safe.
-
+Call overlay trap/restore focus, hỗ trợ reduced motion, mobile ticket sheet và
+trạng thái lỗi mic/kết nối đọc được bằng assistive technology.

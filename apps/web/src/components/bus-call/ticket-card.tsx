@@ -1,11 +1,11 @@
-import type { BookingDraft } from '@ordervoice/contracts'
+import type { BookingSnapshot } from '@/lib/call-contract'
 import { BookingForm } from './booking-form'
 
 /**
  * Hai giai đoạn của một cuộc đặt vé. Trong lúc gọi là phiếu ghi nhận điền dần
  * theo lời nói; chốt xong thì vé giấy nhiệt được "in" ra thế chỗ.
  */
-export function TicketCard({ booking }: { booking: BookingDraft }) {
+export function TicketCard({ booking }: { booking: BookingSnapshot }) {
   const printed = booking.status === 'confirmed' && booking.bookingCode !== null
 
   return (
@@ -23,7 +23,7 @@ export function TicketCard({ booking }: { booking: BookingDraft }) {
  * trườn ra từ khe máy in theo từng nấc, đầu in quét dọc một lượt, rồi con dấu
  * "đã thu tiền" đóng xuống.
  */
-function PrintedTicket({ booking }: { booking: BookingDraft }) {
+function PrintedTicket({ booking }: { booking: BookingSnapshot }) {
   const serial = booking.id.replace(/[^a-z0-9]/giu, '').slice(-6).toUpperCase() || '000000'
 
   return (

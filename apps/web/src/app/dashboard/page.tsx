@@ -18,7 +18,13 @@ import {
 import { KpiCard } from '@/components/dashboard/kpi-card'
 import { BrandMark } from '@/components/ui/brand-mark'
 import { TextInput } from '@/components/ui/input'
-import { DASHBOARD_COOKIE, dashboardAccessKey, hasDashboardCookie, keyMatches } from '@/lib/dashboard-auth'
+import {
+  createDashboardSession,
+  DASHBOARD_COOKIE,
+  dashboardAccessKey,
+  hasDashboardCookie,
+  keyMatches,
+} from '@/lib/dashboard-auth'
 import { formatCompactVnd, formatPercent, formatVnd } from '@/lib/dashboard-format'
 import {
   getDashboardMetrics,
@@ -55,7 +61,7 @@ async function login(formData: FormData) {
   'use server'
   if (keyMatches(String(formData.get('key') ?? ''))) {
     const store = await cookies()
-    store.set(DASHBOARD_COOKIE, dashboardAccessKey() as string, {
+    store.set(DASHBOARD_COOKIE, createDashboardSession(), {
       httpOnly: true,
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
@@ -78,7 +84,7 @@ export default async function DashboardPage({
         <BrandMark className="mx-auto size-12" />
         <h1 className="mt-5 text-section font-semibold tracking-[-0.03em] text-[var(--ink)]">Dashboard chưa được bật</h1>
         <p className="mt-2 text-ui leading-6 text-[var(--muted)]">
-          Đặt biến môi trường <code className="font-mono text-[var(--ink)]">DASHBOARD_ACCESS_KEY</code> (tối thiểu 8 ký
+          Đặt biến môi trường <code className="font-mono text-[var(--ink)]">DASHBOARD_ACCESS_KEY</code> (tối thiểu 32 ký
           tự) để mở dashboard giám sát cuộc gọi.
         </p>
       </AuthShell>

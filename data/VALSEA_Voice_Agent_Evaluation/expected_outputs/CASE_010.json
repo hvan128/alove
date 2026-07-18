@@ -1,0 +1,452 @@
+{
+  "schema_version": "1.0",
+  "case_id": "CASE_010",
+  "title": "Khách sửa tên dễ nhầm và một số điện thoại trước recap",
+  "metadata": {
+    "scenario_type": "core_booking",
+    "customer_region": "Sài Gòn",
+    "audio_conditions": [
+      "clean_hotline"
+    ],
+    "languages": [
+      "vi"
+    ],
+    "difficulty": "medium",
+    "call_datetime": "2026-07-18T20:05:00+07:00",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "coverage_tags": [
+      "identity_correction",
+      "phone_correction",
+      "booking_confirmation"
+    ]
+  },
+  "turn_expectations": [
+    {
+      "turn": 1,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "GREET_AND_DISCOVER",
+        "missing_fields": [
+          "departure_time"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "origin": "Sài Gòn",
+          "destination": "Đà Lạt",
+          "travel_date": "2026-07-20",
+          "passenger_count": 1
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 2,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "SEARCH_TRIPS",
+        "missing_fields": [],
+        "arguments": {
+          "origin": "Sài Gòn",
+          "destination": "Đà Lạt",
+          "travel_date": "2026-07-20",
+          "passenger_count": 1
+        },
+        "expected_result": {
+          "trip_ids": [
+            "SG-DL-20260720-2200-GN34"
+          ]
+        }
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 3,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "seat_preference"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "departure_time": "22:00",
+          "trip_id": "SG-DL-20260720-2200-GN34",
+          "vehicle_type": "Giường nằm 34 chỗ"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 4,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "HOLD_SEATS",
+        "missing_fields": [],
+        "arguments": {
+          "trip_id": "SG-DL-20260720-2200-GN34",
+          "passenger_count": 1,
+          "seat_preference": "Tầng dưới, phía trước"
+        },
+        "expected_result": {
+          "assigned_seats": [
+            "B01"
+          ],
+          "unit_fare_vnd": 320000,
+          "total_fare_vnd": 320000
+        }
+      },
+      "state_update": {
+        "set": {
+          "seat_preference": "Tầng dưới, phía trước",
+          "assigned_seats": [
+            "B01"
+          ]
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 5,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PASSENGER_DETAILS",
+        "missing_fields": [
+          "customer_phone"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "customer_name": "Trần Gia Huy",
+          "passenger_details": [
+            {
+              "name": "Trần Gia Huy",
+              "type": "ADULT",
+              "seat": "B01"
+            }
+          ]
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 6,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PASSENGER_DETAILS",
+        "missing_fields": [
+          "pickup_location",
+          "dropoff_location",
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "customer_phone": "0934567812"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 7,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "pickup_location",
+          "dropoff_location",
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "customer_name": "Trần Gia Hy",
+          "passenger_details": [
+            {
+              "name": "Trần Gia Hy",
+              "type": "ADULT",
+              "seat": "B01"
+            }
+          ]
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 8,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "pickup_location",
+          "dropoff_location",
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "customer_phone": "0934567813"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 9,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "dropoff_location",
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "pickup_location": "Ngã tư Hàng Xanh"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 10,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "dropoff_location": "Chợ Đà Lạt"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 11,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PAYMENT_PREFERENCE",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "payment_method": "QR",
+          "payment_status": "PENDING"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 12,
+      "action": {
+        "intent": "ASK_INFORMATION",
+        "action": "ANSWER_AND_REDIRECT",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 13,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 14,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 15,
+      "action": {
+        "intent": "ASK_INFORMATION",
+        "action": "ANSWER_AND_REDIRECT",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 16,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 17,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "explicit_confirmation": true
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 18,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_BOOKING",
+        "missing_fields": [],
+        "arguments": {
+          "trip_id": "SG-DL-20260720-2200-GN34",
+          "customer_name": "Trần Gia Hy",
+          "customer_phone": "0934567813"
+        },
+        "expected_result": {
+          "booking_id": "VA-CASE_010",
+          "booking_status": "CONFIRMED"
+        }
+      },
+      "state_update": {
+        "set": {
+          "booking_id": "VA-CASE_010",
+          "booking_status": "CONFIRMED"
+        },
+        "clear": []
+      }
+    }
+  ],
+  "final_state": {
+    "origin": "Sài Gòn",
+    "destination": "Đà Lạt",
+    "travel_date": "2026-07-20",
+    "departure_time": "22:00",
+    "trip_id": "SG-DL-20260720-2200-GN34",
+    "passenger_count": 1,
+    "vehicle_type": "Giường nằm 34 chỗ",
+    "seat_preference": "Tầng dưới, phía trước",
+    "assigned_seats": [
+      "B01"
+    ],
+    "pickup_location": "Ngã tư Hàng Xanh",
+    "dropoff_location": "Chợ Đà Lạt",
+    "customer_name": "Trần Gia Hy",
+    "customer_phone": "0934567813",
+    "passenger_details": [
+      {
+        "name": "Trần Gia Hy",
+        "type": "ADULT",
+        "seat": "B01"
+      }
+    ],
+    "payment_method": "QR",
+    "payment_status": "PENDING",
+    "booking_id": "VA-CASE_010",
+    "booking_status": "CONFIRMED",
+    "explicit_confirmation": true
+  },
+  "final_workflow_output": {
+    "customer": {
+      "name": "Trần Gia Hy",
+      "phone": "0934567813"
+    },
+    "passengers": {
+      "count": 1,
+      "details": [
+        {
+          "name": "Trần Gia Hy",
+          "type": "ADULT",
+          "seat": "B01"
+        }
+      ]
+    },
+    "trip": {
+      "trip_id": "SG-DL-20260720-2200-GN34",
+      "origin": "Sài Gòn",
+      "destination": "Đà Lạt",
+      "travel_date": "2026-07-20",
+      "departure_time": "22:00",
+      "arrival_time": "05:30"
+    },
+    "vehicle": {
+      "type": "Giường nằm 34 chỗ",
+      "seat_preference": "Tầng dưới, phía trước",
+      "assigned_seats": [
+        "B01"
+      ]
+    },
+    "pickup_dropoff": {
+      "pickup_location": "Ngã tư Hàng Xanh",
+      "dropoff_location": "Chợ Đà Lạt"
+    },
+    "payment": {
+      "method": "QR",
+      "status": "PENDING",
+      "unit_fare_vnd": 320000,
+      "total_fare_vnd": 320000
+    },
+    "booking": {
+      "booking_id": "VA-CASE_010",
+      "booking_status": "CONFIRMED"
+    },
+    "outcome": {
+      "completed_goal": true,
+      "confirmation_turn": 17
+    }
+  }
+}

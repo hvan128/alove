@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checklist tiêu chí VALSEA — Alove / VéĐi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Azeret+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'Azeret Mono', 'SF Mono', Consolas, monospace;
+
+  --bg: #faf6f0;
+  --surface: #ffffff;
+  --surface2: #f5efe7;
+  --surface-elevated: #fffdf7;
+  --border: rgba(60, 40, 20, 0.08);
+  --border-bright: rgba(60, 40, 20, 0.16);
+  --text: #2c2a25;
+  --text-dim: #7c756a;
+  --text-bright: #1a1814;
+  --accent: #c2410c;
+  --accent-dim: rgba(194, 65, 12, 0.07);
+
+  --green: #4d7c0f;
+  --green-dim: rgba(77, 124, 15, 0.09);
+  --red: #b91c1c;
+  --red-dim: rgba(185, 28, 28, 0.09);
+  --amber: #b45309;
+  --amber-dim: rgba(180, 83, 9, 0.10);
+  --sage: #65a30d;
+  --teal: #0f766e;
+  --teal-dim: rgba(15, 118, 110, 0.08);
+  --plum: #9f1239;
+  --plum-dim: rgba(159, 18, 57, 0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1c1916;
+    --surface: #262220;
+    --surface2: #2f2a26;
+    --surface-elevated: #332d29;
+    --border: rgba(200, 180, 160, 0.09);
+    --border-bright: rgba(200, 180, 160, 0.18);
+    --text: #f0e8dc;
+    --text-dim: #a09888;
+    --text-bright: #fdf8f2;
+    --accent: #e85d2a;
+    --accent-dim: rgba(232, 93, 42, 0.12);
+    --green: #a3e635;
+    --green-dim: rgba(163, 230, 53, 0.11);
+    --red: #fca5a5;
+    --red-dim: rgba(252, 165, 165, 0.11);
+    --amber: #fbbf24;
+    --amber-dim: rgba(251, 191, 36, 0.12);
+    --sage: #bef264;
+    --teal: #5eead4;
+    --teal-dim: rgba(94, 234, 212, 0.10);
+    --plum: #fda4af;
+    --plum-dim: rgba(253, 164, 175, 0.10);
+  }
+}
+[data-theme="dark"] {
+  --bg: #1c1916;
+  --surface: #262220;
+  --surface2: #2f2a26;
+  --surface-elevated: #332d29;
+  --border: rgba(200, 180, 160, 0.09);
+  --border-bright: rgba(200, 180, 160, 0.18);
+  --text: #f0e8dc;
+  --text-dim: #a09888;
+  --text-bright: #fdf8f2;
+  --accent: #e85d2a;
+  --accent-dim: rgba(232, 93, 42, 0.12);
+  --green: #a3e635;
+  --green-dim: rgba(163, 230, 53, 0.11);
+  --red: #fca5a5;
+  --red-dim: rgba(252, 165, 165, 0.11);
+  --amber: #fbbf24;
+  --amber-dim: rgba(251, 191, 36, 0.12);
+  --sage: #bef264;
+  --teal: #5eead4;
+  --teal-dim: rgba(94, 234, 212, 0.10);
+  --plum: #fda4af;
+  --plum-dim: rgba(253, 164, 175, 0.10);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(at 12% 8%, var(--accent-dim) 0%, transparent 46%),
+    radial-gradient(at 88% 52%, var(--teal-dim) 0%, transparent 44%);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.62;
+  padding: 30px 22px 96px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.theme-toggle {
+  position: fixed; top: 16px; right: 16px; z-index: 300;
+  width: 36px; height: 36px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text-dim); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; transition: background .15s, color .15s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+.theme-toggle:hover { background: var(--surface2); color: var(--text); }
+
+.wrap { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 186px 1fr; gap: 0 44px; }
+.main { min-width: 0; }
+
+.toc { position: sticky; top: 26px; align-self: start; font-size: 12px; padding-right: 8px; border-right: 1px solid var(--border); }
+.toc-title { font-family: var(--font-mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.4px; color: var(--text-dim); margin-bottom: 12px; }
+.toc a { display: block; padding: 5px 0; color: var(--text-dim); text-decoration: none; border-left: 2px solid transparent; padding-left: 10px; margin-left: -10px; transition: color .12s, border-color .12s; }
+.toc a:hover { color: var(--accent); border-left-color: var(--accent); }
+
+h1 { font-size: 36px; line-height: 1.15; letter-spacing: -.032em; font-weight: 800; margin: 0 0 8px; color: var(--text-bright); }
+.subtitle { color: var(--text-dim); font-size: 16px; margin: 0 0 6px; max-width: 74ch; }
+.meta-line { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); margin: 0 0 30px; }
+
+.sec-head { font-family: var(--font-mono); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.6px; color: var(--accent); margin: 44px 0 16px; display: flex; align-items: center; gap: 10px; scroll-margin-top: 24px; }
+.sec-head::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: currentColor; flex: none; }
+.sec-head::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+.ve-card { background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 18px 22px; }
+.ve-card--hero { background: color-mix(in srgb, var(--surface) 91%, var(--accent) 9%); box-shadow: 0 4px 22px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.04); border-color: color-mix(in srgb, var(--border) 45%, var(--accent) 55%); }
+.ve-card--elevated { background: var(--surface-elevated); box-shadow: 0 2px 9px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04); }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 12px; margin-bottom: 22px; }
+.kpi { border: 1px solid var(--border); border-radius: 11px; padding: 15px 17px; background: var(--surface); border-top: 3px solid var(--k); }
+.kpi__n { font-family: var(--font-mono); font-size: 30px; font-weight: 600; line-height: 1; color: var(--k); }
+.kpi__l { font-size: 13px; color: var(--text-dim); margin-top: 7px; line-height: 1.4; }
+
+.tbl-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 11px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; min-width: 660px; }
+thead th { font-family: var(--font-mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.1px; color: var(--text-dim); text-align: left; padding: 12px 14px; background: var(--surface2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+tbody td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+td.w { font-family: var(--font-mono); font-size: 13px; color: var(--text-dim); white-space: nowrap; }
+td.crit { font-weight: 600; color: var(--text-bright); min-width: 168px; }
+code { font-family: var(--font-mono); font-size: 12.5px; background: var(--surface2); padding: 1.5px 5px; border-radius: 4px; color: var(--accent); overflow-wrap: break-word; }
+
+.st { font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; display: inline-block; letter-spacing: .3px; }
+.st--ok { background: var(--green-dim); color: var(--green); }
+.st--part { background: var(--amber-dim); color: var(--amber); }
+.st--no { background: var(--red-dim); color: var(--red); }
+.ph { font-family: var(--font-mono); font-size: 11.5px; color: var(--teal); white-space: nowrap; font-weight: 600; }
+.ph--none { color: var(--text-dim); font-weight: 400; }
+
+.callout { border-left: 3px solid var(--accent); background: var(--accent-dim); border-radius: 0 10px 10px 0; padding: 15px 20px; margin: 20px 0; }
+.callout p { margin: 0; font-size: 15px; }
+.callout strong { color: var(--text-bright); }
+.callout--warn { border-left-color: var(--red); background: var(--red-dim); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 18px; font-size: 13.5px; color: var(--text-dim); margin: 16px 0 26px; padding: 13px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+
+.pipe { display: flex; flex-wrap: wrap; align-items: stretch; gap: 9px; margin: 6px 0 4px; }
+.pipe__s { flex: 1 1 148px; min-width: 0; border: 1px solid var(--border); border-radius: 10px; padding: 13px 15px; background: var(--surface); border-top: 3px solid var(--p, var(--accent)); }
+.pipe__s h4 { margin: 0 0 5px; font-size: 14px; font-weight: 700; color: var(--text-bright); overflow-wrap: break-word; }
+.pipe__s p { margin: 0; font-size: 12.5px; color: var(--text-dim); line-height: 1.45; }
+.pipe__s .tag { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .9px; color: var(--p, var(--accent)); font-weight: 600; display: block; margin-bottom: 6px; }
+
+ul.tight { margin: 10px 0 0; padding-left: 20px; }
+ul.tight li { margin-bottom: 7px; font-size: 15px; }
+ul.tight li::marker { color: var(--accent); }
+
+.foot { margin-top: 50px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 13.5px; color: var(--text-dim); }
+
+@media (max-width: 940px) {
+  body { padding: 22px 16px 70px; }
+  .wrap { grid-template-columns: 1fr; gap: 0; }
+  .toc { position: sticky; top: 0; z-index: 200; display: flex; gap: 4px; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--border); background: var(--bg); padding: 9px 0; margin-bottom: 20px; }
+  .toc-title { display: none; }
+  .toc a { white-space: nowrap; border-left: none; border-bottom: 2px solid transparent; margin-left: 0; padding: 4px 11px; }
+  .toc a:hover { border-left-color: transparent; border-bottom-color: var(--accent); }
+  h1 { font-size: 28px; }
+}
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" title="Đổi giao diện sáng/tối" aria-label="Đổi giao diện sáng tối"></button>
+
+<div class="wrap">
+
+<nav class="toc" id="toc">
+  <div class="toc-title">Mục lục</div>
+  <a href="#s1">1. Tổng quan</a>
+  <a href="#s2">2. Deliverables</a>
+  <a href="#s3">3. Rubric chung</a>
+  <a href="#s4">4. Tiêu chí VALSEA</a>
+  <a href="#s5">5. Success outcomes</a>
+  <a href="#s6">6. Ngôn ngữ &amp; local</a>
+  <a href="#s7">7. Anti-patterns</a>
+  <a href="#s8">8. Bậc chất lượng</a>
+  <a href="#s9">9. Đường đóng gap</a>
+</nav>
+
+<div class="main">
+
+<h1>Checklist tiêu chí ↔ đã làm</h1>
+<p class="subtitle">Đối chiếu đề bài VALSEA — <em>Speech-to-Meaning, Not Speech-to-Text</em> — với trạng thái thật của repo Alove / VéĐi. Chỉ đánh dấu đạt khi có bằng chứng chạy được, không đánh theo dự định.</p>
+<p class="meta-line">Lập 2026-07-18 · nhánh <code>feat/livekit-agent</code> · vertical: tổng đài nhà xe → phiếu đặt vé</p>
+
+<div class="legend">
+  <span><span class="st st--ok">ĐẠT</span> &nbsp;có bằng chứng chạy thật</span>
+  <span><span class="st st--part">MỘT PHẦN</span> &nbsp;có nền, thiếu bằng chứng hoặc thiếu mảnh</span>
+  <span><span class="st st--no">THIẾU</span> &nbsp;chưa có gì</span>
+</div>
+
+<div class="sec-head" id="s1">1 — Tổng quan</div>
+
+<div class="kpis">
+  <div class="kpi" style="--k: var(--green)"><div class="kpi__n">8</div><div class="kpi__l">tiêu chí đã đạt</div></div>
+  <div class="kpi" style="--k: var(--amber)"><div class="kpi__n">14</div><div class="kpi__l">mới một phần</div></div>
+  <div class="kpi" style="--k: var(--red)"><div class="kpi__n">2</div><div class="kpi__l">còn thiếu hẳn</div></div>
+  <div class="kpi" style="--k: var(--accent)"><div class="kpi__n">30%</div><div class="kpi__l">trọng số đang rủi ro nhất (2 tiêu chí VALSEA)</div></div>
+</div>
+
+<div class="ve-card ve-card--hero">
+  <p style="margin:0 0 10px; font-size:15.5px;"><strong>Đọc nhanh:</strong> nền kỹ thuật đã vững — ASR chạy thật, lõi booking xác định, DB audit, dashboard live, seam PSTN. Thứ đang hụt gần như hoàn toàn là <strong>bằng chứng trình bày được</strong> và <strong>độ phủ API của VALSEA</strong>.</p>
+  <p style="margin:0; font-size:15.5px;">Nói cách khác: phần khó nhất đã xong, phần dễ nhất đang bỏ trống — và phần dễ đó chiếm 30% trọng số riêng cộng thêm ba Success Outcome.</p>
+</div>
+
+<div class="sec-head" id="s2">2 — Deliverables bắt buộc (điều kiện dự thi)</div>
+
+<div class="tbl-scroll">
+<table>
+<thead><tr><th>Deliverable</th><th>Trạng thái</th><th>Bằng chứng / thiếu gì</th><th>Phase</th></tr></thead>
+<tbody>
+<tr><td class="crit">Demoable prototype (live URL hoặc video)</td><td><span class="st st--part">MỘT PHẦN</span></td><td>Production chuẩn: <code>vedi-one.vercel.app</code>. Cần kiểm tra URL còn sống trước khi demo.</td><td class="ph">06</td></tr>
+<tr><td class="crit">Public GitHub repo</td><td><span class="st st--part">MỘT PHẦN</span></td><td><code>github.com/hvan128/alove</code>. Repo đã public; cần xác nhận nhánh demo đã merge — hiện đang ở <code>feat/livekit-agent</code>.</td><td class="ph">06</td></tr>
+<tr><td class="crit">Explainable AI architecture</td><td><span class="st st--part">MỘT PHẦN</span></td><td>Có <code>docs/architecture.md</code> + 9 ADR — điểm mạnh thật. Thiếu sơ đồ speech→meaning→action thể hiện chỗ lõi xác định chặn mô hình bịa dữ liệu.</td><td class="ph">06</td></tr>
+<tr><td class="crit">Pilot roadmap 1–2 trang</td><td><span class="st st--ok">ĐẠT</span></td><td><code>docs/pilot-roadmap.md</code> có P0/P1/P2 + exit criteria. Chỉ cần thống nhất ngôn ngữ và bổ sung mốc mới.</td><td class="ph">06</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="sec-head" id="s3">3 — Rubric chung (100%)</div>
+
+<div class="tbl-scroll">
+<table>
+<thead><tr><th>Tiêu chí</th><th class="w">Trọng số</th><th>Trạng thái</th><th>Ghi chú</th><th>Phase</th></tr></thead>
+<tbody>
+<tr><td class="crit">Problem Relevance</td><td class="w">20%</td><td><span class="st st--ok">ĐẠT</span></td><td>Vertical và workflow nêu rõ: tổng đài nhà xe → phiếu đặt vé. Đúng thứ brief đòi "name exactly which vertical".</td><td class="ph ph--none">—</td></tr>
+<tr><td class="crit">AI-Native Architecture</td><td class="w">20%</td><td><span class="st st--ok">ĐẠT</span></td><td>ASR → LLM → tool call → lõi xác định. Agent không tự bịa giá/ghế/mã vé mà gọi <code>/api/booking/advance</code>. 9 ADR ghi lại lý do từng lựa chọn.</td><td class="ph ph--none">—</td></tr>
+<tr><td class="crit">Technical Execution</td><td class="w">15%</td><td><span class="st st--part">MỘT PHẦN</span></td><td>Test đủ tầng (unit/component/E2E). Nhưng: ~390 dòng code chết trong <code>components/console/</code> không nằm trên route nào, và <code>agent/agent.py:57</code> mặc định sai provider.</td><td class="ph">01, 06</td></tr>
+<tr><td class="crit">Deployment</td><td class="w">15%</td><td><span class="st st--part">MỘT PHẦN</span></td><td>Live trên Vercel, có runbook rollback. Bậc "Outstanding" của brief còn đòi <em>basic monitoring</em> — chưa có.</td><td class="ph">06</td></tr>
+<tr><td class="crit">Feasibility</td><td class="w">15%</td><td><span class="st st--ok">ĐẠT</span></td><td><code>docs/pstn-sip-runbook.md</code>, LiveKit SIP, seam Twilio/Neon sẵn. Đường ra số điện thoại Việt Nam đã vạch.</td><td class="ph ph--none">—</td></tr>
+<tr><td class="crit">Startup Potential</td><td class="w">15%</td><td><span class="st st--part">MỘT PHẦN</span></td><td>Mô hình nhà xe rõ. Thiếu lập luận mở rộng sang vertical khác — trong khi VALSEA tự định vị là <em>horizontal infrastructure</em> và nói thẳng họ muốn thấy đội chứng minh vertical nào có giá trị trước.</td><td class="ph">06</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="sec-head" id="s4">4 — Tiêu chí riêng VALSEA (+30%) — trọng tâm</div>
+
+<div class="callout callout--warn">
+<p><strong>Đây là chỗ mất điểm lớn nhất.</strong> Hai tiêu chí này cộng thêm 30% và cả hai đều đang dở dang. Repo grep <code>/v1/understand</code> → 0 kết quả; grep <code>asr/transcribe</code> → 0 kết quả. Toàn bộ tích hợp VALSEA là một endpoint WebSocket duy nhất.</p>
+</div>
+
+<div class="tbl-scroll">
+<table>
+<thead><tr><th>Tiêu chí</th><th class="w">Trọng số</th><th>Trạng thái</th><th>Đang có gì / thiếu gì</th><th>Phase</th></tr></thead>
+<tbody>
+<tr><td class="crit">Best Use of VALSEA API</td><td class="w">15%</td><td><span class="st st--part">MỘT PHẦN</span></td><td><strong>Có:</strong> <code>wss://api.valsea.ai/v1/realtime</code> chạy thật, giao thức đã probe live, có xử lý buffer trước <code>session.ready</code> — chiều sâu ASR tốt.<br><strong>Thiếu:</strong> endpoint thứ hai (<code>/v1/understand</code>), và chưa chạm path REST mà brief ghi là mandatory. Tầng nghĩa hiện do OpenAI <code>gpt-4.1</code> đảm nhiệm.</td><td class="ph">00, 01, 02</td></tr>
+<tr><td class="crit">Workflow-Readiness</td><td class="w">15%</td><td><span class="st st--part">MỘT PHẦN</span></td><td><strong>Có:</strong> phiếu điền dần theo thời gian thực (progress <code>done/8</code> trường), vé nhiệt mô phỏng, ghi Postgres.<br><strong>Thiếu:</strong> vé không rời khỏi màn hình được — mã vạch tự thú là trang trí, không QR quét được, không export JSON, không webhook ra hệ ngoài.</td><td class="ph">04</td></tr>
+</tbody>
+</table>
+</div>
+
+<p style="margin-top:22px; font-size:15px; color:var(--text-dim);">Kiến trúc đề xuất sau Phase 02 — VALSEA lo phần mờ, lõi xác định lo phần phải đúng tuyệt đối:</p>
+
+<div class="pipe">
+  <div class="pipe__s" style="--p: var(--accent)"><span class="tag">VALSEA</span><h4>ASR</h4><p>Giọng vùng miền, xen tiếng Anh, audio điện thoại nhiễu</p></div>
+  <div class="pipe__s" style="--p: var(--plum)"><span class="tag">VALSEA</span><h4>Understand</h4><p>Tên riêng, địa danh, số đọc bằng chữ, thuật ngữ EN</p></div>
+  <div class="pipe__s" style="--p: var(--teal)"><span class="tag">Lõi riêng</span><h4>advanceBookingAgent</h4><p>Tra kho, giữ ghế, tính giá, sinh mã — không cho bịa</p></div>
+  <div class="pipe__s" style="--p: var(--green)"><span class="tag">Đầu ra</span><h4>Phiếu + QR + webhook</h4><p>Máy đọc được, quét được, bắn ra hệ ngoài được</p></div>
+</div>
+
+<div class="sec-head" id="s5">5 — Success outcomes (D1)</div>
+
+<div class="tbl-scroll">
+<table>
+<thead><tr><th>Outcome</th><th>Cách chấm</th><th>Trạng thái</th><th>Khoảng cách</th><th>Phase</th></tr></thead>
+<tbody>
+<tr><td class="crit">1. Cắt thời gian ghi chép thủ công từ giờ xuống phút</td><td>Bấm giờ trên sân khấu, so với baseline làm tay</td><td><span class="st st--part">MỘT PHẦN</span></td><td>Có <code>elapsedMs</code> ở <code>/engine</code> ("Thời gian tới phiếu vé"). Chưa có đối chứng nhập tay để so, và latency cuộc gọi live chưa hiện trên UI.</td><td class="ph">05</td></tr>
+<tr><td class="crit">2. Xử lý đúng ít nhất một ca khó mà ASR generic làm hỏng</td><td>So transcript side-by-side trên cùng clip</td><td><span class="st st--part">MỘT PHẦN</span></td><td>Khung so sánh đã dựng và chạy song song trên cùng file. Nhưng <strong>không có clip nào trong repo</strong>, không WER, không diff highlight — và baseline Whisper đang bị cố ý bỏ hint tiếng Việt, làm so sánh mất giá trị trước giám khảo kỹ tính.</td><td class="ph">01, 03</td></tr>
+<tr><td class="crit">3. Đầu ra cấu trúc mà doanh nghiệp dùng được ngay</td><td>Demo output đổ vào form / ticket / phụ đề / ghi chú</td><td><span class="st st--part">MỘT PHẦN</span></td><td>Form và ticket đã có và trình bày tốt. Nhưng dừng ở pixel — chưa chứng minh được máy đọc được hay hệ khác nhận được.</td><td class="ph">04</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="sec-head" id="s6">6 — Yêu cầu ngôn ngữ &amp; bối cảnh (H1, H2, H3)</div>
+
+<div class="tbl-scroll">
+<table>
+<thead><tr><th>Yêu cầu</th><th class="w">Mức</th><th>Trạng thái</th><th>Ghi chú</th><th>Phase</th></tr></thead>
+<tbody>
+<tr><td class="crit">Tiếng Việt nói &amp; thân mật</td><td class="w">Mandatory</td><td><span class="st st--ok">ĐẠT</span></td><td>ASR chạy <code>language: "vietnamese"</code>, đã verify ra đúng tên riêng và địa danh.</td><td class="ph ph--none">—</td></tr>
+<tr><td class="crit">Giữ đúng dấu thanh</td><td class="w">Mandatory</td><td><span class="st st--part">MỘT PHẦN</span></td><td>Thực tế chạy tốt, nhưng <strong>không có chỉ số nào chứng minh</strong>. Phase 03 thêm tỉ lệ dấu thanh đúng — chuẩn hoá NFC trước khi so, nếu không con số vô nghĩa.</td><td class="ph">03</td></tr>
+<tr><td class="crit">Không rớt/méo từ tiếng Anh xen câu</td><td class="w">Mandatory</td><td><span class="st st--no">THIẾU</span></td><td>Không có test case code-switching nào. Kịch bản mẫu duy nhất là thuần Việt. Đây đúng là "clean demo clip" mà brief bảo đừng dùng.</td><td class="ph">03</td></tr>
+<tr><td class="crit">Tiếng Anh cho thuật ngữ</td><td class="w">Preferred</td><td><span class="st st--part">MỘT PHẦN</span></td><td>Engine nhận <code>language: "english"</code> nhưng phải chọn trước, không xử lý xen kẽ.</td><td class="ph">00, 03</td></tr>
+<tr><td class="crit">Đa ngôn ngữ đồng thời</td><td class="w">Mandatory</td><td><span class="st st--no">THIẾU</span></td><td><strong>Rủi ro loại tiêu chí.</strong> Session khoá cứng một ngôn ngữ: <code>{vi→vietnamese, en→english}</code>. Phase 00 phải probe xem VALSEA có nhận <code>auto</code> hoặc mảng ngôn ngữ không. Nếu không có — nói thẳng giới hạn, đừng tuyên bố thứ không đứng vững được.</td><td class="ph">00, 02</td></tr>
+<tr><td class="crit">Văn hoá &amp; lễ phép Việt</td><td class="w">Required</td><td><span class="st st--ok">ĐẠT</span></td><td>Agent dùng đúng ngôi em/anh chị, xác nhận lại trước khi chốt — đúng chuẩn giao tiếp tổng đài Việt.</td><td class="ph ph--none">—</td></tr>
+<tr><td class="crit">Định dạng dữ liệu Việt</td><td class="w">Required</td><td><span class="st st--ok">ĐẠT</span></td><td>Schema ép đúng: SĐT <code>/^0\d{9}$/</code>, <code>totalFareVnd</code> số nguyên, tên và địa danh giữ nguyên dấu.</td><td class="ph ph--none">—</td></tr>
+<tr><td class="crit">Gọi endpoint ASR của VALSEA</td><td class="w">Mandatory</td><td><span class="st st--ok">ĐẠT</span></td><td>Đạt về bản chất qua WebSocket realtime. <strong>Nhưng</strong> brief ghi path <code>POST /v1/asr/transcribe</code> — giám khảo dò theo checklist có thể không thấy. Phase 01 bổ sung nhánh REST để hợp lệ tuyệt đối.</td><td class="ph">01</td></tr>
+<tr><td class="crit">Gần thời gian thực</td><td class="w">No hard SLA</td><td><span class="st st--part">MỘT PHẦN</span></td><td>Đã đo đầy đủ <code>eou</code>/<code>ttft</code>/<code>ttfb</code> — nhưng chỉ nằm trong <code>logger.info</code>, không UI nào đọc được. Trên sân khấu chúng vô hình.</td><td class="ph">05</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="sec-head" id="s7">7 — Anti-patterns (I3) — đã tránh được chưa</div>
+
+<div class="tbl-scroll">
+<table>
+<thead><tr><th>Anti-pattern brief liệt kê</th><th>Đã tránh?</th><th>Ghi chú</th></tr></thead>
+<tbody>
+<tr><td class="crit">Chỉ chạy được với dữ liệu sạch/lý tưởng</td><td><span class="st st--no">CHƯA</span></td><td>Không có clip nhiễu, giọng vùng miền hay code-switch nào trong repo. Đây là anti-pattern duy nhất đang thật sự dính.</td></tr>
+<tr><td class="crit">Đòi người dùng có kỹ năng kỹ thuật cao</td><td><span class="st st--ok">TRÁNH</span></td><td>Bấm một nút là gọi. Demo zero-key chạy ngay trong trình duyệt.</td></tr>
+<tr><td class="crit">Phụ thuộc hoàn toàn API ngoại bất ổn/đắt</td><td><span class="st st--part">MỘT PHẦN</span></td><td>OpenAI đang gánh cả tầng nghĩa lẫn baseline. Phase 02 chuyển bớt sang VALSEA sẽ giảm rủi ro này.</td></tr>
+<tr><td class="crit">Demo là mockup/slideshow không có AI thật</td><td><span class="st st--ok">TRÁNH</span></td><td>ASR, LLM, TTS, LiveKit đều chạy thật, có ADR ghi lại kết quả probe live.</td></tr>
+<tr><td class="crit">Không có kế hoạch triển khai thực tế</td><td><span class="st st--ok">TRÁNH</span></td><td>Pilot roadmap P0→P2, runbook PSTN, exit criteria chống thổi phồng.</td></tr>
+<tr><td class="crit">Bỏ qua yêu cầu ngôn ngữ và bối cảnh địa phương</td><td><span class="st st--ok">TRÁNH</span></td><td>Toàn bộ sản phẩm xây quanh tiếng Việt và nghiệp vụ nhà xe Việt Nam.</td></tr>
+<tr><td class="crit">Dùng VALSEA như lớp bọc mỏng quanh chatbot</td><td><span class="st st--ok">TRÁNH</span></td><td>Điểm mạnh nhất của kiến trúc: lõi xác định chặn mô hình bịa giá, ghế, mã vé. Tránh được <em>bằng thiết kế</em>, không phải tình cờ — nên nói rõ điều này khi thuyết trình.</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="sec-head" id="s8">8 — Bậc chất lượng (I2): đang đứng ở đâu</div>
+
+<div class="tbl-scroll">
+<table>
+<thead><tr><th>Chiều</th><th>Đang ở</th><th>Để lên Outstanding cần</th><th>Phase</th></tr></thead>
+<tbody>
+<tr><td class="crit">Xử lý ngôn ngữ</td><td><span class="st st--part">Good</span></td><td>Chứng minh trên giọng vùng miền và thuật ngữ địa phương thật, không chỉ tiếng Việt chuẩn.</td><td class="ph">03</td></tr>
+<tr><td class="crit">Độ chính xác AI</td><td><span class="st st--no">Chưa xếp được</span></td><td>Chưa có phép đo nào nên không tự nhận bậc nào được. Outstanding còn đòi <em>cơ chế phát hiện lỗi</em> — chính là WER + diff của Phase 03.</td><td class="ph">03</td></tr>
+<tr><td class="crit">Triển khai</td><td><span class="st st--part">Good</span></td><td>Đã có live URL. Còn thiếu monitoring cơ bản.</td><td class="ph">06</td></tr>
+<tr><td class="crit">Bối cảnh địa phương</td><td><span class="st st--ok">Outstanding</span></td><td>Đã đạt — nghiệp vụ nhà xe, định dạng VN, lễ phép giao tiếp đều sâu.</td><td class="ph ph--none">—</td></tr>
+<tr><td class="crit">Khả năng mở rộng</td><td><span class="st st--part">Good</span></td><td>Cần lộ trình nhân ra vertical/quốc gia khác, không chỉ "kịch bản tương tự".</td><td class="ph">06</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="sec-head" id="s9">9 — Đường đóng gap</div>
+
+<div class="tbl-scroll">
+<table>
+<thead><tr><th>Phase</th><th>Nội dung</th><th>Đóng tiêu chí nào</th><th class="w">Ước lượng</th></tr></thead>
+<tbody>
+<tr><td class="ph">00</td><td>Probe API sandbox — endpoint nào thật sự tồn tại</td><td>Chặn 01 &amp; 02; trả lời câu hỏi đa ngôn ngữ đồng thời</td><td class="w">30–60p</td></tr>
+<tr><td class="ph">01</td><td>Hợp lệ hoá VALSEA + sửa default cấu hình + baseline công bằng</td><td>Best Use of VALSEA, Outcome 2, Technical Execution</td><td class="w">2–3h</td></tr>
+<tr><td class="ph">02</td><td>Tầng nghĩa qua <code>/v1/understand</code></td><td>Best Use of VALSEA, Explainable architecture</td><td class="w">3–4h</td></tr>
+<tr><td class="ph">03</td><td>Clip hard-case + WER + diff + nhãn accent</td><td>Outcome 2, dấu thanh, code-switch, anti-pattern dữ liệu sạch</td><td class="w">4–5h</td></tr>
+<tr><td class="ph">04</td><td>QR quét được, export JSON, webhook</td><td>Workflow-Readiness, Outcome 3</td><td class="w">3–4h</td></tr>
+<tr><td class="ph">05</td><td>Latency lên UI</td><td>Outcome 1, near-real-time</td><td class="w">1–2h</td></tr>
+<tr><td class="ph">06</td><td>Dọn code chết, docs, sơ đồ, checklist</td><td>Technical Execution, Deployment, Deliverables</td><td class="w">2h</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout">
+<p><strong>Thứ tự nếu thời gian hẹp:</strong> Phase 03 và 04 tạo ra thứ giám khảo <em>nhìn thấy và tự kiểm chứng được</em> — một con số WER và một mã QR quét bằng điện thoại thuyết phục hơn bất kỳ slide nào. Phase 01 mục 1.1 chỉ tốn 5 phút nhưng chặn được kịch bản demo âm thầm chạy sai engine. Phase 00 nên chạy ngay khi có key vì nó chặn hai phase khác.</p>
+</div>
+
+<div class="ve-card ve-card--elevated" style="margin-top:24px;">
+<p style="margin:0 0 10px; font-size:15.5px;"><strong>Một nguyên tắc xuyên suốt:</strong> nếu Phase 00 cho thấy VALSEA không có endpoint semantic, hoặc Phase 03 cho thấy WER của mình không thắng baseline trên cả ba clip — <strong>giữ nguyên số thật</strong>.</p>
+<p style="margin:0; font-size:15.5px;">Đừng chọn clip để làm đẹp số, đừng tuyên bố khả năng chưa verify. Rubric của brief cho bậc Outstanding về độ chính xác còn đòi hẳn <em>"includes error detection mechanism"</em> — một đội biết engine mình yếu ở đâu đọc ra đáng tin hơn hẳn một đội có ba con số tròn trịa. Đây cũng đúng tinh thần "Exit criteria" mà pilot roadmap đã tự đặt ra.</p>
+</div>
+
+<div class="foot">
+Nguồn: <code>plans/2026-07-18-valsea-rubric-gap/</code> · phase 00–06 · đối chiếu với Enterprise Problem Brief của VALSEA (Vietnam AI Innovation Challenge)
+</div>
+
+</div><!-- /main -->
+</div><!-- /wrap -->
+
+<script>
+(function() {
+  var toggle = document.getElementById('themeToggle');
+  var saved = localStorage.getItem('theme');
+  var initial = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  if (saved) document.documentElement.setAttribute('data-theme', initial);
+  toggle.textContent = initial === 'dark' ? '☀' : '☾';
+  toggle.addEventListener('click', function() {
+    var current = document.documentElement.getAttribute('data-theme')
+      || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = current === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    toggle.textContent = next === 'dark' ? '☀' : '☾';
+  });
+})();
+</script>
+</body>
+</html>

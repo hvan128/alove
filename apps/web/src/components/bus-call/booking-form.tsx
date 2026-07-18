@@ -1,6 +1,6 @@
 'use client'
 
-import type { BookingDraft } from '@ordervoice/contracts'
+import type { BookingSnapshot } from '@/lib/call-contract'
 import {
   Banknote,
   CalendarDays,
@@ -22,12 +22,12 @@ type FieldPhase = 'idle' | 'filled' | 'amended'
 const UNSET = 'Chưa xác định'
 
 /**
- * Mọi nhãn trường dùng chung một cỡ chữ và một tông mực, bất kể nằm ở khối nào
- * — nhãn nhảy cỡ giữa các khối là thứ khiến phiếu trông chắp vá.
+ * Nhãn là mốc quét chính của phiếu: 16px/24px, semibold và dùng mực đầy.
+ * Trạng thái trống ở Value nhỏ hơn để nhãn luôn là thứ được đọc trước.
  */
-const LABEL = 'flex items-center gap-1.5 text-ui text-[color-mix(in_srgb,var(--ink)_72%,transparent)]'
+const LABEL = 'flex items-center gap-2 text-base leading-6 font-semibold text-[var(--ink)]'
 
-const STATUS_LABEL: Record<BookingDraft['status'], string> = {
+const STATUS_LABEL: Record<BookingSnapshot['status'], string> = {
   collecting: 'Đang thu thập',
   trip_proposed: 'Đã đề xuất chuyến',
   awaiting_confirmation: 'Chờ xác nhận',
@@ -40,7 +40,7 @@ const STATUS_LABEL: Record<BookingDraft['status'], string> = {
  * chuyến đi. Trục hành trình dọc giãn theo chiều cao còn trống nên phiếu cao
  * bằng khung cuộc gọi mà không phải chèn khoảng trắng chết.
  */
-export function BookingForm({ booking }: { booking: BookingDraft }) {
+export function BookingForm({ booking }: { booking: BookingSnapshot }) {
   const filled = [
     booking.origin,
     booking.destination,
@@ -57,20 +57,20 @@ export function BookingForm({ booking }: { booking: BookingDraft }) {
     <div className="flex flex-col overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--surface)] shadow-[var(--shadow-panel)]">
       {/* Header và footer cùng tô nền tint để kẹp phần dữ liệu ở giữa — phiếu có
           thanh tiêu đề và thanh tổng kết rõ ràng thay vì một khối trắng phẳng. */}
-      <header className="flex items-center justify-between gap-3 border-b border-[var(--divider)] bg-[var(--surface-tint)] px-5 py-4">
-        <p className="flex items-center gap-2.5 text-ui font-semibold">
+      <header className="flex items-center justify-between gap-3 border-b border-[var(--divider)] bg-[var(--action-soft)] px-5 py-3.5">
+        <p className="flex items-center gap-2.5 text-ui font-medium tracking-[-0.01em] text-[var(--ink)]">
           <span className="relative flex size-2">
             <span className="animate-listen-ring absolute inset-0 rounded-full bg-[var(--action)]" />
             <span className="relative size-2 rounded-full bg-[var(--action)]" />
           </span>
           {STATUS_LABEL[booking.status]}
         </p>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           {/* Một rãnh liền thay vì tám gạch rời: mắt đọc được "còn bao xa nữa"
               trong một nhịp, thay vì phải đếm từng gạch. */}
           <span
             aria-hidden
-            className="h-1 w-20 overflow-hidden rounded-full bg-[var(--divider)]"
+            className="h-1 w-16 overflow-hidden rounded-full bg-[var(--divider)]"
           >
             <span
               className="block h-full rounded-full bg-[var(--action)] transition-[width] duration-500 ease-out"
@@ -86,14 +86,20 @@ export function BookingForm({ booking }: { booking: BookingDraft }) {
       <div className="flex flex-col divide-y divide-[var(--divider)]">
         <Section title="Hành trình" icon={Route}>
           <RouteRail origin={booking.origin} destination={booking.destination} />
-          <div className="mt-5 grid grid-cols-2 gap-4">
+          <div className="mt-4 grid grid-cols-2 divide-x divide-[var(--divider)] border-t border-[var(--divider)] pt-4">
             <Cell label="Ngày đi" icon={CalendarDays} value={booking.travelDateLabel} />
-            <Cell label="Giờ khởi hành" icon={Clock} value={booking.selectedTrip?.departureTime ?? null} mono />
+            <Cell
+              label="Giờ khởi hành"
+              icon={Clock}
+              value={booking.selectedTrip?.departureTime ?? null}
+              className="pl-4"
+              mono
+            />
           </div>
         </Section>
 
         <Section title="Hành khách" icon={Users}>
-          <dl className="space-y-1">
+          <dl className="divide-y divide-[var(--divider)]">
             <Line
               label="Số khách"
               icon={Users}
@@ -105,18 +111,20 @@ export function BookingForm({ booking }: { booking: BookingDraft }) {
         </Section>
       </div>
 
-      <footer className="border-t border-[var(--divider)] bg-[var(--surface-tint)] px-5 py-4">
-        <div className="flex items-baseline justify-between gap-3">
-          <p className={LABEL}>
-            <Banknote className="size-4 shrink-0" strokeWidth={2} aria-hidden />
+      <footer className="border-t border-[color-mix(in_srgb,var(--action)_28%,var(--divider))] bg-[var(--action-soft)] px-5 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <p className="flex items-center gap-2 text-ui font-bold text-[var(--ink)]">
+            <Banknote className="size-5 shrink-0 text-[var(--action)]" strokeWidth={2.25} aria-hidden />
             Tổng tiền
           </p>
           <Value
             value={booking.totalFareVnd === null ? null : formatVnd(booking.totalFareVnd)}
-            className="text-section font-semibold tabular-nums tracking-[-0.03em]"
+            valueClassName="text-section font-bold tabular-nums tracking-[-0.03em] text-[var(--action-hover)]"
+            emptyText="—"
+            emptyClassName="text-body font-semibold tracking-normal text-[var(--action-hover)]"
           />
         </div>
-        <p className="mt-1.5 text-metric text-[var(--muted)]">
+        <p className="mt-2 text-metric text-[var(--muted)]">
           Vé giấy in ra ngay khi bạn xác nhận đặt chỗ.
         </p>
       </footer>
@@ -126,14 +134,14 @@ export function BookingForm({ booking }: { booking: BookingDraft }) {
 
 function Section({ title, icon: Icon, children }: { title: string; icon: LucideIcon; children: ReactNode }) {
   return (
-    <section className="px-5 py-4">
-      {/* Tiêu đề khối in đậm bằng mực đầy, còn nhãn trường dùng tông nhạt hơn:
-          hai bậc phân cấp này là thứ giữ cho phiếu không bị dẹt. */}
-      <h3 className="flex items-center gap-1.5 text-ui font-semibold text-[var(--ink)]">
-        <Icon className="size-4 shrink-0" strokeWidth={2.25} aria-hidden />
+    <section className="px-5 py-5">
+      {/* Tiêu đề khối lớn hơn nhãn trường một bậc; cả hai dùng mực đầy
+          để giữ khung phiếu rõ, còn trạng thái trống lùi xuống màu muted. */}
+      <h3 className="flex items-center gap-2 text-body font-semibold tracking-[-0.02em] text-[var(--ink)]">
+        <Icon className="size-[18px] shrink-0 text-[var(--action)]" strokeWidth={2.25} aria-hidden />
         {title}
       </h3>
-      <div className="mt-3.5">{children}</div>
+      <div className="mt-4">{children}</div>
     </section>
   )
 }
@@ -141,11 +149,10 @@ function Section({ title, icon: Icon, children }: { title: string; icon: LucideI
 /** Trục hành trình dọc: hai bến nối bằng đường đứt, giãn hết chiều cao còn dư. */
 function RouteRail({ origin, destination }: { origin: string | null; destination: string | null }) {
   return (
-    <div className="flex h-[124px] gap-3.5">
-      {/* Chấm phải nằm đúng giữa dòng tên bến: nhãn text-ui cao 20px, cách 0.5
-          (2px), tên bến text-section cao 28px → tâm dòng ở 36px, chấm 10px nên
-          lùi 31px. Đáy đối xứng: 14 − 5 = 9px. */}
-      <div aria-hidden className="flex flex-col items-center pb-[9px] pt-[31px]">
+    <div className="flex h-28 gap-3">
+      {/* Nhãn cao 24px, cách giá trị 2px, dòng giá trị cao 28px:
+          tâm tên bến ở 40px, nên chấm 10px lùi 35px. */}
+      <div aria-hidden className="flex flex-col items-center pb-[9px] pt-[35px]">
         <Node active={origin !== null} />
         {/* Sợi nối cũng là một thanh tiến độ: đứt nét khi chưa có bến nào, đổ
             màu dần xuống khi đã có điểm đi, liền mạch khi đủ cả hai đầu. */}
@@ -191,28 +198,31 @@ function Cell({
   label,
   icon: Icon,
   value,
+  className,
   large,
   mono,
 }: {
   label: string
   icon: LucideIcon
   value: string | null
+  className?: string
   large?: boolean
   mono?: boolean
 }) {
   return (
-    <div className="min-w-0">
+    <div className={cn('min-w-0', className)}>
       <p className={LABEL}>
-        <Icon className="size-4 shrink-0" strokeWidth={2} aria-hidden />
+        <Icon className="size-4 shrink-0 text-[var(--muted)]" strokeWidth={2} aria-hidden />
         {label}
       </p>
       <Value
         value={value}
-        className={cn(
-          'mt-0.5 truncate',
-          large ? 'text-section font-semibold tracking-[-0.03em]' : 'text-ui font-semibold',
+        className="mt-0.5 truncate"
+        valueClassName={cn(
+          large ? 'text-body font-semibold tracking-[-0.02em]' : 'text-ui font-semibold',
           mono && 'font-mono tabular-nums',
         )}
+        emptyClassName={large ? 'leading-7' : ''}
       />
     </div>
   )
@@ -232,15 +242,16 @@ function Line({
   return (
     // items-center chứ không items-baseline: icon canh theo baseline sẽ bị tụt
     // xuống dưới dòng chữ.
-    <div className="flex items-center justify-between gap-3 py-1">
+    <div className="flex min-h-9 items-center justify-between gap-3 py-2">
       <dt className={cn(LABEL, 'shrink-0')}>
-        <Icon className="size-4 shrink-0" strokeWidth={2} aria-hidden />
+        <Icon className="size-4 shrink-0 text-[var(--muted)]" strokeWidth={2} aria-hidden />
         {label}
       </dt>
       <Value
         value={value}
         as="dd"
-        className={cn('min-w-0 truncate text-right text-ui font-semibold', mono && 'font-mono tabular-nums')}
+        className="min-w-0 truncate text-right"
+        valueClassName={cn('text-ui font-semibold', mono && 'font-mono tabular-nums')}
       />
     </div>
   )
@@ -254,27 +265,41 @@ function Line({
 function Value({
   value,
   className,
+  valueClassName,
+  emptyClassName,
+  emptyText = UNSET,
   as: Tag = 'p',
 }: {
   value: string | null
   className?: string
+  valueClassName?: string
+  emptyClassName?: string
+  emptyText?: string
   as?: 'p' | 'dd'
 }) {
   const { phase, previous, token } = useValuePhase(value)
 
   if (value === null) {
     return (
-      // Vạch chờ để inline-block nên nó tự theo text-align của ô (dòng hành
-      // khách canh phải), và vẫn chiếm đúng một dòng nên phiếu không co giật
-      // lúc giá trị thật xuất hiện.
+      // Trạng thái trống vẫn chiếm đúng một dòng nên phiếu không co giật
+      // lúc giá trị thật xuất hiện. Cỡ metric + weight 500 giữ nó đủ rõ
+      // nhưng không biến thành một nhãn có độ đậm ngang với tên trường.
       // font-sans đè font-mono của ô giờ và số điện thoại: "Chưa xác định" là
       // chữ tiếng Việt, đánh máy bằng font đẳng khoảng trông như lỗi hiển thị.
-      <Tag className={cn(className, 'font-sans font-normal text-[var(--muted)]')}>{UNSET}</Tag>
+      <Tag
+        className={cn(
+          className,
+          'font-sans text-metric font-medium tracking-[0.01em] text-[var(--muted)]',
+          emptyClassName,
+        )}
+      >
+        {emptyText}
+      </Tag>
     )
   }
 
   return (
-    <Tag className={cn('relative', className)} title={value}>
+    <Tag className={cn('relative', className, valueClassName)} title={value}>
       {phase === 'idle' ? null : (
         <span
           // Lớp lóe có key riêng: mỗi lần đổi giá trị nó được gắn lại nên

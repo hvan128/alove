@@ -1,0 +1,81 @@
+{
+  "schema_version": "1.0",
+  "fixture_date": "2026-07-18",
+  "synthetic": true,
+  "timezone": "Asia/Ho_Chi_Minh",
+  "side_effect_free": true,
+  "policies": {
+    "child_passenger": {
+      "policy_id": "POL-CHILD-001",
+      "customer_answer": "Trẻ em phải đi cùng người lớn, có thông tin hành khách và ghế riêng; benchmark tính cùng đơn giá niêm yết như người lớn.",
+      "rules": [
+        "Mỗi hành khách trẻ em phải có ít nhất một hành khách người lớn đi cùng trong cùng booking.",
+        "Mỗi trẻ em có một ghế riêng và được tính theo đơn giá của chuyến trong catalog.",
+        "Không suy đoán tuổi hoặc loại hành khách khi người gọi chưa nói rõ."
+      ]
+    },
+    "luggage": {
+      "policy_id": "POL-LUGGAGE-001",
+      "customer_answer": "Mỗi hành khách được mang tối đa 20 kg hành lý ký gửi và một túi xách tay tối đa 7 kg; đồ cồng kềnh cần nhân viên xác nhận riêng.",
+      "rules": [
+        "Xe đẩy trẻ em gấp gọn được tính trong hạn mức hành lý ký gửi.",
+        "Hàng hóa cồng kềnh, dễ vỡ hoặc gửi không kèm người không được tự động chấp nhận trong luồng đặt vé.",
+        "Agent phải chuyển yêu cầu ngoài hạn mức cho nhân viên thay vì hứa chắc nhận vận chuyển."
+      ]
+    },
+    "accessibility": {
+      "policy_id": "POL-ACCESS-001",
+      "customer_answer": "Nhà xe có thể hỗ trợ lên xuống xe và xếp xe lăn hoặc xe đẩy gấp gọn nếu khách báo trước; vị trí cụ thể vẫn phụ thuộc ghế còn trong catalog.",
+      "rules": [
+        "Ghi nhận nhu cầu hỗ trợ trước khi giữ ghế.",
+        "Không hứa dịch vụ y tế hoặc thiết bị ngoài dữ liệu chính sách.",
+        "Nếu vị trí khách yêu cầu không còn, chỉ đề xuất ghế thực sự có trong available_seats."
+      ]
+    },
+    "pet": {
+      "policy_id": "POL-PET-001",
+      "customer_answer": "Thú cưng nhỏ chỉ được xem xét khi ở trong lồng kín, báo trước và được nhân viên vận hành duyệt; agent không được tự xác nhận chở thú cưng.",
+      "rules": [
+        "Không cho thú cưng chiếm ghế hành khách trong benchmark.",
+        "Không xác nhận ngoại lệ nếu chưa có phê duyệt của nhân viên.",
+        "Từ chối lịch sự hoặc chuyển nhân viên khi điều kiện vận chuyển chưa rõ."
+      ]
+    },
+    "pickup": {
+      "policy_id": "POL-PICKUP-001",
+      "customer_answer": "Khách cần chọn một điểm đón trong catalog và có mặt trước giờ khởi hành 30 phút; địa danh ngoài danh sách phải được làm rõ trước khi xác nhận.",
+      "rules": [
+        "Chỉ dùng pickup_points và dropoff_points của chuyến đã chọn.",
+        "Không tự ánh xạ một địa danh mơ hồ sang điểm đón chính thức.",
+        "Đổi điểm đón hoặc điểm trả sau recap phải xóa xác nhận cũ và yêu cầu khách xác nhận lại."
+      ]
+    },
+    "payment": {
+      "policy_id": "POL-PAYMENT-001",
+      "customer_answer": "Benchmark hỗ trợ QR, chuyển khoản ngân hàng hoặc tiền mặt khi lên xe; chỉ ghi PAID khi giao dịch đã được xác nhận thành công.",
+      "rules": [
+        "QR và BANK_TRANSFER chỉ chuyển sang PAID sau kết quả thanh toán thành công.",
+        "Giao dịch thất bại phải giữ trạng thái PENDING hoặc đổi sang CASH_ON_BOARDING theo lựa chọn của khách.",
+        "Không ghi nhận số thẻ, tài khoản ngân hàng hoặc bí mật thanh toán trong dữ liệu."
+      ]
+    },
+    "change": {
+      "policy_id": "POL-CHANGE-001",
+      "customer_answer": "Khách có thể đổi ngày, giờ, chuyến, loại xe, số người hoặc điểm đón trước khi xe chạy nếu còn chỗ và chấp nhận chênh lệch giá.",
+      "rules": [
+        "Thay đổi tuyến, ngày, giờ hoặc số hành khách phải tìm chuyến và giữ ghế lại.",
+        "Mọi thay đổi ảnh hưởng booking sau recap phải xóa explicit_confirmation.",
+        "Agent phải đọc lại trạng thái cuối cùng và lấy xác nhận mới trước CONFIRM_BOOKING."
+      ]
+    },
+    "cancellation": {
+      "policy_id": "POL-CANCEL-001",
+      "customer_answer": "Hủy vé không nằm trong bộ ca đặt mới này; yêu cầu hủy phải được xác minh booking và chuyển sang quy trình hỗ trợ riêng.",
+      "rules": [
+        "Không hủy hoặc hoàn tiền trong benchmark chỉ-đặt-vé này.",
+        "Không hứa mức hoàn tiền khi chưa có quy trình hủy được phê duyệt.",
+        "Agent phải xác minh mã booking và danh tính trước khi chuyển nhân viên hỗ trợ."
+      ]
+    }
+  }
+}

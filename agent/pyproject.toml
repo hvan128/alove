@@ -1,7 +1,7 @@
 [project]
 name = "alove-bus-agent"
 version = "0.1.0"
-description = "Alove bus-ticket voice agent for nhà xe Mai Anh (LiveKit) — deterministic booking via @ordervoice/core"
+description = "Alove LiveKit voice agent for server-authoritative bus booking APIs"
 requires-python = ">=3.11"
 dependencies = [
     "livekit-agents[silero]~=1.3",
@@ -15,4 +15,9 @@ dependencies = [
     # VALSEA STT plugin talks to the realtime WS directly (aiohttp is also a
     # livekit-agents transitive dep; pinned here so VALSEA mode can't break if it drops).
     "aiohttp>=3.9",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
 ]

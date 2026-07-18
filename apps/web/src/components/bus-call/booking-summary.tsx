@@ -1,15 +1,22 @@
-import type { BookingDraft } from '@ordervoice/contracts'
+import type { BookingSnapshot } from '@/lib/call-contract'
 import type { ReactNode } from 'react'
 import { Armchair as Seat, MapPin, Receipt, Ticket } from 'lucide-react'
 
-const STATUS_LABEL: Record<BookingDraft['status'], string> = {
+type BookingSummaryView = Pick<
+  BookingSnapshot,
+  'status' | 'bookingCode' | 'origin' | 'destination' | 'passengerCount' | 'totalFareVnd' | 'travelDateLabel' | 'passengerName' | 'seats'
+> & {
+  selectedTrip: { id: string; departureTime: string } | null
+}
+
+const STATUS_LABEL: Record<BookingSnapshot['status'], string> = {
   collecting: 'Đang thu thập',
   trip_proposed: 'Đã đề xuất chuyến',
   awaiting_confirmation: 'Chờ xác nhận',
   confirmed: 'Đã giữ vé',
 }
 
-export function BookingSummary({ booking }: { booking: BookingDraft }) {
+export function BookingSummary({ booking }: { booking: BookingSummaryView }) {
   return (
     <section className="rounded-2xl border border-[var(--hairline)] bg-[var(--pearl)] p-4" aria-labelledby="booking-summary-title">
       <div className="flex items-center justify-between gap-3">

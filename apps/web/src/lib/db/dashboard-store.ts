@@ -41,7 +41,7 @@ export async function listRecentCalls(limit = 50): Promise<CallSummary[] | null>
       .select()
       .from(bookingSnapshots)
       .where(inArray(bookingSnapshots.callId, ids))
-      .orderBy(desc(bookingSnapshots.createdAt)),
+      .orderBy(desc(bookingSnapshots.sequence), desc(bookingSnapshots.id)),
     db
       .select({
         callId: bookings.callId,
@@ -84,12 +84,16 @@ export async function getCallDetail(callId: string): Promise<CallDetail | null> 
   const [call] = await db.select().from(calls).where(eq(calls.id, callId)).limit(1)
   if (!call) return null
 
-  const turns = await db.select().from(callTurns).where(eq(callTurns.callId, callId)).orderBy(callTurns.createdAt)
+  const turns = await db
+    .select()
+    .from(callTurns)
+    .where(eq(callTurns.callId, callId))
+    .orderBy(asc(callTurns.sequence), asc(callTurns.id))
   const [latestSnapshot] = await db
     .select()
     .from(bookingSnapshots)
     .where(eq(bookingSnapshots.callId, callId))
-    .orderBy(desc(bookingSnapshots.createdAt))
+    .orderBy(desc(bookingSnapshots.sequence), desc(bookingSnapshots.id))
     .limit(1)
 
   return { call, turns, latestSnapshot: latestSnapshot ?? null }

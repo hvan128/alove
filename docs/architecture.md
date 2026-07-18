@@ -1,72 +1,111 @@
-# Kiến trúc VéĐi
+# Kiến trúc Alove
 
-## Quyết định chính
+## Tổng quan
 
-Bản demo dùng **Next.js Web Call trong cùng trình duyệt + booking agent xác định + Web Speech nâng cấp tùy chọn**. Đây là đường ngắn nhất để chứng minh hai phía khách hàng/nhân viên, chế độ tự động và giọng Agent mà không phụ thuộc số điện thoại, key hay media server.
-
-LiveKit không bị loại bỏ. Nó là adapter pilot cho hai thiết bị thật hoặc tổng đài nhiều người. Chưa bật LiveKit trong bản public vì một room UI không đủ tạo voice agent: còn cần token service, LiveKit project/server, STT/LLM/TTS credentials và Agent worker chạy lâu dài.
-
-## Repository
+Alove có một luồng production duy nhất. Next.js phục vụ giao diện và API, Python
+agent giữ phiên hội thoại trong LiveKit, còn Neon là nguồn sự thật cho inventory
+và booking.
 
 ```text
-apps/
-  web/                  Next.js App Router, two-sided Web Call, browser STT/TTS
-  api/                  Fastify/provider seams cho pilot VALSEA và telephone
-packages/
-  contracts/            Zod schemas cho call, message, trip và booking
-  core/                 deterministic booking agent, confirmation rules
-  providers/            VALSEA, OpenAI, Twilio adapters giữ cho pilot
-db/                     Neon/Drizzle persistence boundary
+Web browser                         SIP caller
+     |                                  |
+     +--------------- LiveKit ----------+
+                         |
+                  Python agent
+                         |
+             authenticated HTTPS tools
+                         |
+                     Next.js
+                  /api/booking/*
+                         |
+                       Neon
 ```
 
-## Luồng demo hiện tại
+## Thành phần
+
+### `apps/web`
+
+- `/`: trang bán vé, đọc lịch chạy công khai từ inventory thật.
+- `/console`: màn cuộc gọi LiveKit độc lập.
+- `/dashboard`: lịch sử cuộc gọi, transcript và booking projection.
+- `/api/livekit/token`: tạo call ID, identity và token customer ở server.
+- `/api/livekit/observer-token`: chỉ dashboard được cấp token nghe giám sát.
+- `/api/livekit/redispatch`: chỉ chấp nhận signed call-session capability.
+- `/api/booking/*`: search, hold, confirm, lookup và cancel.
+- `/api/call/events`: nhận audit event có bearer auth từ Python agent.
+- `src/lib/db/schema.ts` và `drizzle/`: schema/migration duy nhất.
+
+### `agent`
+
+LiveKit Python worker sở hữu STT, turn handling, LLM tool selection và TTS. Agent
+không sở hữu giá, lịch, ghế hoặc mã vé. Mọi fact vận hành phải đến từ response của
+booking API.
+
+`scripts/probe-valsea-endpoints.ts` nằm ngoài runtime và chỉ dùng để maintainer
+xác minh API provider bằng fixture synthetic. Nó không tạo web upload endpoint;
+Alove hiện không có route so sánh batch audio, còn audio cuộc gọi production đi
+qua VALSEA realtime trong worker.
+
+### LiveKit
+
+LiveKit vận chuyển audio, caption và realtime UI event. Data channel là đường cập
+nhật nhanh, không phải database. Browser chỉ nhận event từ participant có kind
+`AGENT` và chỉ áp dụng payload qua schema validation.
+
+### Neon
+
+Neon sở hữu:
+
+- operators, routes, trips và seats;
+- seat holds có thời hạn;
+- bookings và payments;
+- calls, final call turns và booking snapshots cho audit.
+
+## Trust boundaries
+
+1. Public browser không gửi room name, role hay identity vào token service.
+2. Server tạo signed call session; redispatch phải gắn với session đó.
+3. Observer token luôn đi qua dashboard authentication.
+4. Booking/call-event endpoints yêu cầu `AGENT_WEBHOOK_SECRET`.
+5. Confirm/cancel là thao tác atomic tại database; retry phải idempotent.
+6. Booking cũ chỉ được tra cứu hoặc hủy khi mã vé và số điện thoại cùng khớp.
+7. Không lưu raw audio. Transcript audit chỉ nhận lượt final.
+
+## Booking lifecycle
 
 ```text
-Khách click preset / nhập text / nói qua mic
-                    |
-                    v
-          final customer message
-                    |
-                    v
-     deterministic booking agent
-          |                    |
-    Human mode            Auto mode
-  chỉ cập nhật phiếu     cập nhật + trả lời
-          |                    |
-          +---------+----------+
-                    v
-       nhân viên tiếp quản khi cần
-                    |
-                    v
-      explicit confirm -> stable code
+collecting
+    -> trip_proposed          hold ghế còn hiệu lực
+    -> awaiting_confirmation  đã đọc lại thông tin
+    -> confirmed              transaction tạo booking + chuyển ghế sang booked
 ```
 
-Mọi input đi vào cùng một `submitCustomer` boundary. SpeechRecognition chỉ tạo final message; preset/text luôn hoạt động. SpeechSynthesis chỉ chạy sau thao tác người dùng để phù hợp autoplay policy.
+Hold hết hạn được coi như available khi search và không thể confirm. Đổi chuyến
+hoặc đổi số lượng phải trả lại hold thừa của call trước khi giữ tập ghế mới.
 
-## Trạng thái
+## Call audit
 
-```text
-call:     idle -> connected -> ended
+Agent phát hai loại dữ liệu:
 
-booking: collecting -> trip_proposed -> awaiting_confirmation -> confirmed
-```
+- Realtime event qua LiveKit: `agent.state`, `booking.update`, `call.end`.
+- Persisted event qua `/api/call/events`: `call.started`, `transcript.final`,
+  `booking.updated`, `call.ended`.
 
-`confirmed` cần đủ hành trình, ngày đi, số khách, chuyến, tên và điện thoại. Mã vé và ghế không đổi nếu xác nhận lại.
+Event có `eventId` để retry không tạo bản ghi trùng; worker retry có giới hạn khi
+gửi lỗi. Dashboard đọc persisted projection; nếu data channel bị mất, booking
+trong database vẫn không thay đổi. Hệ thống hiện chưa có external durable queue,
+vì vậy lỗi mạng kéo dài vẫn phải được phát hiện qua log/monitoring.
 
-## Ranh giới runtime
+## Chế độ lỗi
 
-| Runtime | Sở hữu hiện tại | Pilot mở rộng |
-|---|---|---|
-| Next.js web | UI, demo state, browser voice, health route | LiveKit token endpoint, server actions/API |
-| Booking core | extraction mẫu, trip choice, validation, stable confirmation | tool boundary cho LLM có schema |
-| LiveKit Agent worker | Không chạy trong public demo | STT → LLM/tool → TTS trong room |
-| Neon | Schema/repository seam | conversation, final message, booking, audit |
-| Telephone gateway | Adapter cũ, chưa credential test | Twilio/Stringee ingress và consent logging |
+- Thiếu LiveKit/DB/agent config: readiness trả lỗi và UI báo unavailable; không rơi
+  về demo giả.
+- Agent không vào room: browser thử redispatch tối đa theo signed session rồi đưa
+  ra trạng thái kết thúc có thể thử lại.
+- Booking API lỗi: agent xin khách chờ hoặc thử lại; không tạo fact thay thế.
+- Realtime event sai sender/schema/call/sequence: browser bỏ event.
 
-## Nguyên tắc an toàn
+## Ngoài phạm vi runtime
 
-1. Browser không nhận provider secret.
-2. Partial transcript không được xác nhận vé.
-3. Agent chỉ chốt khi khách nói xác nhận rõ hoặc nhân viên bấm xác nhận thủ công.
-4. LLM pilot không được tự tạo giá/chuyến; catalog và confirmation vẫn qua core xác định.
-5. Không ghi âm hoặc gửi audio cho provider nếu chưa có consent và retention policy.
+OrderVoice, Fastify gateway, ERP export, deterministic browser booking, `/engine`,
+Web Speech/device TTS và Human/Agent two-sided demo đã bị loại khỏi repository.

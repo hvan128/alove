@@ -1,4 +1,5 @@
-import { index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { bigint, check, index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 
 // ---------------------------------------------------------------------------
 // Inventory — the real bus catalog. Seeded from an operator's own schedule (see
@@ -21,6 +22,8 @@ export const routes = pgTable('routes', {
   active: text('active', { enum: ['yes', 'no'] }).notNull().default('yes'),
 }, (table) => [
   index('routes_origin_destination_idx').on(table.originCity, table.destinationCity),
+  check('routes_active_check', sql`${table.active} in ('yes', 'no')`),
+  check('routes_duration_positive_check', sql`${table.durationMinutes} is null or ${table.durationMinutes} > 0`),
 ])
 
 export const trips = pgTable('trips', {
@@ -35,6 +38,33 @@ export const trips = pgTable('trips', {
   active: text('active', { enum: ['yes', 'no'] }).notNull().default('yes'),
 }, (table) => [
   index('trips_route_departure_idx').on(table.routeId, table.departureAt),
+  check('trips_active_check', sql`${table.active} in ('yes', 'no')`),
+  check('trips_price_positive_check', sql`${table.priceVnd} > 0`),
+  check('trips_arrival_after_departure_check', sql`${table.arrivalAt} is null or ${table.arrivalAt} > ${table.departureAt}`),
+])
+
+export const bookings = pgTable('bookings', {
+  id: serial('id').primaryKey(),
+  code: text('code').notNull(), // 'MA-260725-0042'
+  tripId: text('trip_id').notNull().references(() => trips.id),
+  callId: text('call_id'),
+  passengerName: text('passenger_name').notNull(),
+  phone: text('phone').notNull(),
+  confirmationText: text('confirmation_text').notNull(),
+  seatCodes: jsonb('seat_codes').$type<string[]>().notNull(),
+  totalFareVnd: integer('total_fare_vnd').notNull(),
+  status: text('status', {
+    enum: ['pending_payment', 'paid', 'cancelled'],
+  }).notNull().default('pending_payment'),
+  // Re-running the same confirmation (agent retry, duplicate turn) must return
+  // the existing ticket instead of minting a second one.
+  idempotencyKey: text('idempotency_key').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('bookings_code_unique').on(table.code),
+  uniqueIndex('bookings_idempotency_unique').on(table.idempotencyKey),
+  check('bookings_status_check', sql`${table.status} in ('pending_payment', 'paid', 'cancelled')`),
+  check('bookings_total_fare_nonnegative_check', sql`${table.totalFareVnd} >= 0`),
 ])
 
 // One row per physical seat. Holds live on the row itself so a single atomic
@@ -48,31 +78,17 @@ export const seats = pgTable('seats', {
   status: text('status', { enum: ['available', 'held', 'booked'] }).notNull().default('available'),
   heldByCallId: text('held_by_call_id'),
   holdExpiresAt: timestamp('hold_expires_at', { withTimezone: true }),
-  bookingId: integer('booking_id'),
+  bookingId: integer('booking_id').references(() => bookings.id),
 }, (table) => [
   uniqueIndex('seats_trip_code_unique').on(table.tripId, table.code),
   index('seats_trip_status_idx').on(table.tripId, table.status),
-])
-
-export const bookings = pgTable('bookings', {
-  id: serial('id').primaryKey(),
-  code: text('code').notNull(), // 'VD-260725-0042'
-  tripId: text('trip_id').notNull().references(() => trips.id),
-  callId: text('call_id'),
-  passengerName: text('passenger_name').notNull(),
-  phone: text('phone').notNull(),
-  seatCodes: jsonb('seat_codes').$type<string[]>().notNull(),
-  totalFareVnd: integer('total_fare_vnd').notNull(),
-  status: text('status', {
-    enum: ['pending_payment', 'paid', 'cancelled'],
-  }).notNull().default('pending_payment'),
-  // Re-running the same confirmation (agent retry, duplicate turn) must return
-  // the existing ticket instead of minting a second one.
-  idempotencyKey: text('idempotency_key').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  uniqueIndex('bookings_code_unique').on(table.code),
-  uniqueIndex('bookings_idempotency_unique').on(table.idempotencyKey),
+  check('seats_deck_check', sql`${table.deck} is null or ${table.deck} in ('lower', 'upper')`),
+  check('seats_status_check', sql`${table.status} in ('available', 'held', 'booked')`),
+  check('seats_hold_shape_check', sql`
+    (${table.status} = 'held' and ${table.heldByCallId} is not null and ${table.holdExpiresAt} is not null and ${table.bookingId} is null)
+    or (${table.status} = 'booked' and ${table.bookingId} is not null and ${table.heldByCallId} is null and ${table.holdExpiresAt} is null)
+    or (${table.status} = 'available' and ${table.bookingId} is null and ${table.heldByCallId} is null and ${table.holdExpiresAt} is null)
+  `),
 ])
 
 export const payments = pgTable('payments', {
@@ -85,6 +101,8 @@ export const payments = pgTable('payments', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   uniqueIndex('payments_provider_reference_unique').on(table.provider, table.reference),
+  check('payments_status_check', sql`${table.status} in ('pending', 'succeeded', 'failed')`),
+  check('payments_amount_nonnegative_check', sql`${table.amountVnd} >= 0`),
 ])
 
 export type OperatorRow = typeof operators.$inferSelect
@@ -109,19 +127,31 @@ export const calls = pgTable('calls', {
   status: text('status', { enum: ['active', 'ended'] }).notNull().default('active'),
   startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
   endedAt: timestamp('ended_at', { withTimezone: true }),
-})
+}, (table) => [
+  check('calls_channel_check', sql`${table.channel} in ('phone', 'web')`),
+  check('calls_status_check', sql`${table.status} in ('active', 'ended')`),
+])
 
 export const callTurns = pgTable('call_turns', {
   id: serial('id').primaryKey(),
   callId: text('call_id').notNull().references(() => calls.id),
+  eventId: text('event_id').notNull(),
+  sequence: bigint('sequence', { mode: 'number' }).notNull(),
   role: text('role', { enum: ['customer', 'agent'] }).notNull(),
   text: text('text').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-})
+}, (table) => [
+  uniqueIndex('call_turns_call_event_unique').on(table.callId, table.eventId),
+  uniqueIndex('call_turns_call_sequence_unique').on(table.callId, table.sequence),
+  check('call_turns_role_check', sql`${table.role} in ('customer', 'agent')`),
+  check('call_turns_sequence_positive_check', sql`${table.sequence} > 0`),
+])
 
 export const bookingSnapshots = pgTable('booking_snapshots', {
   id: serial('id').primaryKey(),
   callId: text('call_id').notNull().references(() => calls.id),
+  eventId: text('event_id').notNull(),
+  sequence: bigint('sequence', { mode: 'number' }).notNull(),
   snapshot: jsonb('snapshot').notNull(),
   status: text('status', {
     enum: ['collecting', 'trip_proposed', 'awaiting_confirmation', 'confirmed'],
@@ -130,9 +160,10 @@ export const bookingSnapshots = pgTable('booking_snapshots', {
   totalFareVnd: integer('total_fare_vnd'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
-  // NULL booking codes stay distinct in Postgres, so interim snapshots insert
-  // freely while a duplicate confirmed snapshot (same code) is rejected.
-  uniqueIndex('booking_snapshots_call_code_unique').on(table.callId, table.bookingCode),
+  uniqueIndex('booking_snapshots_call_event_unique').on(table.callId, table.eventId),
+  uniqueIndex('booking_snapshots_call_sequence_unique').on(table.callId, table.sequence),
+  check('booking_snapshots_status_check', sql`${table.status} in ('collecting', 'trip_proposed', 'awaiting_confirmation', 'confirmed')`),
+  check('booking_snapshots_sequence_positive_check', sql`${table.sequence} > 0`),
 ])
 
 export type CallRow = typeof calls.$inferSelect

@@ -1,18 +1,25 @@
 # Alove bus agent worker (LiveKit)
 
-Voice agent for the Alove bus-ticket demo operated by nhà xe Mai Anh. Ported from the project-4 interview
-agent, domain-swapped to bus booking. Booking stays **deterministic and
-server-authoritative**: the worker never invents prices, trips, seats, passenger
-info or ticket codes — every customer turn is relayed to the Next.js
-`/api/booking/advance` endpoint (which runs `@ordervoice/core`), and the worker
-just speaks the exact reply and mirrors the authoritative booking snapshot to the
-browser over the room data channel.
+Voice agent for Alove bus booking operated by nhà xe Mai Anh. The model handles
+natural conversation, but booking facts remain **server-authoritative**: trips,
+prices, seats and ticket codes come from the Next.js `/api/booking/search`,
+`hold`, `confirm`, `lookup` and `cancel` endpoints backed by the application
+database.
+
+The worker mirrors live state to the browser on the `alove-events` data topic.
+Every outbound event contains `callId`, `eventId` and a monotonically increasing
+`sequence`. Final customer/agent transcripts and booking snapshots are also sent
+to `/api/call/events` for the call audit trail.
 
 ## Files
 
-- `agent.py` — worker entrypoint, engine selection, `advance_booking` / `end_call` tools.
+- `agent.py` — worker entrypoint, provider selection and booking tools.
+- `booking_helpers.py` — pure confirmation and browser snapshot payload builders.
+- `call_lifecycle.py` — room deletion and worker shutdown used by `end_call`.
+- `speech_text.py` — Vietnamese speech normalization before TTS.
 - `valsea_stt.py` — VALSEA realtime ASR wrapped as a livekit-agents STT plugin.
 - `turn_rules.py` — deterministic Vietnamese end-of-turn detection (no model, ~0ms).
+- `tests/` — unit tests for API payload and confirmation invariants.
 
 ## Engine presets (A/B testable)
 
@@ -20,9 +27,15 @@ Set in `agent/.env` (copy from `.env.example`):
 
 | Preset | env | Needs |
 |---|---|---|
-| VALSEA-first | `AGENT_ENGINE=cascade STT_PROVIDER=valsea` | `VALSEA_API_KEY`, `OPENAI_API_KEY` (LLM), a TTS (Google/Cartesia) |
-| cascade | `AGENT_ENGINE=cascade STT_PROVIDER=speechmatics` | `SPEECHMATICS_API_KEY`, `OPENAI_API_KEY`, a TTS |
+| VALSEA-first | `AGENT_ENGINE=cascade STT_PROVIDER=valsea` | `VALSEA_API_KEY`; OpenAI LLM and TTS may use direct keys or their configured gateways |
+| Speechmatics cascade | `AGENT_ENGINE=cascade STT_PROVIDER=speechmatics` | `SPEECHMATICS_API_KEY` is optional; blank uses the LiveKit inference gateway |
+| OpenAI STT cascade | `AGENT_ENGINE=cascade STT_PROVIDER=openai` | `OPENAI_API_KEY` |
 | gemini-sts | `AGENT_ENGINE=gemini-sts` | `GEMINI_API_KEY` |
+
+`STT_PROVIDER` is cascade-only and defaults to `valsea` when missing or blank.
+Unknown STT values fail closed for cascade. Gemini speech-to-speech does not use
+that variable, so it ignores stale cascade-only values while still requiring a
+non-blank `GEMINI_API_KEY` before the Gemini SDK is constructed.
 
 ## Run locally
 
@@ -30,14 +43,28 @@ Set in `agent/.env` (copy from `.env.example`):
 cd agent
 uv sync                      # or: pip install -e .
 cp .env.example .env         # fill LiveKit + provider + AGENT_WEBHOOK_SECRET
-python agent.py console      # local audio, no room (dev name auto-suffixed -dev)
+uv run python agent.py console  # local audio, no room (dev name auto-suffixed -dev)
 # or, joined to a real LiveKit room served by the web app:
-python agent.py dev
+uv run python agent.py dev
+
+# Pure contract tests (không cần provider credentials)
+uv run python -m unittest discover -s tests
 ```
 
-The web app must run with matching env: `NEXT_PUBLIC_LIVEKIT_URL`, `LIVEKIT_URL`,
-`LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_AGENT_NAME=alove`, and the SAME
-`AGENT_WEBHOOK_SECRET`. Open `/console`, pick **Agent tự động**, **Bắt đầu Web Call**.
+The web app must run with matching env: `LIVEKIT_URL`, `LIVEKIT_API_KEY`,
+`LIVEKIT_API_SECRET`, and the same
+`AGENT_WEBHOOK_SECRET`. A local `python agent.py dev` worker automatically uses
+the dispatch name `alove-dev`, so set the web app's `LIVEKIT_AGENT_NAME=alove-dev`
+for that session. Open `/console` and start a web call.
+
+The booking tools require `DATABASE_URL`, migrated schema and seeded operator data
+on the web app; a credentialed LiveKit call without database inventory cannot
+search or reserve seats.
+
+`end_call` waits for the final spoken line, publishes the terminal browser event,
+then deletes the LiveKit room. Room deletion disconnects both browser participants
+and inbound SIP callers; the worker job shuts down afterward so call-audit shutdown
+callbacks can finish.
 
 ## Deploy
 
@@ -48,12 +75,15 @@ docker build -t alove-bus-agent .
 ```
 
 Production runs `python agent.py start`. Keep the bare `LIVEKIT_AGENT_NAME`
-(`alove`) in prod; local `dev`/`console` auto-isolate under `alove-dev`.
+(`alove`) in production and point `NEXTJS_API_URL` at
+`https://vedi-one.vercel.app`; local `dev`/`console` auto-isolate under
+`alove-dev`.
+
+The Docker build exports from the committed `uv.lock`; update it with `uv lock`
+whenever `pyproject.toml` changes.
 
 ## Not verified in this workspace
 
-No LiveKit / provider credentials are present here, so the live audio path has not
-been run. `valsea_stt.py` maps the VALSEA WS protocol correctly (same as the Node
-`packages/providers/src/valsea.ts`) but its livekit-agents STT/SpeechStream glue
-should be verified against the installed `livekit-agents` version before a pilot.
-VALSEA has no TTS in this repo — VALSEA mode uses Google/Cartesia for TTS.
+No LiveKit / provider credentials are committed here, so a fresh checkout cannot
+exercise the live audio path without deployment secrets. VALSEA supplies STT
+only; VALSEA mode uses Google or Cartesia for TTS.

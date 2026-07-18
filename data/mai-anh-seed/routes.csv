@@ -1,0 +1,15 @@
+id,operator_id,origin_city,destination_city,duration_minutes,pickup_point,dropoff_point
+MA-R01,mai-anh,Hà Nội,Vinh,330,Bến xe Nước Ngầm,Bến xe Vinh
+MA-R02,mai-anh,Vinh,Hà Nội,330,Bến xe Vinh,Bến xe Nước Ngầm
+MA-R03,mai-anh,Hà Nội,Hà Tĩnh,390,Bến xe Nước Ngầm,Bến xe Hà Tĩnh
+MA-R04,mai-anh,Hà Tĩnh,Hà Nội,390,Bến xe Hà Tĩnh,Bến xe Nước Ngầm
+MA-R05,mai-anh,Hà Nội,Đồng Hới,540,Bến xe Nước Ngầm,Bến xe Đồng Hới
+MA-R06,mai-anh,Đồng Hới,Hà Nội,540,Bến xe Đồng Hới,Bến xe Nước Ngầm
+MA-R07,mai-anh,Hà Nội,Huế,750,Bến xe Nước Ngầm,Bến xe phía Nam Huế
+MA-R08,mai-anh,Huế,Hà Nội,750,Bến xe phía Nam Huế,Bến xe Nước Ngầm
+MA-R09,mai-anh,Hà Nội,Đà Nẵng,840,Bến xe Nước Ngầm,Bến xe Trung tâm Đà Nẵng
+MA-R10,mai-anh,Đà Nẵng,Hà Nội,840,Bến xe Trung tâm Đà Nẵng,Bến xe Nước Ngầm
+MA-R11,mai-anh,Hà Nội,Sơn La,420,Bến xe Mỹ Đình,Bến xe Sơn La
+MA-R12,mai-anh,Sơn La,Hà Nội,420,Bến xe Sơn La,Bến xe Mỹ Đình
+MA-R13,mai-anh,Hà Nội,Điện Biên,660,Bến xe Mỹ Đình,Bến xe Điện Biên Phủ
+MA-R14,mai-anh,Điện Biên,Hà Nội,660,Bến xe Điện Biên Phủ,Bến xe Mỹ Đình

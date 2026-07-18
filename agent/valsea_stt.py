@@ -1,15 +1,12 @@
 """VALSEA streaming STT plugin for livekit-agents.
 
-Wraps VALSEA's realtime WebSocket ASR (the same protocol the Node provider in
-`packages/providers/src/valsea.ts` uses) as a livekit-agents `stt.STT` so the
-cascade pipeline can run VALSEA-first per the Alove brief:
+Wraps VALSEA's realtime WebSocket ASR as a livekit-agents ``stt.STT`` so the
+Python worker can run a VALSEA-first cascade:
 
-    session.start -> stream PCM16 16k mono -> input_audio_buffer.commit
+    session.start -> stream PCM16 16k mono
     <- transcript.partial / transcript.final
 
-Protocol — verified against the live API on 2026-07-18 by probing it directly.
-The Node adapter in packages/providers/src/valsea.ts documented a DIFFERENT
-protocol that the server rejects; trust this file, not that one:
+Protocol — verified against the live API on 2026-07-18 by probing it directly:
 
   - Connect  wss://api.valsea.ai/v1/realtime  with `Authorization: Bearer <key>`.
   - Recv     {"type":"session.created", supportedModels:["valsea-rtt"], supportedLanguages:[...131]}
@@ -72,7 +69,8 @@ class VALSEASTT(stt.STT):
         super().__init__(
             capabilities=stt.STTCapabilities(streaming=True, interim_results=True)
         )
-        self._api_key = api_key or os.getenv("VALSEA_API_KEY", "")
+        configured_key = api_key if api_key is not None else os.getenv("VALSEA_API_KEY", "")
+        self._api_key = configured_key.strip()
         if not self._api_key:
             raise ValueError("VALSEA_API_KEY not set")
         self._language = language

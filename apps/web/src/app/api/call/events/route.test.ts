@@ -1,8 +1,28 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const stores = vi.hoisted(() => ({
+  booking: vi.fn(),
+  ended: vi.fn(),
+  started: vi.fn(),
+  transcript: vi.fn(),
+}))
+
+vi.mock('@/lib/db/client', () => ({
+  isDbConfigured: vi.fn(() => true),
+}))
+
+vi.mock('@/lib/db/call-store', () => ({
+  recordBookingUpdated: stores.booking,
+  recordCallEnded: stores.ended,
+  recordCallStarted: stores.started,
+  recordTranscriptFinal: stores.transcript,
+}))
+
+import { createEmptyBooking } from '@/lib/call-contract'
+import { isDbConfigured } from '@/lib/db/client'
 import { POST } from './route'
 
-const SECRET = 'test-agent-secret'
+const SECRET = 'test-agent-secret-at-least-32-bytes'
 
 function request(body: unknown, auth: string | null = `Bearer ${SECRET}`): Request {
   return new Request('http://localhost/api/call/events', {
@@ -17,35 +37,78 @@ function request(body: unknown, auth: string | null = `Bearer ${SECRET}`): Reque
 
 describe('POST /api/call/events', () => {
   beforeEach(() => {
-    process.env.AGENT_WEBHOOK_SECRET = SECRET
-  })
-  afterEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(isDbConfigured).mockReturnValue(true)
     process.env.AGENT_WEBHOOK_SECRET = SECRET
   })
 
-  it('returns 503 when the agent secret is not configured', async () => {
+  it('requires a configured secret and matching bearer token', async () => {
     delete process.env.AGENT_WEBHOOK_SECRET
-    const res = await POST(request({ conversationId: 'c1', type: 'call.started' }))
-    expect(res.status).toBe(503)
-  })
+    expect((await POST(request({ conversationId: 'c1', type: 'call.started' }))).status).toBe(503)
 
-  it('rejects a missing or wrong bearer token', async () => {
+    process.env.AGENT_WEBHOOK_SECRET = SECRET
     expect((await POST(request({ conversationId: 'c1', type: 'call.started' }, null))).status).toBe(401)
     expect((await POST(request({ conversationId: 'c1', type: 'call.started' }, 'Bearer nope'))).status).toBe(401)
   })
 
-  it('rejects an unknown event type or missing conversation id', async () => {
-    expect((await POST(request({ conversationId: 'c1', type: 'call.paused' }))).status).toBe(400)
-    expect((await POST(request({ type: 'call.started' }))).status).toBe(400)
+  it('returns 503 instead of accepting an event when the database is absent', async () => {
+    vi.mocked(isDbConfigured).mockReturnValue(false)
+    const response = await POST(request({ conversationId: 'c1', type: 'call.started' }))
+    expect(response.status).toBe(503)
+    expect(stores.started).not.toHaveBeenCalled()
   })
 
-  it('accepts start and end events without a configured database', async () => {
-    // No DATABASE_URL in tests — persistence must degrade to a silent no-op.
-    const started = await POST(
-      request({ conversationId: 'c1', type: 'call.started', channel: 'phone', callerNumber: '+84901234567' }),
-    )
+  it('persists lifecycle and final transcript events', async () => {
+    const started = await POST(request({
+      conversationId: 'c1',
+      type: 'call.started',
+      channel: 'phone',
+      callerNumber: '+84901234567',
+    }))
     expect(started.status).toBe(200)
-    const ended = await POST(request({ conversationId: 'c1', type: 'call.ended' }))
-    expect(ended.status).toBe(200)
+    expect(stores.started).toHaveBeenCalledWith('c1', 'phone', '+84901234567')
+
+    const event = {
+      conversationId: 'c1',
+      type: 'transcript.final',
+      eventId: 'turn-user-1',
+      sequence: 1,
+      role: 'customer',
+      text: 'Tôi muốn đặt một vé.',
+    } as const
+    expect((await POST(request(event))).status).toBe(200)
+    expect(stores.transcript).toHaveBeenCalledWith(event)
+
+    expect((await POST(request({ conversationId: 'c1', type: 'call.ended' }))).status).toBe(200)
+    expect(stores.ended).toHaveBeenCalledWith('c1')
+  })
+
+  it('validates booking ownership and forwards a valid snapshot', async () => {
+    const booking = createEmptyBooking('c1')
+    const event = {
+      conversationId: 'c1',
+      type: 'booking.updated',
+      eventId: 'booking-1',
+      sequence: 2,
+      booking,
+    } as const
+
+    expect((await POST(request(event))).status).toBe(200)
+    expect(stores.booking).toHaveBeenCalledWith(event)
+
+    const wrongCall = { ...event, booking: { ...booking, conversationId: 'other' } }
+    expect((await POST(request(wrongCall))).status).toBe(400)
+  })
+
+  it('rejects partial transcripts and malformed persisted events', async () => {
+    expect((await POST(request({ conversationId: 'c1', type: 'transcript.partial' }))).status).toBe(400)
+    expect((await POST(request({
+      conversationId: 'c1',
+      type: 'transcript.final',
+      eventId: 'turn-1',
+      sequence: 0,
+      role: 'customer',
+      text: 'x',
+    }))).status).toBe(400)
   })
 })

@@ -2,14 +2,24 @@ import { z } from 'zod'
 
 import { requireAgent } from '@/lib/agent-auth'
 import { nextDeparturesOnRoute, searchTrips, suggestRoutes } from '@/lib/db/booking-store'
+import { isDbConfigured } from '@/lib/db/client'
 
 export const runtime = 'nodejs'
+
+const VietnamDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).refine((value) => {
+  const [year, month, day] = value.split('-').map(Number)
+  if (year === undefined || month === undefined || day === undefined) return false
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  return parsed.getUTCFullYear() === year
+    && parsed.getUTCMonth() === month - 1
+    && parsed.getUTCDate() === day
+}, { message: 'date must be a real calendar day' })
 
 const BodySchema = z.object({
   origin: z.string().min(1).max(80),
   destination: z.string().min(1).max(80),
   // YYYY-MM-DD in Vietnam time; omit to look across the next two weeks.
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).nullish(),
+  date: VietnamDateSchema.nullish(),
   passengers: z.number().int().min(1).max(20).nullish(),
 })
 
@@ -20,6 +30,9 @@ export async function POST(req: Request): Promise<Response> {
   const parsed = BodySchema.safeParse(await req.json().catch(() => ({})))
   if (!parsed.success) {
     return Response.json({ error: 'invalid_request', issues: parsed.error.issues }, { status: 400 })
+  }
+  if (!isDbConfigured()) {
+    return Response.json({ error: 'database_not_configured' }, { status: 503 })
   }
   const { origin, destination, date, passengers } = parsed.data
 

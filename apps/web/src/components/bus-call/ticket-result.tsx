@@ -4,14 +4,14 @@ import { useRef, useState } from 'react'
 import QRCode from 'react-qr-code'
 import { toPng } from 'html-to-image'
 import { Check, Copy, Download, PhoneCall, X } from 'lucide-react'
-import type { BookingDraft } from '@ordervoice/contracts'
+import type { BookingSnapshot } from '@/lib/call-contract'
 import { Button } from '@/components/ui/button'
 import { TicketCard } from './ticket-card'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'copied'
 
 type TicketResultProps = {
-  booking: BookingDraft
+  booking: BookingSnapshot
   /** Mở cuộc gọi mới ngay trong overlay/console. */
   onNewCall: () => void
   /** Đóng màn vé: overlay morph về nút, /console quay lại sân khấu. */

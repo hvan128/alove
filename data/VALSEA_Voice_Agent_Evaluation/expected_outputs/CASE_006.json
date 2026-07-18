@@ -1,0 +1,451 @@
+{
+  "schema_version": "1.0",
+  "case_id": "CASE_006",
+  "title": "Cặp đôi đổi sang tiền mặt sau chuyển khoản thất bại",
+  "metadata": {
+    "scenario_type": "core_booking",
+    "customer_region": "Sài Gòn",
+    "audio_conditions": [
+      "clean_hotline"
+    ],
+    "languages": [
+      "vi"
+    ],
+    "difficulty": "medium",
+    "call_datetime": "2026-07-18T17:35:00+07:00",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "coverage_tags": [
+      "payment",
+      "payment_failure_recovery",
+      "southern"
+    ]
+  },
+  "turn_expectations": [
+    {
+      "turn": 1,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "GREET_AND_DISCOVER",
+        "missing_fields": [
+          "departure_time"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "origin": "Sài Gòn",
+          "destination": "Đà Lạt",
+          "travel_date": "2026-07-20",
+          "passenger_count": 2
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 2,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "SEARCH_TRIPS",
+        "missing_fields": [],
+        "arguments": {
+          "origin": "Sài Gòn",
+          "destination": "Đà Lạt",
+          "travel_date": "2026-07-20",
+          "passenger_count": 2
+        },
+        "expected_result": {
+          "trip_ids": [
+            "SG-DL-20260720-2200-GN34",
+            "SG-DL-20260720-2330-LIMO"
+          ]
+        }
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 3,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "seat_preference"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "departure_time": "23:30",
+          "trip_id": "SG-DL-20260720-2330-LIMO",
+          "vehicle_type": "Limousine 22 Phòng"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 4,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "PRESENT_TRIP_OPTIONS",
+        "missing_fields": [
+          "assigned_seats"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "seat_preference": "Hai phòng tầng dưới liền nhau"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 5,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "HOLD_SEATS",
+        "missing_fields": [],
+        "arguments": {
+          "trip_id": "SG-DL-20260720-2330-LIMO",
+          "passenger_count": 2,
+          "seat_preference": "Hai phòng tầng dưới liền nhau"
+        },
+        "expected_result": {
+          "assigned_seats": [
+            "P01",
+            "P02"
+          ],
+          "unit_fare_vnd": 450000,
+          "total_fare_vnd": 900000
+        }
+      },
+      "state_update": {
+        "set": {
+          "assigned_seats": [
+            "P01",
+            "P02"
+          ]
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 6,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PASSENGER_DETAILS",
+        "missing_fields": [
+          "pickup_location"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "customer_name": "Bùi Đức Long",
+          "passenger_details": [
+            {
+              "name": "Bùi Đức Long",
+              "type": "ADULT",
+              "seat": "P01"
+            },
+            {
+              "name": "Trương Ngọc Lan",
+              "type": "ADULT",
+              "seat": "P02"
+            }
+          ]
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 7,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "dropoff_location"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "pickup_location": "Văn phòng Phạm Ngũ Lão"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 8,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [
+          "customer_phone",
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "dropoff_location": "Chợ Đà Lạt"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 9,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PASSENGER_DETAILS",
+        "missing_fields": [
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "customer_phone": "0967890126"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 10,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PAYMENT_PREFERENCE",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "payment_method": "BANK_TRANSFER",
+          "payment_status": "PENDING"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 11,
+      "action": {
+        "intent": "ASK_INFORMATION",
+        "action": "ANSWER_AND_REDIRECT",
+        "missing_fields": [
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "payment_status": "NOT_STARTED"
+        },
+        "clear": [
+          "payment_method"
+        ]
+      }
+    },
+    {
+      "turn": 12,
+      "action": {
+        "intent": "ASK_INFORMATION",
+        "action": "ANSWER_AND_REDIRECT",
+        "missing_fields": [
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 13,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PAYMENT_PREFERENCE",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "payment_method": "CASH_ON_BOARDING",
+          "payment_status": "PENDING"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 14,
+      "action": {
+        "intent": "ASK_INFORMATION",
+        "action": "ANSWER_AND_REDIRECT",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 15,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 16,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "explicit_confirmation": true
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 17,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_BOOKING",
+        "missing_fields": [],
+        "arguments": {
+          "trip_id": "SG-DL-20260720-2330-LIMO",
+          "customer_name": "Bùi Đức Long",
+          "customer_phone": "0967890126"
+        },
+        "expected_result": {
+          "booking_id": "VA-CASE_006",
+          "booking_status": "CONFIRMED"
+        }
+      },
+      "state_update": {
+        "set": {
+          "booking_id": "VA-CASE_006",
+          "booking_status": "CONFIRMED"
+        },
+        "clear": []
+      }
+    }
+  ],
+  "final_state": {
+    "origin": "Sài Gòn",
+    "destination": "Đà Lạt",
+    "travel_date": "2026-07-20",
+    "departure_time": "23:30",
+    "trip_id": "SG-DL-20260720-2330-LIMO",
+    "passenger_count": 2,
+    "vehicle_type": "Limousine 22 Phòng",
+    "seat_preference": "Hai phòng tầng dưới liền nhau",
+    "assigned_seats": [
+      "P01",
+      "P02"
+    ],
+    "pickup_location": "Văn phòng Phạm Ngũ Lão",
+    "dropoff_location": "Chợ Đà Lạt",
+    "customer_name": "Bùi Đức Long",
+    "customer_phone": "0967890126",
+    "passenger_details": [
+      {
+        "name": "Bùi Đức Long",
+        "type": "ADULT",
+        "seat": "P01"
+      },
+      {
+        "name": "Trương Ngọc Lan",
+        "type": "ADULT",
+        "seat": "P02"
+      }
+    ],
+    "payment_method": "CASH_ON_BOARDING",
+    "payment_status": "PENDING",
+    "booking_id": "VA-CASE_006",
+    "booking_status": "CONFIRMED",
+    "explicit_confirmation": true
+  },
+  "final_workflow_output": {
+    "customer": {
+      "name": "Bùi Đức Long",
+      "phone": "0967890126"
+    },
+    "passengers": {
+      "count": 2,
+      "details": [
+        {
+          "name": "Bùi Đức Long",
+          "type": "ADULT",
+          "seat": "P01"
+        },
+        {
+          "name": "Trương Ngọc Lan",
+          "type": "ADULT",
+          "seat": "P02"
+        }
+      ]
+    },
+    "trip": {
+      "trip_id": "SG-DL-20260720-2330-LIMO",
+      "origin": "Sài Gòn",
+      "destination": "Đà Lạt",
+      "travel_date": "2026-07-20",
+      "departure_time": "23:30",
+      "arrival_time": "07:00"
+    },
+    "vehicle": {
+      "type": "Limousine 22 Phòng",
+      "seat_preference": "Hai phòng tầng dưới liền nhau",
+      "assigned_seats": [
+        "P01",
+        "P02"
+      ]
+    },
+    "pickup_dropoff": {
+      "pickup_location": "Văn phòng Phạm Ngũ Lão",
+      "dropoff_location": "Chợ Đà Lạt"
+    },
+    "payment": {
+      "method": "CASH_ON_BOARDING",
+      "status": "PENDING",
+      "unit_fare_vnd": 450000,
+      "total_fare_vnd": 900000
+    },
+    "booking": {
+      "booking_id": "VA-CASE_006",
+      "booking_status": "CONFIRMED"
+    },
+    "outcome": {
+      "completed_goal": true,
+      "confirmation_turn": 16
+    }
+  }
+}

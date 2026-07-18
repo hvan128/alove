@@ -1,0 +1,482 @@
+{
+  "schema_version": "1.0",
+  "case_id": "CASE_014",
+  "title": "Đổi giờ, loại xe, số người và điểm đón trước khi chốt",
+  "metadata": {
+    "scenario_type": "hotline_behavior",
+    "customer_region": "Miền Nam",
+    "audio_conditions": [
+      "quiet_mobile"
+    ],
+    "languages": [
+      "vi"
+    ],
+    "difficulty": "hard",
+    "call_datetime": "2026-07-19T19:20:00+07:00",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "coverage_tags": [
+      "changed_mind",
+      "change_options"
+    ]
+  },
+  "turn_expectations": [
+    {
+      "turn": 1,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "GREET_AND_DISCOVER",
+        "missing_fields": [
+          "passenger_count"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "origin": "Sài Gòn",
+          "destination": "Đà Lạt",
+          "travel_date": "2026-07-21"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 2,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "SEARCH_TRIPS",
+        "missing_fields": [],
+        "arguments": {
+          "origin": "Sài Gòn",
+          "destination": "Đà Lạt",
+          "travel_date": "2026-07-21",
+          "passenger_count": 2
+        },
+        "expected_result": {
+          "trip_ids": [
+            "SG-DL-20260721-2200-GN34",
+            "SG-DL-20260721-2330-LIMO"
+          ]
+        }
+      },
+      "state_update": {
+        "set": {
+          "passenger_count": 2
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 3,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "PRESENT_TRIP_OPTIONS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 4,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "trip_id": "SG-DL-20260721-2200-GN34",
+          "departure_time": "22:00",
+          "vehicle_type": "Giường nằm 34 chỗ"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 5,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "ASK_MISSING_INFORMATION",
+        "missing_fields": [
+          "dropoff_location"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "pickup_location": "Văn phòng Phạm Ngũ Lão"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 6,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "SEARCH_TRIPS",
+        "missing_fields": [],
+        "arguments": {
+          "origin": "Sài Gòn",
+          "destination": "Đà Lạt",
+          "travel_date": "2026-07-21",
+          "passenger_count": 3
+        },
+        "expected_result": {
+          "trip_ids": [
+            "SG-DL-20260721-2330-LIMO"
+          ]
+        }
+      },
+      "state_update": {
+        "set": {
+          "passenger_count": 3
+        },
+        "clear": [
+          "trip_id",
+          "departure_time",
+          "vehicle_type",
+          "seat_preference",
+          "assigned_seats",
+          "passenger_details",
+          "explicit_confirmation"
+        ]
+      }
+    },
+    {
+      "turn": 7,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "trip_id": "SG-DL-20260721-2330-LIMO",
+          "departure_time": "23:30",
+          "vehicle_type": "Limousine 22 Phòng"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 8,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "UPDATE_REQUIREMENTS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "pickup_location": "Ngã tư Hàng Xanh"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 9,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "ASK_MISSING_INFORMATION",
+        "missing_fields": [
+          "customer_name",
+          "customer_phone"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "dropoff_location": "Chợ Đà Lạt"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 10,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "ASK_MISSING_INFORMATION",
+        "missing_fields": [
+          "passenger_details",
+          "seat_preference"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "customer_name": "Võ Gia Huy",
+          "customer_phone": "0934000014"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 11,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PASSENGER_DETAILS",
+        "missing_fields": [
+          "seat_preference"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 12,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "HOLD_SEATS",
+        "missing_fields": [],
+        "arguments": {
+          "trip_id": "SG-DL-20260721-2330-LIMO",
+          "passenger_count": 3,
+          "seat_preference": "ba phòng tầng dưới gần nhau"
+        },
+        "expected_result": {
+          "assigned_seats": [
+            "P01",
+            "P02",
+            "P03"
+          ],
+          "unit_fare_vnd": 450000,
+          "total_fare_vnd": 1350000
+        }
+      },
+      "state_update": {
+        "set": {
+          "seat_preference": "ba phòng tầng dưới gần nhau",
+          "assigned_seats": [
+            "P01",
+            "P02",
+            "P03"
+          ]
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 13,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PASSENGER_DETAILS",
+        "missing_fields": [
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "passenger_details": [
+            {
+              "name": "Võ Gia Huy",
+              "type": "ADULT",
+              "seat": "P01"
+            },
+            {
+              "name": "Nguyễn Bảo Trân",
+              "type": "ADULT",
+              "seat": "P02"
+            },
+            {
+              "name": "Lâm Nhật Minh",
+              "type": "ADULT",
+              "seat": "P03"
+            }
+          ]
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 14,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PAYMENT_PREFERENCE",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "payment_method": "QR",
+          "payment_status": "PENDING"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 15,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 16,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "explicit_confirmation": true
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 17,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_BOOKING",
+        "missing_fields": [],
+        "arguments": {
+          "trip_id": "SG-DL-20260721-2330-LIMO",
+          "customer_name": "Võ Gia Huy",
+          "customer_phone": "0934000014"
+        },
+        "expected_result": {
+          "booking_id": "VA-CASE_014",
+          "booking_status": "CONFIRMED"
+        }
+      },
+      "state_update": {
+        "set": {
+          "booking_id": "VA-CASE_014",
+          "booking_status": "CONFIRMED"
+        },
+        "clear": []
+      }
+    }
+  ],
+  "final_state": {
+    "origin": "Sài Gòn",
+    "destination": "Đà Lạt",
+    "travel_date": "2026-07-21",
+    "departure_time": "23:30",
+    "trip_id": "SG-DL-20260721-2330-LIMO",
+    "passenger_count": 3,
+    "vehicle_type": "Limousine 22 Phòng",
+    "seat_preference": "ba phòng tầng dưới gần nhau",
+    "assigned_seats": [
+      "P01",
+      "P02",
+      "P03"
+    ],
+    "pickup_location": "Ngã tư Hàng Xanh",
+    "dropoff_location": "Chợ Đà Lạt",
+    "customer_name": "Võ Gia Huy",
+    "customer_phone": "0934000014",
+    "passenger_details": [
+      {
+        "name": "Võ Gia Huy",
+        "type": "ADULT",
+        "seat": "P01"
+      },
+      {
+        "name": "Nguyễn Bảo Trân",
+        "type": "ADULT",
+        "seat": "P02"
+      },
+      {
+        "name": "Lâm Nhật Minh",
+        "type": "ADULT",
+        "seat": "P03"
+      }
+    ],
+    "payment_method": "QR",
+    "payment_status": "PENDING",
+    "booking_id": "VA-CASE_014",
+    "booking_status": "CONFIRMED",
+    "explicit_confirmation": true
+  },
+  "final_workflow_output": {
+    "customer": {
+      "name": "Võ Gia Huy",
+      "phone": "0934000014"
+    },
+    "passengers": {
+      "count": 3,
+      "details": [
+        {
+          "name": "Võ Gia Huy",
+          "type": "ADULT",
+          "seat": "P01"
+        },
+        {
+          "name": "Nguyễn Bảo Trân",
+          "type": "ADULT",
+          "seat": "P02"
+        },
+        {
+          "name": "Lâm Nhật Minh",
+          "type": "ADULT",
+          "seat": "P03"
+        }
+      ]
+    },
+    "trip": {
+      "trip_id": "SG-DL-20260721-2330-LIMO",
+      "origin": "Sài Gòn",
+      "destination": "Đà Lạt",
+      "travel_date": "2026-07-21",
+      "departure_time": "23:30",
+      "arrival_time": "07:00"
+    },
+    "vehicle": {
+      "type": "Limousine 22 Phòng",
+      "seat_preference": "ba phòng tầng dưới gần nhau",
+      "assigned_seats": [
+        "P01",
+        "P02",
+        "P03"
+      ]
+    },
+    "pickup_dropoff": {
+      "pickup_location": "Ngã tư Hàng Xanh",
+      "dropoff_location": "Chợ Đà Lạt"
+    },
+    "payment": {
+      "method": "QR",
+      "status": "PENDING",
+      "unit_fare_vnd": 450000,
+      "total_fare_vnd": 1350000
+    },
+    "booking": {
+      "booking_id": "VA-CASE_014",
+      "booking_status": "CONFIRMED"
+    },
+    "outcome": {
+      "completed_goal": true,
+      "confirmation_turn": 16
+    }
+  }
+}

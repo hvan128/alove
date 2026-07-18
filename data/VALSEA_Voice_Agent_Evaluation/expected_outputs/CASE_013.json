@@ -1,0 +1,410 @@
+{
+  "schema_version": "1.0",
+  "case_id": "CASE_013",
+  "title": "Lọc yêu cầu đặt vé từ câu chuyện thăm người nhà",
+  "metadata": {
+    "scenario_type": "hotline_behavior",
+    "customer_region": "Miền Bắc",
+    "audio_conditions": [
+      "quiet_mobile"
+    ],
+    "languages": [
+      "vi"
+    ],
+    "difficulty": "hard",
+    "call_datetime": "2026-07-19T14:10:00+07:00",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "coverage_tags": [
+      "storytelling",
+      "context_memory"
+    ]
+  },
+  "turn_expectations": [
+    {
+      "turn": 1,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "GREET_AND_DISCOVER",
+        "missing_fields": [
+          "departure_time"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "origin": "Hà Nội",
+          "destination": "Nghệ An",
+          "travel_date": "2026-07-21",
+          "passenger_count": 2
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 2,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "SEARCH_TRIPS",
+        "missing_fields": [],
+        "arguments": {
+          "origin": "Hà Nội",
+          "destination": "Nghệ An",
+          "travel_date": "2026-07-21",
+          "passenger_count": 2
+        },
+        "expected_result": {
+          "trip_ids": [
+            "HN-NA-20260721-2000-VIP21",
+            "HN-NA-20260721-2130-GN34"
+          ]
+        }
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 3,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "PRESENT_TRIP_OPTIONS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "trip_id": "HN-NA-20260721-2000-VIP21",
+          "departure_time": "20:00",
+          "vehicle_type": "Limousine 21 Phòng VIP"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 4,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "ANSWER_AND_REDIRECT",
+        "missing_fields": [
+          "pickup_location"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 5,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "ASK_MISSING_INFORMATION",
+        "missing_fields": [
+          "dropoff_location"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "pickup_location": "Bến xe Mỹ Đình"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 6,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "ASK_MISSING_INFORMATION",
+        "missing_fields": [
+          "customer_name"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "dropoff_location": "Văn phòng Vinh"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 7,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "ASK_MISSING_INFORMATION",
+        "missing_fields": [
+          "customer_phone"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "customer_name": "Phạm Thu Hà"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 8,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "ASK_MISSING_INFORMATION",
+        "missing_fields": [
+          "seat_preference"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "customer_phone": "0923000013"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 9,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "HOLD_SEATS",
+        "missing_fields": [],
+        "arguments": {
+          "trip_id": "HN-NA-20260721-2000-VIP21",
+          "passenger_count": 2,
+          "seat_preference": "hai phòng tầng dưới liền nhau"
+        },
+        "expected_result": {
+          "assigned_seats": [
+            "A01",
+            "A02"
+          ],
+          "unit_fare_vnd": 530000,
+          "total_fare_vnd": 1060000
+        }
+      },
+      "state_update": {
+        "set": {
+          "seat_preference": "hai phòng tầng dưới liền nhau",
+          "assigned_seats": [
+            "A01",
+            "A02"
+          ]
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 10,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PASSENGER_DETAILS",
+        "missing_fields": [
+          "payment_method"
+        ],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "passenger_details": [
+            {
+              "name": "Phạm Thu Hà",
+              "type": "ADULT",
+              "seat": "A01"
+            },
+            {
+              "name": "Phạm Ngọc Lan",
+              "type": "SENIOR",
+              "seat": "A02"
+            }
+          ]
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 11,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CAPTURE_PAYMENT_PREFERENCE",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "payment_method": "CASH_ON_BOARDING",
+          "payment_status": "PENDING"
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 12,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "ANSWER_AND_REDIRECT",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 13,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {},
+        "clear": []
+      }
+    },
+    {
+      "turn": 14,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_DETAILS",
+        "missing_fields": [],
+        "arguments": {},
+        "expected_result": {}
+      },
+      "state_update": {
+        "set": {
+          "explicit_confirmation": true
+        },
+        "clear": []
+      }
+    },
+    {
+      "turn": 15,
+      "action": {
+        "intent": "BOOK_TICKET",
+        "action": "CONFIRM_BOOKING",
+        "missing_fields": [],
+        "arguments": {
+          "trip_id": "HN-NA-20260721-2000-VIP21",
+          "customer_name": "Phạm Thu Hà",
+          "customer_phone": "0923000013"
+        },
+        "expected_result": {
+          "booking_id": "VA-CASE_013",
+          "booking_status": "CONFIRMED"
+        }
+      },
+      "state_update": {
+        "set": {
+          "booking_id": "VA-CASE_013",
+          "booking_status": "CONFIRMED"
+        },
+        "clear": []
+      }
+    }
+  ],
+  "final_state": {
+    "origin": "Hà Nội",
+    "destination": "Nghệ An",
+    "travel_date": "2026-07-21",
+    "departure_time": "20:00",
+    "trip_id": "HN-NA-20260721-2000-VIP21",
+    "passenger_count": 2,
+    "vehicle_type": "Limousine 21 Phòng VIP",
+    "seat_preference": "hai phòng tầng dưới liền nhau",
+    "assigned_seats": [
+      "A01",
+      "A02"
+    ],
+    "pickup_location": "Bến xe Mỹ Đình",
+    "dropoff_location": "Văn phòng Vinh",
+    "customer_name": "Phạm Thu Hà",
+    "customer_phone": "0923000013",
+    "passenger_details": [
+      {
+        "name": "Phạm Thu Hà",
+        "type": "ADULT",
+        "seat": "A01"
+      },
+      {
+        "name": "Phạm Ngọc Lan",
+        "type": "SENIOR",
+        "seat": "A02"
+      }
+    ],
+    "payment_method": "CASH_ON_BOARDING",
+    "payment_status": "PENDING",
+    "booking_id": "VA-CASE_013",
+    "booking_status": "CONFIRMED",
+    "explicit_confirmation": true
+  },
+  "final_workflow_output": {
+    "customer": {
+      "name": "Phạm Thu Hà",
+      "phone": "0923000013"
+    },
+    "passengers": {
+      "count": 2,
+      "details": [
+        {
+          "name": "Phạm Thu Hà",
+          "type": "ADULT",
+          "seat": "A01"
+        },
+        {
+          "name": "Phạm Ngọc Lan",
+          "type": "SENIOR",
+          "seat": "A02"
+        }
+      ]
+    },
+    "trip": {
+      "trip_id": "HN-NA-20260721-2000-VIP21",
+      "origin": "Hà Nội",
+      "destination": "Nghệ An",
+      "travel_date": "2026-07-21",
+      "departure_time": "20:00",
+      "arrival_time": "01:00"
+    },
+    "vehicle": {
+      "type": "Limousine 21 Phòng VIP",
+      "seat_preference": "hai phòng tầng dưới liền nhau",
+      "assigned_seats": [
+        "A01",
+        "A02"
+      ]
+    },
+    "pickup_dropoff": {
+      "pickup_location": "Bến xe Mỹ Đình",
+      "dropoff_location": "Văn phòng Vinh"
+    },
+    "payment": {
+      "method": "CASH_ON_BOARDING",
+      "status": "PENDING",
+      "unit_fare_vnd": 530000,
+      "total_fare_vnd": 1060000
+    },
+    "booking": {
+      "booking_id": "VA-CASE_013",
+      "booking_status": "CONFIRMED"
+    },
+    "outcome": {
+      "completed_goal": true,
+      "confirmation_turn": 14
+    }
+  }
+}

@@ -2,14 +2,14 @@
 
 ## Context
 
-- Agent worker: `agent/agent.py` (dispatch theo `LIVEKIT_AGENT_NAME=vedi`, room `booking-<id>`).
+- Agent worker: `agent/agent.py` (dispatch theo `LIVEKIT_AGENT_NAME=alove`, room `booking-<id>`).
 - LiveKit Cloud project đã có. Chưa có tài khoản telco.
 - LiveKit SIP: inbound trunk nhận cuộc gọi từ trunk provider, dispatch rule tạo room
   riêng cho từng cuộc gọi và dispatch agent.
 
 ## Yêu cầu
 
-1. Cuộc gọi vào số DID → LiveKit tạo room `booking-<suffix>` → agent `vedi` join, chào khách.
+1. Cuộc gọi vào số DID → LiveKit tạo room `booking-<suffix>` → agent `alove` join, chào khách.
 2. Agent hoạt động không cần data-channel (người gọi điện thoại không có nút
    "Tôi nói xong") — cascade VAD/turn-rules đã đáp ứng, chỉ cần xác nhận không có
    code path bắt buộc data-channel.
@@ -19,7 +19,7 @@
 
 - Tạo: `scripts/sip/inbound-trunk.example.json` — template `lk sip inbound-trunk create`.
 - Tạo: `scripts/sip/dispatch-rule.example.json` — individual room prefix `booking-`,
-  `room_config.agents = [{ agent_name: "vedi" }]`.
+  `room_config.agents = [{ agent_name: "alove" }]`.
 - Tạo: `docs/pstn-sip-runbook.md` — runbook từng bước: tài khoản telco → mua số →
   origination về LiveKit SIP URI → tạo trunk/dispatch rule bằng `lk` CLI → gọi thử.
 - Sửa: `agent/agent.py` — đọc `sip.phoneNumber` từ participant attributes khi có,

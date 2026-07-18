@@ -1,9 +1,7 @@
 import { expect, test } from '@playwright/test'
 
-// /console là màn gọi một phía (CallStage + TicketCard) từ khi dựng lại màn
-// hình cuộc gọi. Ở chế độ zero-key (không LiveKit) khách chỉ quan sát — dock
-// câu mẫu/ô nhập ẩn theo chủ đích, nên e2e chỉ smoke luồng bắt đầu/kết thúc;
-// luồng đặt vé xác định đã có unit test ở packages/core và bus-call-workspace.
+// /console chỉ có transport LiveKit. Khi backend media chưa cấu hình, UI phải
+// fail closed và đưa lối thử lại; tuyệt đối không rơi về preset/Web Speech.
 
 test('console hiện màn gọi với phiếu vé, không lỗi hydration', async ({ page }) => {
   const hydrationErrors: string[] = []
@@ -19,13 +17,18 @@ test('console hiện màn gọi với phiếu vé, không lỗi hydration', asyn
   expect(hydrationErrors).toEqual([])
 })
 
-test('bắt đầu rồi kết thúc Web Call, không lộ dock nhập liệu ở zero-key', async ({ page }) => {
+test('không fallback về demo khi LiveKit chưa cấu hình', async ({ page }) => {
+  await page.route('**/api/livekit/token', async (route) => {
+    await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'livekit_not_configured' }) })
+  })
   await page.goto('/console')
   await page.getByRole('button', { name: 'Bắt đầu Web Call' }).click()
 
-  await expect(page.getByText('Hãy nói tự nhiên — tổng đài viên đang nghe')).toBeVisible()
-  // Dock câu mẫu/ô nhập ẩn theo chủ đích khi không có LiveKit.
-  await expect(page.getByRole('button', { name: 'Yêu cầu mẫu' })).toBeHidden()
+  await expect(page.getByText('Đang kết nối tổng đài viên…')).toBeVisible()
+  await expect(page.getByRole('alert').filter({ hasText: 'Dịch vụ cuộc gọi chưa được cấu hình' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Thử lại' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Yêu cầu mẫu' })).toHaveCount(0)
+  await expect(page.getByRole('textbox', { name: 'Lời khách hàng' })).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Kết thúc' }).click()
   await expect(page.getByText('Cuộc gọi đã kết thúc')).toBeVisible()

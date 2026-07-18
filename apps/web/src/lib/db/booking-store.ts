@@ -1,6 +1,7 @@
+import { createHash } from 'node:crypto'
 import { and, eq, gte, lte, sql } from 'drizzle-orm'
 
-import { getDb } from './client'
+import { requireDb } from './client'
 import { bookings, routes, seats, trips } from './schema'
 
 /**
@@ -13,8 +14,10 @@ export type TripOffer = {
   tripId: string
   originCity: string
   destinationCity: string
-  departsAt: string // ISO, +07:00
+  departsAt: string // ISO instant
+  arrivesAt: string | null
   departureLabel: string // "20/07 20:00"
+  arrivalTime: string | null // "06:00"
   vehicleType: string
   priceVnd: number
   pickupPoint: string
@@ -22,6 +25,25 @@ export type TripOffer = {
   seatsAvailable: number
   /** "ghế" | "giường" | "phòng" — dùng đúng từ nhà xe gọi sản phẩm. */
   seatNoun: string
+}
+
+const seatsAvailableSql = sql<number>`count(${seats.id}) filter (
+  where ${seats.status} = 'available'
+     or (${seats.status} = 'held' and (${seats.holdExpiresAt} is null or ${seats.holdExpiresAt} <= now()))
+)::int`
+
+function departureLabel(departureAt: Date): string {
+  return new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    timeZone: 'Asia/Ho_Chi_Minh', hour12: false,
+  }).format(departureAt)
+}
+
+function timeLabel(value: Date | null): string | null {
+  if (!value) return null
+  return new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Ho_Chi_Minh',
+  }).format(value)
 }
 
 /**
@@ -73,8 +95,7 @@ export async function suggestRoutes(asked: {
   origin: string
   destination: string
 }): Promise<{ origin: string; destination: string }[]> {
-  const db = getDb()
-  if (!db) return []
+  const db = requireDb()
   const rows = await db
     .select({ origin: routes.originCity, destination: routes.destinationCity })
     .from(routes)
@@ -117,8 +138,7 @@ export async function searchTrips(input: {
   date?: string | null | undefined
   passengers?: number | null | undefined
 }): Promise<TripOffer[]> {
-  const db = getDb()
-  if (!db) return []
+  const db = requireDb()
 
   const routeRows = await db
     .select({
@@ -136,7 +156,9 @@ export async function searchTrips(input: {
   )
   if (!match) return []
 
-  const from = input.date ? new Date(`${input.date}T00:00:00+07:00`) : new Date()
+  const now = new Date()
+  const requestedFrom = input.date ? new Date(`${input.date}T00:00:00+07:00`) : now
+  const from = requestedFrom > now ? requestedFrom : now
   const to = input.date
     ? new Date(`${input.date}T23:59:59+07:00`)
     : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
@@ -146,16 +168,17 @@ export async function searchTrips(input: {
     .select({
       tripId: trips.id,
       departureAt: trips.departureAt,
+      arrivalAt: trips.arrivalAt,
       vehicleType: trips.vehicleType,
       priceVnd: trips.priceVnd,
       pickupPoint: trips.pickupPoint,
       dropoffPoint: trips.dropoffPoint,
-      seatsAvailable: sql<number>`count(${seats.id}) filter (where ${seats.status} = 'available')::int`,
+      seatsAvailable: seatsAvailableSql,
     })
     .from(trips)
     .innerJoin(seats, eq(seats.tripId, trips.id))
     .where(and(eq(trips.routeId, match.id), eq(trips.active, 'yes'), gte(trips.departureAt, from), lte(trips.departureAt, to)))
-    .groupBy(trips.id, trips.departureAt, trips.vehicleType, trips.priceVnd, trips.pickupPoint, trips.dropoffPoint)
+    .groupBy(trips.id, trips.departureAt, trips.arrivalAt, trips.vehicleType, trips.priceVnd, trips.pickupPoint, trips.dropoffPoint)
     .orderBy(trips.departureAt)
 
   return rows
@@ -165,10 +188,9 @@ export async function searchTrips(input: {
       originCity: match.originCity,
       destinationCity: match.destinationCity,
       departsAt: r.departureAt.toISOString(),
-      departureLabel: new Intl.DateTimeFormat('vi-VN', {
-        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-        timeZone: 'Asia/Ho_Chi_Minh', hour12: false,
-      }).format(r.departureAt),
+      arrivesAt: r.arrivalAt?.toISOString() ?? null,
+      departureLabel: departureLabel(r.departureAt),
+      arrivalTime: timeLabel(r.arrivalAt),
       vehicleType: r.vehicleType,
       priceVnd: r.priceVnd,
       pickupPoint: r.pickupPoint,
@@ -176,6 +198,66 @@ export async function searchTrips(input: {
       seatsAvailable: r.seatsAvailable,
       seatNoun: seatNounFor(r.vehicleType),
     }))
+}
+
+/** Real upcoming inventory for server-rendered schedule surfaces. */
+export async function listUpcomingTrips(limit = 8): Promise<TripOffer[]> {
+  const db = requireDb()
+  const now = new Date()
+  const horizon = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+
+  const rows = await db
+    .select({
+      tripId: trips.id,
+      originCity: routes.originCity,
+      destinationCity: routes.destinationCity,
+      departureAt: trips.departureAt,
+      arrivalAt: trips.arrivalAt,
+      vehicleType: trips.vehicleType,
+      priceVnd: trips.priceVnd,
+      pickupPoint: trips.pickupPoint,
+      dropoffPoint: trips.dropoffPoint,
+      seatsAvailable: seatsAvailableSql,
+    })
+    .from(trips)
+    .innerJoin(routes, eq(routes.id, trips.routeId))
+    .innerJoin(seats, eq(seats.tripId, trips.id))
+    .where(and(
+      eq(trips.active, 'yes'),
+      eq(routes.active, 'yes'),
+      gte(trips.departureAt, now),
+      lte(trips.departureAt, horizon),
+    ))
+    .groupBy(
+      trips.id,
+      routes.originCity,
+      routes.destinationCity,
+      trips.departureAt,
+      trips.arrivalAt,
+      trips.vehicleType,
+      trips.priceVnd,
+      trips.pickupPoint,
+      trips.dropoffPoint,
+    )
+    .having(sql`${seatsAvailableSql} > 0`)
+    .orderBy(trips.departureAt)
+    .limit(Math.max(1, limit))
+
+  return rows.map((row) => ({
+    tripId: row.tripId,
+    originCity: row.originCity,
+    destinationCity: row.destinationCity,
+    departsAt: row.departureAt.toISOString(),
+    arrivesAt: row.arrivalAt?.toISOString() ?? null,
+    departureLabel: departureLabel(row.departureAt),
+    arrivalTime: timeLabel(row.arrivalAt),
+    vehicleType: row.vehicleType,
+    priceVnd: row.priceVnd,
+    pickupPoint: row.pickupPoint,
+    dropoffPoint: row.dropoffPoint,
+    seatsAvailable: row.seatsAvailable,
+    seatNoun: seatNounFor(row.vehicleType),
+  }))
 }
 
 /**
@@ -189,55 +271,104 @@ export async function holdSeats(input: {
   passengers: number
   holdMinutes?: number
 }): Promise<{ seatCodes: string[]; priceVnd: number; totalVnd: number; seatNoun: string } | null> {
-  const db = getDb()
-  if (!db) return null
-  const minutes = input.holdMinutes ?? 15
+  const db = requireDb()
+  const minutes = Math.max(1, input.holdMinutes ?? 15)
+  const passengers = Math.max(1, input.passengers)
 
-  const tripRows = await db
-    .select({ priceVnd: trips.priceVnd, vehicleType: trips.vehicleType })
-    .from(trips)
-    .where(eq(trips.id, input.tripId))
-    .limit(1)
-  const trip = tripRows[0]
-  if (!trip) return null
-  const price = trip.priceVnd
-
+  // One statement is one Neon HTTP transaction. The per-call advisory lock
+  // serializes duplicate hold requests while row locks protect shared seats.
+  // `released` drops surplus seats and every hold on a previously selected trip.
   const claimed = await db.execute(sql`
-    UPDATE ${seats} SET
-      status = 'held',
-      held_by_call_id = ${input.callId},
-      hold_expires_at = now() + (${minutes} || ' minutes')::interval
-    WHERE id IN (
-      SELECT id FROM ${seats}
-      WHERE trip_id = ${input.tripId}
+    WITH call_lock AS (
+      SELECT pg_advisory_xact_lock(hashtextextended(${input.callId}, 0))
+    ), target_trip AS (
+      SELECT t.id, t.price_vnd, t.vehicle_type
+      FROM ${trips} AS t
+      CROSS JOIN call_lock
+      WHERE t.id = ${input.tripId} AND t.active = 'yes'
+    ), existing AS (
+      SELECT s.id
+      FROM ${seats} AS s
+      CROSS JOIN call_lock
+      WHERE s.trip_id = (SELECT id FROM target_trip)
+        AND s.status = 'held'
+        AND s.held_by_call_id = ${input.callId}
+        AND s.hold_expires_at > now()
+      ORDER BY s.code
+      LIMIT ${passengers}
+      FOR UPDATE
+    ), candidates AS (
+      SELECT s.id
+      FROM ${seats} AS s
+      CROSS JOIN call_lock
+      WHERE s.trip_id = (SELECT id FROM target_trip)
         AND (
-          status = 'available'
-          OR (status = 'held' AND hold_expires_at < now())
-          OR (status = 'held' AND held_by_call_id = ${input.callId})
+          s.status = 'available'
+          OR (s.status = 'held' AND (s.hold_expires_at IS NULL OR s.hold_expires_at <= now()))
         )
-      ORDER BY code
-      LIMIT ${input.passengers}
+        AND NOT EXISTS (SELECT 1 FROM existing e WHERE e.id = s.id)
+      ORDER BY s.code
+      LIMIT (SELECT GREATEST(${passengers} - count(*)::int, 0) FROM existing)
       FOR UPDATE SKIP LOCKED
+    ), selected AS (
+      SELECT id FROM existing
+      UNION ALL
+      SELECT id FROM candidates
+    ), released AS (
+      UPDATE ${seats} AS s
+      SET status = 'available', held_by_call_id = NULL, hold_expires_at = NULL
+      WHERE s.status = 'held'
+        AND s.held_by_call_id = ${input.callId}
+        AND EXISTS (SELECT 1 FROM target_trip)
+        AND (
+          (SELECT count(*) FROM selected) <> ${passengers}
+          OR NOT EXISTS (SELECT 1 FROM selected chosen WHERE chosen.id = s.id)
+        )
+      RETURNING s.id
+    ), held AS (
+      UPDATE ${seats} AS s
+      SET status = 'held',
+          held_by_call_id = ${input.callId},
+          hold_expires_at = now() + make_interval(mins => ${minutes})
+      WHERE s.id IN (SELECT id FROM selected)
+        AND (SELECT count(*) FROM selected) = ${passengers}
+      RETURNING s.code
     )
-    RETURNING code
+    SELECT h.code AS "seatCode",
+           t.price_vnd AS "priceVnd",
+           t.vehicle_type AS "vehicleType",
+           (SELECT count(*) FROM released) AS "releasedCount"
+    FROM held h
+    CROSS JOIN target_trip t
+    ORDER BY h.code
   `)
 
-  const seatCodes = (claimed.rows as { code: string }[]).map((r) => r.code).sort()
+  const rows = claimed.rows as unknown as Array<{
+    seatCode: string
+    priceVnd: number | string
+    vehicleType: string
+  }>
+  const seatCodes = rows.map((row) => row.seatCode).sort()
   if (seatCodes.length === 0) return null
+  const price = Number(rows[0]!.priceVnd)
   return {
     seatCodes,
     priceVnd: price,
     totalVnd: price * seatCodes.length,
-    seatNoun: seatNounFor(trip.vehicleType),
+    seatNoun: seatNounFor(rows[0]!.vehicleType),
   }
 }
 
 export async function releaseHolds(callId: string): Promise<void> {
-  const db = getDb()
-  if (!db) return
+  const db = requireDb()
   await db.execute(sql`
-    UPDATE ${seats} SET status = 'available', held_by_call_id = NULL, hold_expires_at = NULL
-    WHERE held_by_call_id = ${callId} AND status = 'held'
+    WITH call_lock AS (
+      SELECT pg_advisory_xact_lock(hashtextextended(${callId}, 0))
+    )
+    UPDATE ${seats} AS s
+    SET status = 'available', held_by_call_id = NULL, hold_expires_at = NULL
+    FROM call_lock
+    WHERE s.held_by_call_id = ${callId} AND s.status = 'held'
   `)
 }
 
@@ -254,20 +385,12 @@ export type BookingSummary = {
   pickupPoint: string
 }
 
-/**
- * Look a booking up by ticket code or phone number.
- *
- * A caller who booked yesterday rings back on a fresh call, so the booking is not
- * attached to this conversation id and cancel-by-call finds nothing. Phone number
- * is what a real caller actually has to hand.
- */
+/** Previous-call access requires both possession factors. */
 export async function findBookings(input: {
-  code?: string | null | undefined
-  phone?: string | null | undefined
+  code: string
+  phone: string
 }): Promise<BookingSummary[]> {
-  const db = getDb()
-  if (!db) return []
-  if (!input.code && !input.phone) return []
+  const db = requireDb()
 
   const rows = await db
     .select({
@@ -285,7 +408,7 @@ export async function findBookings(input: {
     .from(bookings)
     .innerJoin(trips, eq(trips.id, bookings.tripId))
     .innerJoin(routes, eq(routes.id, trips.routeId))
-    .where(input.code ? eq(bookings.code, input.code) : eq(bookings.phone, input.phone!))
+    .where(and(eq(bookings.code, input.code), eq(bookings.phone, input.phone)))
     .orderBy(sql`${bookings.id} desc`)
     .limit(5)
 
@@ -298,10 +421,7 @@ export async function findBookings(input: {
       seatCodes: r.seatCodes,
       totalVnd: r.totalFareVnd,
       status: r.status,
-      departureLabel: new Intl.DateTimeFormat('vi-VN', {
-        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-        timeZone: 'Asia/Ho_Chi_Minh', hour12: false,
-      }).format(r.departureAt),
+      departureLabel: departureLabel(r.departureAt),
       originCity: r.originCity,
       destinationCity: r.destinationCity,
       pickupPoint: r.pickupPoint,
@@ -318,48 +438,103 @@ export async function cancelBooking(input: {
   code?: string | null
   phone?: string | null
 }): Promise<{ cancelled: boolean; code?: string; seatCodes?: string[] }> {
-  const db = getDb()
-  if (!db) return { cancelled: false }
+  const hasCode = Boolean(input.code)
+  const hasPhone = Boolean(input.phone)
+  if (hasCode !== hasPhone) {
+    throw new Error('Previous-call cancellation requires both booking code and phone')
+  }
 
-  // Ticket code identifies exactly one booking, so prefer it. Phone covers the
-  // caller ringing back on a new call. Falling back to this conversation handles
-  // "actually, cancel that" moments inside the call that just made the booking.
-  const where = input.code
-    ? eq(bookings.code, input.code)
-    : input.phone
-      ? eq(bookings.phone, input.phone)
-      : eq(bookings.callId, input.callId)
+  const db = requireDb()
+  const authorizedBooking = hasCode
+    ? sql`b.code = ${input.code!} AND b.phone = ${input.phone!}`
+    : sql`b.call_id = ${input.callId}`
 
-  const rows = await db
-    .select({ id: bookings.id, code: bookings.code, seatCodes: bookings.seatCodes, status: bookings.status })
-    .from(bookings)
-    .where(where)
-    .orderBy(sql`${bookings.id} desc`)
-    .limit(1)
-  const booking = rows[0]
-  if (!booking || booking.status === 'cancelled') return { cancelled: false }
-
-  // Giải phóng idempotency key: nó là callId:tripId, nên nếu giữ nguyên thì khách
-  // huỷ xong đặt lại đúng chuyến đó trong cùng cuộc gọi sẽ nhận về chính tấm vé
-  // vừa huỷ thay vì vé mới. Gắn hậu tố để key cũ dùng lại được mà vẫn duy nhất.
-  await db
-    .update(bookings)
-    .set({ status: 'cancelled', idempotencyKey: `cancelled:${booking.id}` })
-    .where(eq(bookings.id, booking.id))
-  await db.execute(sql`
-    UPDATE ${seats} SET status = 'available', booking_id = NULL,
-                        held_by_call_id = NULL, hold_expires_at = NULL
-    WHERE booking_id = ${booking.id}
+  // Cancellation and inventory release succeed or roll back together. Re-keying
+  // a cancelled row lets a genuinely new hold in this call be confirmed later.
+  const result = await db.execute(sql`
+    WITH call_lock AS (
+      SELECT pg_advisory_xact_lock(hashtextextended(${input.callId}, 0))
+    ), target AS (
+      SELECT b.id, b.code, b.seat_codes, b.idempotency_key
+      FROM ${bookings} AS b
+      CROSS JOIN call_lock
+      WHERE ${authorizedBooking} AND b.status <> 'cancelled'
+      ORDER BY b.id DESC
+      LIMIT 1
+      FOR UPDATE
+    ), cancelled AS (
+      UPDATE ${bookings} AS b
+      SET status = 'cancelled',
+          idempotency_key = concat('cancelled:', b.id::text, ':', b.idempotency_key)
+      FROM target t
+      WHERE b.id = t.id
+      RETURNING b.id, b.code, b.seat_codes
+    ), released AS (
+      UPDATE ${seats} AS s
+      SET status = 'available', booking_id = NULL,
+          held_by_call_id = NULL, hold_expires_at = NULL
+      FROM cancelled c
+      WHERE s.booking_id = c.id
+      RETURNING s.id
+    )
+    SELECT c.code, c.seat_codes AS "seatCodes",
+           (SELECT count(*) FROM released) AS "releasedCount"
+    FROM cancelled c
   `)
-  return { cancelled: true, code: booking.code, seatCodes: booking.seatCodes }
+
+  const [row] = result.rows as unknown as Array<{ code: string; seatCodes: string[] }>
+  if (!row) return { cancelled: false }
+  return { cancelled: true, code: row.code, seatCodes: row.seatCodes }
 }
 
-/** Ticket code derived from the booking id, so it is unique by construction. */
-function ticketCode(id: number, departsAt: Date): string {
-  const stamp = new Intl.DateTimeFormat('en-CA', {
-    year: '2-digit', month: '2-digit', day: '2-digit', timeZone: 'Asia/Ho_Chi_Minh',
-  }).format(departsAt).replace(/-/gu, '')
-  return `VD-${stamp}-${String(id).padStart(4, '0')}`
+function normalizeConfirmationText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/gu, '')
+    .toLocaleLowerCase('vi-VN')
+    .replace(/đ/gu, 'd')
+    .replace(/[^a-z0-9]+/gu, ' ')
+    .trim()
+}
+
+/**
+ * Chỉ đồng ý khi khách nói rõ ràng — phủ định và do dự không bao giờ lọt.
+ *
+ * Danh sách chấp nhận phải phủ đúng cách người Việt xác nhận qua điện thoại. Bản
+ * đầu chỉ nhận "xác nhận", "đồng ý", "chốt" nên khách trả lời "ok luôn", "được
+ * rồi em", "chuẩn rồi" đều bị từ chối và xuất vé hỏng. Riêng "đúng rồi" từng bị
+ * chặn ngược với chính chú thích trong code: nó qua được cửa lọc "dung" nhưng
+ * không có trong danh sách chấp nhận.
+ */
+export function isExplicitBookingConfirmation(value: string): boolean {
+  const normalized = normalizeConfirmationText(value)
+  // Phủ định và do dự: chặn trước, không có ngoại lệ.
+  if (/\b(?:khong|chua|huy|khoan|thoi|de sau|co le|hinh nhu|phan van|de xem|suy nghi)\b/u.test(normalized)) {
+    return false
+  }
+  // "dung" không dấu vừa là "đúng" vừa là "đừng". Chỉ "đúng rồi" mới an toàn.
+  if (/\bdung\b/u.test(normalized) && !/\bdung roi\b/u.test(normalized)) return false
+  return AFFIRMATIVE_PATTERNS.some((pattern) => pattern.test(normalized))
+}
+
+const AFFIRMATIVE_PATTERNS: RegExp[] = [
+  /\bxac nhan\b/u,
+  /\bdong y\b/u,
+  /\bchot\b/u,
+  /\bdat\s+(?:ve\s+)?(?:di|luon|giup|cho|nhe)\b/u,
+  /\bdung roi\b/u,
+  /\bduoc(?:\s+roi)?\b/u,
+  /\bchuan(?:\s+roi)?\b/u,
+  /\bok(?:e|ie|ay)?\b/u,
+  // Trả lời gọn cho câu hỏi đóng "anh xác nhận đặt vé chứ ạ?" — đây là cách
+  // khách hay đáp nhất, chặn thì hỏng hẳn luồng chốt vé.
+  /^(?:u|ua|um|vang|da|co)\b/u,
+]
+
+function confirmationIdempotencyKey(input: { callId: string; tripId: string }): string {
+  return createHash('sha256')
+    .update(JSON.stringify([input.callId, input.tripId]))
+    .digest('hex')
 }
 
 /**
@@ -371,73 +546,126 @@ export async function confirmBooking(input: {
   tripId: string
   passengerName: string
   phone: string
+  confirmationText: string
 }): Promise<{ code: string; seatCodes: string[]; totalVnd: number; departureLabel: string; pickupPoint: string } | null> {
-  const db = getDb()
-  if (!db) return null
-  const idempotencyKey = `${input.callId}:${input.tripId}`
+  if (!isExplicitBookingConfirmation(input.confirmationText)) return null
 
-  const existing = await db
-    .select({ code: bookings.code, seatCodes: bookings.seatCodes, totalFareVnd: bookings.totalFareVnd })
-    .from(bookings)
-    .where(eq(bookings.idempotencyKey, idempotencyKey))
-    .limit(1)
+  const db = requireDb()
+  const idempotencyKey = confirmationIdempotencyKey(input)
 
-  const tripRows = await db
-    .select({ priceVnd: trips.priceVnd, departureAt: trips.departureAt, pickupPoint: trips.pickupPoint })
-    .from(trips)
-    .where(eq(trips.id, input.tripId))
-    .limit(1)
-  const trip = tripRows[0]
-  if (!trip) return null
-  const departureLabel = new Intl.DateTimeFormat('vi-VN', {
-    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-    timeZone: 'Asia/Ho_Chi_Minh', hour12: false,
-  }).format(trip.departureAt)
-
-  if (existing[0]) {
-    return {
-      code: existing[0].code,
-      seatCodes: existing[0].seatCodes,
-      totalVnd: existing[0].totalFareVnd,
-      departureLabel,
-      pickupPoint: trip.pickupPoint,
-    }
-  }
-
-  const held = await db
-    .select({ code: seats.code })
-    .from(seats)
-    .where(and(eq(seats.tripId, input.tripId), eq(seats.heldByCallId, input.callId), eq(seats.status, 'held')))
-  const seatCodes = held.map((r) => r.code).sort()
-  if (seatCodes.length === 0) return null
-
-  const inserted = await db
-    .insert(bookings)
-    .values({
-      code: 'pending',
-      tripId: input.tripId,
-      callId: input.callId,
-      passengerName: input.passengerName,
-      phone: input.phone,
-      seatCodes,
-      totalFareVnd: trip.priceVnd * seatCodes.length,
-      idempotencyKey,
-    })
-    .returning({ id: bookings.id })
-  const bookingId = inserted[0]!.id
-
-  const code = ticketCode(bookingId, trip.departureAt)
-  await db.update(bookings).set({ code }).where(eq(bookings.id, bookingId))
-  await db.execute(sql`
-    UPDATE ${seats} SET status = 'booked', booking_id = ${bookingId}, hold_expires_at = NULL
-    WHERE trip_id = ${input.tripId} AND held_by_call_id = ${input.callId} AND status = 'held'
+  // A single statement is atomic through Neon HTTP. Existing confirmations are
+  // returned first; otherwise only unexpired rows held by this call are locked,
+  // booked and used to construct the ticket.
+  const result = await db.execute(sql`
+    WITH call_lock AS (
+      SELECT pg_advisory_xact_lock(hashtextextended(${input.callId}, 0))
+    ), existing AS (
+      SELECT b.code,
+             b.seat_codes AS "seatCodes",
+             b.total_fare_vnd AS "totalVnd",
+             t.departure_at AS "departureAt",
+             t.pickup_point AS "pickupPoint"
+      FROM ${bookings} AS b
+      INNER JOIN ${trips} AS t ON t.id = b.trip_id
+      CROSS JOIN call_lock
+      WHERE b.idempotency_key = ${idempotencyKey} AND b.status <> 'cancelled'
+      LIMIT 1
+    ), target_trip AS (
+      SELECT t.id, t.price_vnd, t.departure_at, t.pickup_point
+      FROM ${trips} AS t
+      CROSS JOIN call_lock
+      WHERE t.id = ${input.tripId} AND t.active = 'yes'
+    ), held AS (
+      SELECT s.id, s.code
+      FROM ${seats} AS s
+      CROSS JOIN call_lock
+      WHERE s.trip_id = ${input.tripId}
+        AND s.held_by_call_id = ${input.callId}
+        AND s.status = 'held'
+        AND s.hold_expires_at > now()
+      ORDER BY s.code
+      FOR UPDATE
+    ), held_summary AS (
+      SELECT array_agg(h.code ORDER BY h.code) AS seat_codes
+      FROM held h
+      HAVING count(*) > 0
+    ), candidate AS (
+      SELECT nextval(pg_get_serial_sequence('bookings', 'id'))::integer AS id,
+             t.id AS trip_id,
+             t.price_vnd,
+             t.departure_at,
+             t.pickup_point,
+             h.seat_codes
+      FROM target_trip t
+      CROSS JOIN held_summary h
+      WHERE NOT EXISTS (SELECT 1 FROM existing)
+    ), prepared AS (
+      SELECT c.*,
+             concat(
+               'MA-',
+               to_char(c.departure_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYMMDD'),
+               '-',
+               lpad(c.id::text, 4, '0')
+             ) AS code
+      FROM candidate c
+    ), booked AS (
+      UPDATE ${seats} AS s
+      SET status = 'booked',
+          booking_id = p.id,
+          held_by_call_id = NULL,
+          hold_expires_at = NULL
+      FROM prepared p
+      WHERE s.id IN (SELECT id FROM held)
+      RETURNING s.id
+    ), inserted AS (
+      INSERT INTO ${bookings} (
+        id, code, trip_id, call_id, passenger_name, phone, confirmation_text,
+        seat_codes, total_fare_vnd, idempotency_key
+      )
+      SELECT p.id,
+             p.code,
+             p.trip_id,
+             ${input.callId},
+             ${input.passengerName},
+             ${input.phone},
+             ${input.confirmationText},
+             to_jsonb(p.seat_codes),
+             p.price_vnd * cardinality(p.seat_codes),
+             ${idempotencyKey}
+      FROM prepared p
+      CROSS JOIN (SELECT count(*)::int AS count FROM booked) booked_count
+      WHERE booked_count.count = cardinality(p.seat_codes)
+      RETURNING code,
+                seat_codes AS "seatCodes",
+                total_fare_vnd AS "totalVnd"
+    ), inserted_result AS (
+      SELECT i.code,
+             i."seatCodes",
+             i."totalVnd",
+             t.departure_at AS "departureAt",
+             t.pickup_point AS "pickupPoint"
+      FROM inserted i
+      CROSS JOIN target_trip t
+    )
+    SELECT * FROM existing
+    UNION ALL
+    SELECT * FROM inserted_result
+    LIMIT 1
   `)
 
+  const [row] = result.rows as unknown as Array<{
+    code: string
+    seatCodes: string[]
+    totalVnd: number | string
+    departureAt: Date | string
+    pickupPoint: string
+  }>
+  if (!row) return null
   return {
-    code,
-    seatCodes,
-    totalVnd: trip.priceVnd * seatCodes.length,
-    departureLabel,
-    pickupPoint: trip.pickupPoint,
+    code: row.code,
+    seatCodes: row.seatCodes,
+    totalVnd: Number(row.totalVnd),
+    departureLabel: departureLabel(new Date(row.departureAt)),
+    pickupPoint: row.pickupPoint,
   }
 }

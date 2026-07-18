@@ -1,9 +1,11 @@
 ---
 phase: 4
-title: "Độ bền lỗi và mobile"
-status: pending
+title: Độ bền lỗi và mobile
+status: completed
 priority: P1
-dependencies: [2, 3]
+dependencies:
+  - 2
+  - 3
 ---
 
 # Phase 4: Độ bền lỗi và mobile (UX-4, UX-5, P1-7)
@@ -18,6 +20,7 @@ Gia cố những chỗ demo có thể vỡ trước mắt khán giả: đường
   - UX-5: sau khi hết 3 lần redispatch (~36s) mà vẫn không có agent → dừng ringback, hiện thông báo "Tổng đài đang bận" + nút **Gọi lại** (tạo conversation mới) + nút Đóng.
   - UX-4: mobile trong cuộc gọi — `TicketCard` thành bottom sheet: thanh peek (trạng thái + tuyến) chạm/kéo để mở; không che caption.
   - P1-7: field phiếu vé vừa được cập nhật từ `booking.update` flash/pulse ~1s.
+  - Từ review Phase 2 (Medium/Low, dồn về đây): focus trap + trả focus về CTA khi đóng `call-overlay.tsx`; ESC đóng dialog transcript con trước rồi mới tới overlay; unit test contract `controlRef`/`onEnded`; cân nhắc `scrollbar-gutter: stable` cho Windows.
 - Non-functional: không đổi protocol data-channel; không đụng agent worker; flash tôn trọng reduced-motion.
 
 ## Architecture
