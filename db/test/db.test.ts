@@ -12,6 +12,7 @@ import {
   bookingConfirmations,
   confirmedBookings,
   inventoryEvents,
+  operationsAuditEvents,
   seatHoldItems,
   seatHolds,
   tripSeats,
@@ -28,6 +29,23 @@ afterEach(async () => {
     process.env.DATABASE_URL = originalDatabaseUrl
   }
   await resetDbForTests()
+})
+
+describe('operations ownership schema', () => {
+  it('exports the cross-session operations audit table', () => {
+    // booking_audit_events hangs off booking_id, so it cannot describe an
+    // accept or a delegation that happened before a booking draft existed.
+    expect(getTableName(operationsAuditEvents)).toBe('operations_audit_events')
+    expect(Object.keys(getTableColumns(operationsAuditEvents))).toEqual(expect.arrayContaining([
+      'sessionCode',
+      'eventType',
+      'actorId',
+      'actorRole',
+      'reason',
+      'correlationId',
+      'createdAt',
+    ]))
+  })
 })
 
 describe('Neon database initialization', () => {
@@ -64,6 +82,14 @@ describe('Neon database initialization', () => {
       'revision',
     ]))
     expect(Object.keys(getTableColumns(busCalls))).toEqual(expect.arrayContaining([
+      'ownerId',
+      'ownerRole',
+      'acceptedAt',
+      'delegation',
+      'delegatedAt',
+      'takeoverReason',
+      'takenOverAt',
+      'ownershipRevision',
       'transcriptLanguage',
       'transport',
       'agentState',

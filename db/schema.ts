@@ -1,8 +1,9 @@
-import { boolean, integer, jsonb, pgTable, real, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, jsonb, pgTable, real, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 import { catalogTrips, catalogVersions } from './catalog-schema'
 
 export * from './catalog-schema'
 export * from './inventory-schema'
+export * from './operations-schema'
 
 export const conversations = pgTable('conversations', {
   id: text('id').primaryKey(),
@@ -84,11 +85,24 @@ export const busCalls = pgTable('bus_calls', {
   valseaState: text('valsea_state').notNull().default('unconfigured'),
   revision: integer('revision').notNull().default(0),
   isDemo: boolean('is_demo').notNull().default(true),
+  // F-12 operations ownership. `mode` stays the transport-level human/auto
+  // toggle; `delegation` is the audited grant of reply authority to the Agent.
+  ownerId: text('owner_id'),
+  ownerRole: text('owner_role'),
+  acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+  delegation: text('delegation').notNull().default('staff'),
+  delegatedAt: timestamp('delegated_at', { withTimezone: true }),
+  takeoverReason: text('takeover_reason'),
+  takenOverAt: timestamp('taken_over_at', { withTimezone: true }),
+  ownershipRevision: integer('ownership_revision').notNull().default(0),
   startedAt: timestamp('started_at', { withTimezone: true }),
   endedAt: timestamp('ended_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-})
+}, (table) => [
+  index('bus_calls_status_idx').on(table.status),
+  index('bus_calls_owner_idx').on(table.ownerId),
+])
 
 export const busCallEvents = pgTable('bus_call_events', {
   id: text('id').primaryKey(),
