@@ -1,12 +1,24 @@
+import type { OperatorRole } from '@ordervoice/contracts'
 import type { OperationsDashboardSnapshot } from '@/lib/operations/operations-repository'
 import { BellIcon, CheckCircleIcon, HeadsetIcon, PhoneCallIcon, TrendUpIcon } from '@phosphor-icons/react/dist/ssr'
 import { ActiveCallList } from './active-call-list'
+import { AuditTrail } from './audit-trail'
 import { CallQueue } from './call-queue'
 import { DepartureList } from './departure-list'
 import { MetricCard } from './metric-card'
+import { OperationsSearch } from './operations-search'
 
-export function OperationsDashboard({ snapshot }: { snapshot: OperationsDashboardSnapshot }) {
+export function OperationsDashboard({
+  snapshot,
+  role,
+  query,
+}: {
+  snapshot: OperationsDashboardSnapshot
+  role: OperatorRole
+  query: string
+}) {
   const metrics = snapshot.metrics
+  const filtered = query.trim().length > 0
   return (
     <div className="mx-auto max-w-[1240px]">
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -20,7 +32,9 @@ export function OperationsDashboard({ snapshot }: { snapshot: OperationsDashboar
         </p>
       </header>
 
-      <section aria-label="Chỉ số vận hành" className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <OperationsSearch query={query} />
+
+      <section aria-label="Chỉ số vận hành" className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Đang chờ" value={metrics.queuedCalls.toString().padStart(2, '0')} note={`Lâu nhất ${formatWait(metrics.longestWaitSeconds)}`} icon={<PhoneCallIcon size={19} aria-hidden />} />
         <MetricCard label="Đang gọi" value={metrics.activeCalls.toString().padStart(2, '0')} note={`${metrics.callsToday} cuộc gọi hôm nay`} icon={<HeadsetIcon size={19} aria-hidden />} />
         <MetricCard label="Đã xác nhận" value={metrics.confirmedBookings.toString().padStart(2, '0')} note={`Tỷ lệ chuyển đổi ${metrics.conversionRate}%`} icon={<CheckCircleIcon size={19} aria-hidden />} />
@@ -39,11 +53,12 @@ export function OperationsDashboard({ snapshot }: { snapshot: OperationsDashboar
       ) : null}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
-        <CallQueue queue={snapshot.queue} />
-        <ActiveCallList calls={snapshot.activeCalls} />
+        <CallQueue queue={snapshot.queue} role={role} filtered={filtered} />
+        <ActiveCallList calls={snapshot.activeCalls} role={role} />
       </div>
-      <div className="mt-6">
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
         <DepartureList departures={snapshot.departures} />
+        <AuditTrail events={snapshot.auditTrail} />
       </div>
     </div>
   )
