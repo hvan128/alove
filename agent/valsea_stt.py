@@ -7,18 +7,27 @@ cascade pipeline can run VALSEA-first per the VéĐi brief:
     session.start -> stream PCM16 16k mono -> input_audio_buffer.commit
     <- transcript.partial / transcript.final
 
-Protocol (authoritative source: packages/providers/src/valsea.ts):
-  - Connect  wss://api.valsea.ai/v1/realtime  with `Authorization: Bearer <key>`.
-  - Send     {"type":"session.start","audio":{"encoding":"pcm_s16le","sample_rate":16000,"channels":1}}
-  - Send     raw little-endian PCM16 bytes as binary frames.
-  - Send     {"type":"input_audio_buffer.commit"}  to close an utterance.
-  - Receive  {"type":"transcript.partial|final","transcript":{"text",...}}  (or flat fields).
-  - Send     {"type":"session.stop"}  before closing.
+Protocol — verified against the live API on 2026-07-18 by probing it directly.
+The Node adapter in packages/providers/src/valsea.ts documented a DIFFERENT
+protocol that the server rejects; trust this file, not that one:
 
-NOTE: targets livekit-agents ~1.3. The transcript mapping + wire protocol are
-verified against the Node adapter; the STT/SpeechStream glue follows the standard
-plugin shape (deepgram/openai). It has NOT been run against a live VALSEA key in
-this workspace — verify end-to-end before trusting it in a pilot.
+  - Connect  wss://api.valsea.ai/v1/realtime  with `Authorization: Bearer <key>`.
+  - Recv     {"type":"session.created", supportedModels:["valsea-rtt"], supportedLanguages:[...131]}
+  - Send     {"type":"session.start","audio":{...},"language":"vietnamese","model":"valsea-rtt"}
+  - Recv     {"type":"session.ready","engine":"valsea-4"}
+  - Send     audio as raw binary PCM16 frames (also accepts
+             {"type":"audio.append","audio":"<base64>"}; `data:` is silently ignored).
+  - Recv     {"type":"transcript.final","text":"...","rawText":"...","isFinal":true,
+             "timestampMs":1234}   — FLAT fields, no nested `transcript` object,
+             no start_ms/end_ms/confidence/event_id.
+  - Send     {"type":"session.stop"}  ->  {"type":"session.stopped"}
+
+There is NO end-of-utterance/commit message: `input_audio_buffer.commit`, `commit`,
+`flush`, `finalize` and `end_utterance` all return
+{"code":"UNKNOWN_MESSAGE"}. VALSEA does its own endpointing and emits finals on
+its own schedule, so the LiveKit flush sentinel must NOT send anything.
+
+`language` matters: omit it and VALSEA will not transcribe Vietnamese correctly.
 """
 
 from __future__ import annotations
@@ -39,7 +48,15 @@ from livekit.agents import (
 logger = logging.getLogger(__name__)
 
 VALSEA_WS_URL = os.getenv("VALSEA_WS_URL", "wss://api.valsea.ai/v1/realtime")
+VALSEA_MODEL = os.getenv("VALSEA_MODEL", "valsea-rtt")
 SAMPLE_RATE = 16000
+
+# VALSEA names languages in full ("vietnamese"), not as ISO codes ("vi").
+_LANGUAGE_NAMES = {"vi": "vietnamese", "en": "english"}
+
+
+def _valsea_language(code: str) -> str:
+    return _LANGUAGE_NAMES.get(code, code)
 
 
 class VALSEASTT(stt.STT):
@@ -114,6 +131,10 @@ class VALSEASpeechStream(stt.SpeechStream):
                                 "sample_rate": self._sr,
                                 "channels": 1,
                             },
+                            # Without an explicit language VALSEA does not transcribe
+                            # Vietnamese correctly.
+                            "language": _valsea_language(self._language),
+                            "model": VALSEA_MODEL,
                         }
                     )
                 )
@@ -122,9 +143,9 @@ class VALSEASpeechStream(stt.SpeechStream):
                     # The base stream resamples mic audio to self._sr and yields
                     # rtc.AudioFrame; a FlushSentinel marks end-of-utterance.
                     async for data in self._input_ch:
+                        # VALSEA endpoints on its own and rejects every commit-style
+                        # message, so the flush sentinel is deliberately a no-op.
                         if isinstance(data, self._FlushSentinel):
-                            if not ws.closed:
-                                await ws.send_str(json.dumps({"type": "input_audio_buffer.commit"}))
                             continue
                         frame: rtc.AudioFrame = data
                         if not ws.closed:
@@ -153,15 +174,23 @@ class VALSEASpeechStream(stt.SpeechStream):
 
     def _emit(self, raw: dict) -> None:
         event_type = raw.get("type")
+        if event_type == "error":
+            logger.warning("VALSEA error: %s %s", raw.get("code"), raw.get("message"))
+            return
         if event_type not in ("transcript.partial", "transcript.final"):
             return
-        transcript = raw.get("transcript") if isinstance(raw.get("transcript"), dict) else raw
-        text = (transcript.get("text") or raw.get("text") or "").strip()
+        # Live payload is flat: {"text","rawText","isFinal","timestampMs"}. Older
+        # docs described a nested {"transcript":{...}} object — tolerate both.
+        nested = raw.get("transcript")
+        source = nested if isinstance(nested, dict) else raw
+        text = (source.get("text") or "").strip()
         if not text:
             return
-        confidence = transcript.get("confidence") or raw.get("confidence") or 1.0
-        data = stt.SpeechData(language=self._language, text=text, confidence=float(confidence))
-        if event_type == "transcript.final":
+        # VALSEA does not report a per-utterance confidence; report full confidence
+        # rather than inventing a score.
+        confidence = float(source.get("confidence") or 1.0)
+        data = stt.SpeechData(language=self._language, text=text, confidence=confidence)
+        if event_type == "transcript.final" or raw.get("isFinal") is True:
             self._event_ch.send_nowait(
                 stt.SpeechEvent(type=stt.SpeechEventType.FINAL_TRANSCRIPT, alternatives=[data])
             )
