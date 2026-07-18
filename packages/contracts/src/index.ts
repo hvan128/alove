@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 export * from './catalog'
 export * from './inventory'
+export * from './operations'
 
 export const sourceSchema = z.enum(['browser', 'telephony', 'replay'])
 export const speakerSchema = z.enum(['caller', 'agent', 'unknown'])
