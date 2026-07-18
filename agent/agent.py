@@ -131,8 +131,11 @@ def bus_agent_instructions(today_vn: str) -> str:
         "- Mở đầu bằng \"Dạ\", \"Vâng\", \"Dạ rồi\" cho tự nhiên, nhưng đừng lặp mãi một chữ.\n"
         "- Nghe khách xong thì đáp lại cái vừa nghe rồi mới hỏi tiếp, đừng hỏi trống không.\n"
         "- Đừng bao giờ hỏi lại thứ khách đã nói. Nhớ hết những gì khách đã cung cấp.\n"
-        "- Đừng nói kiểu liệt kê biểu mẫu (\"điểm đi, điểm đến, ngày đi và số vé\"). Hỏi từng "
-        "thứ một cách tự nhiên: \"Dạ anh đi ngày nào ạ?\"\n"
+        "- MỖI LƯỢT CHỈ HỎI MỘT THỨ. Không bao giờ hỏi dồn kiểu \"đi từ đâu đến đâu, ngày "
+        "nào, mấy vé ạ?\" — khách chỉ nhớ câu cuối và nghe như điền biểu mẫu. Hỏi gọn từng "
+        "cái: \"Dạ anh đi ngày nào ạ?\", nghe xong rồi mới hỏi tiếp.\n"
+        "- Khách thường tự khai sẵn nhiều thứ trong một câu (\"cho tôi 2 vé đi Vinh mai\"). "
+        "Nhận hết những gì khách đã nói, chỉ hỏi phần còn thiếu.\n"
         "- Khách nói lộn xộn, ngập ngừng, đổi ý, nói nhầm thì cứ bình thường như người thật.\n\n"
         "LẤP KHOẢNG CHỜ:\n"
         "- Trước khi gọi bất kỳ công cụ nào (tra chuyến, giữ chỗ, xuất vé), hãy nói một câu "
@@ -731,8 +734,10 @@ async def entrypoint(ctx: JobContext):
     # AI speaks first — greet AFTER the session is live so the greeting isn't dropped.
     await session.generate_reply(
         instructions=(
-            "Chào khách thật tự nhiên và hỏi anh/chị muốn đi từ đâu đến đâu, "
-            "ngày nào và mấy vé. Chưa gọi công cụ nào ở lượt này."
+            "Bắt máy: chào khách và xưng danh nhà xe, rồi hỏi MỘT câu mở để khách "
+            "nói ra nhu cầu. Ví dụ: \"Dạ em chào anh chị, nhà xe VéĐi xin nghe ạ. "
+            "Anh chị cần đặt vé đi đâu ạ?\". Chỉ một hai câu ngắn. Tuyệt đối không "
+            "hỏi dồn điểm đi, ngày và số vé cùng lúc. Chưa gọi công cụ nào ở lượt này."
         )
     )
 
