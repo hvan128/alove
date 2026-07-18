@@ -16,3 +16,8 @@ dependencies = [
     # livekit-agents transitive dep; pinned here so VALSEA mode can't break if it drops).
     "aiohttp>=3.9",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
