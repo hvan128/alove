@@ -19,16 +19,18 @@ export function TranscriptBubbles({ turns, label = 'Transcript' }: { turns: Tran
         <li
           key={turn.id}
           className={cn(
-            'max-w-[85%] rounded-2xl border px-4 py-3 text-sm leading-6 shadow-[var(--shadow-card)]',
+            // Viền + nền tint đã đủ tách bong bóng khỏi surface; thêm shadow lên
+            // từng lượt thì một transcript 20 lượt thành 20 khối nổi.
+            'max-w-[85%] rounded-2xl border px-4 py-3 text-ui leading-6',
             turn.role === 'customer'
               ? 'ml-auto border-[color-mix(in_srgb,var(--action)_18%,var(--hairline))] bg-[var(--action-soft)]'
               : 'mr-auto border-[color-mix(in_srgb,var(--success)_22%,var(--hairline))] bg-[color-mix(in_srgb,var(--success)_9%,var(--surface))]',
           )}
         >
-          <p className="mb-1 flex items-baseline gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--muted)]">
+          <p className="mb-1 flex items-baseline gap-2 text-metric font-medium text-[var(--muted)]">
             {turn.role === 'customer' ? 'Khách' : 'Tổng đài viên AI'}
             {turn.createdAt ? (
-              <time className="font-normal normal-case tracking-normal">
+              <time className="font-normal">
                 {new Date(turn.createdAt).toLocaleTimeString('vi-VN')}
               </time>
             ) : null}

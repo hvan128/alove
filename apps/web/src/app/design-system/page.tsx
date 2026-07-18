@@ -1,4 +1,4 @@
-import { CircleAlert, CircleCheck, Mic } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, CircleAlert, CircleCheck, Mic } from 'lucide-react'
 import { AppShell } from '@/components/ui/app-shell'
 import { Button } from '@/components/ui/button'
 import { TextInput } from '@/components/ui/input'
@@ -13,6 +13,21 @@ const colors = [
   ['Success', 'var(--success)', '--success'],
   ['Warning', 'var(--warning)', '--warning'],
   ['Danger', 'var(--danger)', '--danger'],
+] as const
+
+const chartColors = [
+  ['Chuỗi 1 · chính', 'var(--chart-1)', '--chart-1'],
+  ['Chuỗi 2', 'var(--chart-2)', '--chart-2'],
+  ['Chuỗi 3', 'var(--chart-3)', '--chart-3'],
+  ['Chuỗi 4', 'var(--chart-4)', '--chart-4'],
+  ['Chuỗi 5 · nền', 'var(--chart-5)', '--chart-5'],
+  ['Lưới', 'var(--chart-grid)', '--chart-grid'],
+] as const
+
+const kpiCards = [
+  { label: 'Cuộc gọi hôm nay', value: '1.284', unit: 'cuộc', delta: 12.4, note: 'so với hôm qua · 1.142' },
+  { label: 'Doanh thu', value: '86,4', unit: 'tr', delta: 4.1, note: 'so với hôm qua · 82,9 tr' },
+  { label: 'Thời lượng trung bình', value: '4:12', unit: 'phút', delta: -6.8, note: 'so với hôm qua · 4:31' },
 ] as const
 
 export default function DesignSystemPage() {
@@ -81,6 +96,73 @@ export default function DesignSystemPage() {
           <Panel title="Quy tắc responsive">
             <p className="text-sm leading-6 text-[var(--muted)]">Hai phía đặt cạnh nhau ở desktop và xếp dọc trên màn hình nhỏ. Trạng thái cuộc gọi, chế độ trả lời và nút bắt đầu luôn đứng trước nội dung hội thoại. Mọi control chính giữ vùng chạm tối thiểu 44px.</p>
           </Panel>
+        </section>
+
+        <section className="mt-10">
+          <h2 className="text-xl font-semibold tracking-[-0.03em]">Màu chuỗi dữ liệu</h2>
+          <p className="mt-2 max-w-2xl text-ui leading-6 text-[var(--muted)]">
+            Biểu đồ chỉ được lấy màu từ bộ <span className="font-mono">--chart-*</span>. Chuỗi 1 bám theo primary indigo để dashboard nối liền mạch với phần còn lại; bốn chuỗi sau chạy trên trục xanh–vàng nên không có cặp đỏ/xanh lá đứng cạnh nhau. Mỗi chuỗi lệch độ sáng so với chuỗi kề, đọc được cả khi in đen trắng.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {chartColors.map(([name, value, token]) => (
+              <article className="rounded-[12px] border border-[var(--hairline)] bg-[var(--surface)] p-3" key={token}>
+                <div className="h-14 rounded-lg border border-[var(--hairline)]" style={{ backgroundColor: value }} />
+                <p className="mt-3 text-metric font-semibold">{name}</p>
+                <p className="mt-1 font-mono text-metric text-[var(--muted)]">{token}</p>
+              </article>
+            ))}
+          </div>
+          <div className="mt-3 rounded-[12px] border border-[var(--hairline)] bg-[var(--surface-sunken)] p-4">
+            <p className="text-metric text-[var(--muted)]">
+              Giếng lõm <span className="font-mono">--surface-sunken</span> dùng cho hàng xen kẽ trong bảng và vùng chứa biểu đồ. Thanh chưa đầy nằm trên <span className="font-mono">--chart-track</span>:
+            </p>
+            <div className="mt-3 space-y-2">
+              {[82, 54, 27].map((pct, index) => (
+                <div className="h-2 overflow-hidden rounded-full bg-[var(--chart-track)]" key={pct}>
+                  <div
+                    className="h-full rounded-full"
+                    style={{ backgroundColor: `var(--chart-${index + 1})`, width: `${pct}%` }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-10">
+          <h2 className="text-xl font-semibold tracking-[-0.03em]">Màu số liệu (KPI)</h2>
+          <p className="mt-2 max-w-2xl text-ui leading-6 text-[var(--muted)]">
+            Số lớn dùng <span className="font-mono">tabular-nums</span> và tracking âm để các thẻ đứng cạnh nhau không nhảy chiều rộng. Delta luôn kèm mũi tên và dấu, không chỉ dựa vào màu.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {kpiCards.map((kpi) => {
+              const isUp = kpi.delta >= 0
+              const DeltaIcon = isUp ? ArrowUpRight : ArrowDownRight
+              return (
+                <article className="rounded-[16px] border border-[var(--hairline)] bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]" key={kpi.label}>
+                  <p className="text-metric font-medium text-[var(--muted)]">{kpi.label}</p>
+                  <div className="mt-3 flex items-baseline gap-2">
+                    <span className="text-display font-semibold tabular-nums tracking-[-0.04em]">{kpi.value}</span>
+                    <span className="text-ui text-[var(--muted)]">{kpi.unit}</span>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-metric font-semibold tabular-nums"
+                      style={{
+                        color: isUp ? 'var(--success)' : 'var(--danger)',
+                        backgroundColor: `color-mix(in srgb, ${isUp ? 'var(--success)' : 'var(--danger)'} 12%, transparent)`,
+                      }}
+                    >
+                      <DeltaIcon size={13} aria-hidden />
+                      {isUp ? '+' : '−'}
+                      {Math.abs(kpi.delta).toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                    </span>
+                    <span className="text-metric text-[var(--muted)]">{kpi.note}</span>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
         </section>
       </main>
     </AppShell>

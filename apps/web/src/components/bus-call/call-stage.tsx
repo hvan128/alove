@@ -347,11 +347,12 @@ function TypewriterCaption({ text, terms }: { text: string; terms: string[] }) {
   const [visibleChars, setVisibleChars] = useState(() => (animate ? 0 : text.length))
   const previousText = useRef(text)
 
+  // Tắt animation thì số ký tự hiện ra là giá trị dẫn xuất từ text, không cần
+  // effect đồng bộ lại state — tính thẳng lúc render.
+  const shownChars = animate ? visibleChars : text.length
+
   useEffect(() => {
-    if (!animate) {
-      setVisibleChars(text.length)
-      return
-    }
+    if (!animate) return
     if (!text.startsWith(previousText.current)) {
       const prefix = commonPrefixLength(text, previousText.current)
       setVisibleChars((current) => Math.min(current, prefix))
@@ -369,10 +370,10 @@ function TypewriterCaption({ text, terms }: { text: string; terms: string[] }) {
     return () => window.clearInterval(timer)
   }, [text, animate])
 
-  if (visibleChars >= text.length) return <>{renderHighlighted(text, terms)}</>
+  if (shownChars >= text.length) return <>{renderHighlighted(text, terms)}</>
   return (
     <>
-      {text.slice(0, visibleChars)}
+      {text.slice(0, shownChars)}
       <span className="tw-caret" aria-hidden />
     </>
   )

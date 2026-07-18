@@ -52,11 +52,11 @@ export function LiveCallMonitor({ conversationId }: { conversationId: string }) 
   }, [conversationId])
 
   if (error) {
-    return <p className="text-sm text-[var(--muted)]" role="status">{error}</p>
+    return <p className="text-ui text-[var(--muted)]" role="status">{error}</p>
   }
   if (!connection) {
     return (
-      <p className="inline-flex items-center gap-2 text-sm text-[var(--muted)]">
+      <p className="inline-flex items-center gap-2 text-ui text-[var(--muted)]">
         <Loader2 className="size-4 animate-spin" aria-hidden /> Đang kết nối phòng giám sát…
       </p>
     )
@@ -96,8 +96,8 @@ function MonitorBridge() {
       <span
         className={
           connected
-            ? 'inline-flex w-fit items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--success)_12%,var(--surface))] px-2.5 py-1 text-xs font-semibold text-[var(--success)]'
-            : 'inline-flex w-fit items-center gap-1.5 rounded-full bg-[var(--pearl)] px-2.5 py-1 text-xs font-medium text-[var(--muted)]'
+            ? 'inline-flex w-fit items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--success)_12%,var(--surface))] px-2.5 py-1 text-metric font-semibold text-[var(--success)]'
+            : 'inline-flex w-fit items-center gap-1.5 rounded-full bg-[var(--pearl)] px-2.5 py-1 text-metric font-medium text-[var(--muted)]'
         }
       >
         {connected ? (
@@ -114,7 +114,7 @@ function MonitorBridge() {
       {turns.length > 0 ? (
         <TranscriptBubbles turns={turns} label="Caption trực tiếp" />
       ) : (
-        <p className="text-sm text-[var(--muted)]">
+        <p className="text-ui text-[var(--muted)]">
           Chưa có caption trực tiếp — transcript đã lưu hiển thị bên dưới.
         </p>
       )}
