@@ -1,0 +1,9 @@
+# Template. The LiveKit CLI generates the real values with:
+#   lk agent create   (inside this directory, after `lk cloud auth`)
+# It fills [project].subdomain from your LiveKit Cloud project and [agent].id
+# after the first deploy. Commit the generated file; it holds no secrets.
+[project]
+  subdomain = "your-project-subdomain"
+
+[agent]
+  id = ""

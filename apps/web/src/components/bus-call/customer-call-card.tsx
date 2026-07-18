@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { BookingDraft, CallMessage, CallMessageChannel, CallStatus } from '@ordervoice/contracts'
 import { CircleUser, Mic, Send } from 'lucide-react'
 import type { SpeechRecognitionState } from '@/hooks/use-speech-recognition'
@@ -23,9 +24,12 @@ type CustomerCallCardProps = {
   interimText: string
   onStartMic: () => void
   onStopMic: () => void
+  // When LiveKit is the active transport, this replaces the Web Speech mic/preset
+  // footer with the live-call controls; booking stays server-authoritative.
+  liveKitSlot?: ReactNode
 }
 
-export function CustomerCallCard({ status, messages, booking, value, onValueChange, onSubmit, recognitionState, interimText, onStartMic, onStopMic }: CustomerCallCardProps) {
+export function CustomerCallCard({ status, messages, booking, value, onValueChange, onSubmit, recognitionState, interimText, onStartMic, onStopMic, liveKitSlot }: CustomerCallCardProps) {
   const connected = status === 'connected'
   const confirmed = booking.status === 'confirmed'
   const submitText = () => {
@@ -53,6 +57,13 @@ export function CustomerCallCard({ status, messages, booking, value, onValueChan
       </div>
 
       <div className="border-t border-[var(--divider)] pt-4">
+        {liveKitSlot ? (
+          <div>
+            <p className="mb-3 text-xs font-medium text-[var(--muted)]">Cuộc gọi thật qua LiveKit — nói trực tiếp với tổng đài viên AI.</p>
+            {liveKitSlot}
+          </div>
+        ) : (
+        <>
         <div className="mb-4 grid grid-cols-2 gap-2">
           {PRESETS.map((preset) => (
             <button
@@ -90,6 +101,8 @@ export function CustomerCallCard({ status, messages, booking, value, onValueChan
                 ? 'Không thể mở mic. Kiểm tra quyền trình duyệt hoặc dùng câu demo.'
                 : 'Mic tiếng Việt là tùy chọn. Câu demo luôn sẵn sàng.'}
         </p>
+        </>
+        )}
       </div>
     </section>
   )

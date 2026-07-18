@@ -11,14 +11,18 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@livekit/components-react": "^2.9.21",
     "@ordervoice/contracts": "workspace:*",
     "@ordervoice/core": "workspace:*",
     "clsx": "^2.1.1",
+    "livekit-client": "^2.19.0",
+    "livekit-server-sdk": "^2.15.4",
     "lucide-react": "^1.24.0",
     "next": "16.1.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",

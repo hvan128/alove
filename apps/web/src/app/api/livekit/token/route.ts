@@ -1,0 +1,38 @@
+import type { NextRequest } from 'next/server'
+import { z } from 'zod'
+
+import {
+  createParticipantToken,
+  isLiveKitConfigured,
+  LIVEKIT_WS_URL,
+  roomNameForConversation,
+} from '@/lib/livekit/token'
+
+// WebhookReceiver / AccessToken use node crypto — keep this off the edge runtime.
+export const runtime = 'nodejs'
+
+const BodySchema = z.object({
+  conversationId: z.string().min(1).max(120),
+  role: z.enum(['customer', 'staff']).default('customer'),
+  identity: z.string().min(1).max(120).optional(),
+  displayName: z.string().min(1).max(120).optional(),
+})
+
+export async function POST(req: NextRequest) {
+  if (!isLiveKitConfigured()) {
+    return Response.json({ error: 'livekit_not_configured' }, { status: 503 })
+  }
+
+  const parsed = BodySchema.safeParse(await req.json().catch(() => ({})))
+  if (!parsed.success) {
+    return Response.json({ error: 'invalid_request', issues: parsed.error.issues }, { status: 400 })
+  }
+  const { conversationId, role } = parsed.data
+
+  const roomName = roomNameForConversation(conversationId)
+  const identity = parsed.data.identity ?? `${role}-${conversationId}`
+  const displayName = parsed.data.displayName ?? (role === 'customer' ? 'Khách' : 'Nhân viên')
+
+  const token = await createParticipantToken(roomName, identity, displayName, role)
+  return Response.json({ token, serverUrl: LIVEKIT_WS_URL, roomName })
+}

@@ -25,10 +25,11 @@ apps/web                  Next.js 16, Web Call demo, browser voice, Vercel targe
 packages/contracts       Zod contracts cho cuộc gọi, chuyến xe và phiếu vé
 packages/core            Booking agent xác định và quy tắc xác nhận
 apps/api + providers     Seam VALSEA/Twilio/OpenAI cho pilot có credentials
+agent                    LiveKit voice agent worker (Python) cho cuộc gọi thật
 db                       Neon/Drizzle persistence boundary
 ```
 
-Thiết kế hiện tại ưu tiên demo chắc chắn. LiveKit nhiều thiết bị là bước pilot riêng vì cần room credentials, token endpoint, media room và một Agent worker chạy lâu dài. Quyết định và đường triển khai nằm trong [`docs/livekit-bus-pilot.md`](docs/livekit-bus-pilot.md).
+Demo zero-key vẫn là mặc định. Khi có LiveKit credentials, đặt `NEXT_PUBLIC_LIVEKIT_URL` để `/console` (chế độ **Agent tự động**) chuyển sang cuộc gọi LiveKit thật do [`agent/`](agent/README.md) phục vụ; bỏ trống thì transport in-browser giữ nguyên. Booking vẫn xác định phía server: agent không tự bịa giá, chuyến, ghế hay mã vé mà gọi `POST /api/booking/advance` chạy `@ordervoice/core`. Chi tiết trong [`docs/livekit-bus-pilot.md`](docs/livekit-bus-pilot.md).
 
 ## Chạy local
 
@@ -56,7 +57,9 @@ Bản demo mặc định không cần biến môi trường. Chỉ thêm secret 
 | `VALSEA_API_KEY` | VALSEA ASR/TTS server-side theo yêu cầu đề bài |
 | `OPENAI_API_KEY` | Fallback phát triển, không thay thế compliance VALSEA |
 | `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | Token service và Agent worker LiveKit |
-| `NEXT_PUBLIC_LIVEKIT_URL` | URL room công khai, tuyệt đối không chứa secret |
+| `NEXT_PUBLIC_LIVEKIT_URL` | URL room công khai, tuyệt đối không chứa secret. Có giá trị = bật transport LiveKit cho `/console` |
+| `LIVEKIT_AGENT_NAME` | Tên dispatch agent, phải khớp `agent/.env` (mặc định `vedi`) |
+| `AGENT_WEBHOOK_SECRET` | Secret chung bảo vệ `POST /api/booking/advance` — đường ghi duy nhất của agent vào booking core |
 | `TWILIO_*` | Pilot số điện thoại và Media Streams |
 
 Credential từng được dán vào hội thoại không được dùng, lưu hoặc deploy. Chủ key nên revoke/rotate key đó.
