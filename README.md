@@ -74,8 +74,16 @@ uv sync
 uv run python agent.py dev
 ```
 
-Web local: <http://localhost:3000>. `/` là trang khách, `/console` là màn gọi
-độc lập, `/dashboard` là màn vận hành có access key.
+Web local: <http://localhost:3000>. Các ngữ cảnh được tách riêng:
+
+- `/` và `/console`: hành trình của hành khách.
+- `/ban-to-chuc`: lối vào chấm thi, dẫn tới từng góc nhìn theo thứ tự rõ ràng.
+- `/evidence`: bằng chứng kỹ thuật dành cho bước đánh giá.
+- `/dashboard`: màn vận hành nhà xe có access key, không phải dashboard của hành khách
+  hay ban tổ chức.
+
+Trên production, ban tổ chức bắt đầu tại
+<https://vedi-one.vercel.app/ban-to-chuc/>.
 
 ## Biến môi trường
 
