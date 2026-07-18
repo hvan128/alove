@@ -1,7 +1,7 @@
 # TASK-003 - VéĐi staff-first live call console
 
 **Owner:** Codex + product owner  
-**Status:** Complete — web production verified; live provider smoke credential-blocked  
+**Status:** In Review — implementation and web production verified; Draft PR #1 awaits merge approval
 **Source:** `feature/TASK-003-staff-live-call-console`
 
 ## Goal
@@ -28,7 +28,7 @@ Replace the same-browser split demo with a staff-first booking console, a simple
 
 All deterministic gates pass from a clean feature branch. Live integrations are either smoke-tested with supplied credentials or explicitly marked credential-blocked without false success claims. Documentation maps every acceptance criterion to source and tests.
 
-## Completion evidence
+## Implementation evidence
 
 - Production web: `https://ordervoice-vn.vercel.app`
 - Deployment: `dpl_9ZZXQxgRgHaJrkXPYg7RYPH2W6Ce`, source `0297836`
