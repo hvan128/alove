@@ -1,6 +1,6 @@
 # Historical OrderVoice MVP Release Manifest
 
-> Bản phát hành này là lịch sử trước khi sản phẩm chuyển sang VéĐi. Manifest hiện hành sẽ nằm ở `vedi-release-manifest.md` sau khi TASK-002 được deploy.
+> Bản phát hành này là lịch sử trước khi sản phẩm chuyển sang VéĐi. Manifest TASK-003 hiện hành nằm ở [`vedi-release-manifest.md`](vedi-release-manifest.md).
 
 **Release source:** `dev` at `da3be58` (`fix: rely on Vercel project root setting`), after merge commit `a879352` (`merge: release OrderVoice MVP`). The deployed application was built from this local source state.
 

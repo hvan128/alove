@@ -11,7 +11,7 @@
 | VALSEA TTS | Official OpenAI-compatible model/voice config | Chưa có `VALSEA_API_KEY` | Config ready, chưa nghe provider audio |
 | OpenAI translation/Auto LLM | `store:false`, timeout/failure tests, guarded Auto config | Key cũ không được dùng | Cần key mới đã rotate |
 | Neon | Schema, migration, memory repository, dedupe tests | Chưa có `DATABASE_URL` | Persistence ready, live DB chưa migrate |
-| Vercel web | Local production build | Deploy cần chạy lại sau thay đổi | Không dùng làm voice worker |
+| Vercel web | Build production + health/config | `dpl_9ZZXQxgRgHaJrkXPYg7RYPH2W6Ce` Ready | Public alias hoạt động; không dùng làm voice worker |
 | Twilio PSTN | Adapter/fixture ở provider package | Thiếu account, number, public WSS | Không nằm trong demo bắt buộc |
 | Zalo audio | File replay seam cũ | Không có raw-call entitlement | Không claim live Zalo |
 
@@ -24,3 +24,13 @@
 - Twilio/Zalo: demo hiện tại dùng WebRTC; PSTN cần account/số/webhook, Zalo cần quyền raw audio không có trong public contract.
 
 Khi có credential, làm theo smoke test trong [`livekit-valsea-deployment.md`](livekit-valsea-deployment.md) và ghi thêm account mode, region, thời gian final transcript, TTS first-byte và kết quả barge-in vào file này.
+
+## Evidence bản web production
+
+- Public: `https://ordervoice-vn.vercel.app`
+- Unique URL: `https://ordervoice-grq60lmfs-sireals-projects.vercel.app`
+- `/api/health`: `{"status":"ok"}`.
+- `/api/config`: `transport=local`, `livekit=false`, `valsea=false`, `voiceAgent=false`, `persistence=false`, `localFallback=true`.
+- Browser smoke 390px: hai tab cùng browser gửi hai final, tự điền Sài Gòn → Đà Lạt, 24/07/2026 22:00, 2 khách, Nguyễn Minh Anh, số điện thoại, điểm đón/trả, chuyến và ghế; nhân viên xác nhận mã `VD-240718-3010`.
+- Không có framework overlay, page error, horizontal overflow hoặc error log Vercel trong cửa sổ kiểm tra.
+- `pnpm audit --prod --audit-level moderate`: không có vulnerability đã biết sau khi nâng Next.js lên 16.2.10 và pin PostCSS 8.5.19.
