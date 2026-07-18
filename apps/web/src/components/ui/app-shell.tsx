@@ -3,7 +3,15 @@ import type { ReactNode } from 'react'
 import { BrandMark } from '@/components/ui/brand-mark'
 import { cn } from '@/lib/cn'
 
-export function AppShell({ children, className }: { children: ReactNode; className?: string }) {
+export function AppShell({
+  children,
+  className,
+  context = 'customer',
+}: {
+  children: ReactNode
+  className?: string
+  context?: 'customer' | 'review'
+}) {
   return (
     <div className={cn('min-h-screen bg-[var(--canvas)] text-[var(--ink)]', className)}>
       <header className="sticky top-0 z-20 border-b border-[var(--divider)] bg-[color-mix(in_srgb,var(--canvas)_84%,transparent)] backdrop-blur-xl">
@@ -12,10 +20,17 @@ export function AppShell({ children, className }: { children: ReactNode; classNa
             <BrandMark />
             Alove
           </Link>
-          <nav aria-label="Điều hướng chính" className="flex items-center gap-1 text-sm">
-            <Link className="inline-flex min-h-11 items-center rounded-full px-3 py-2 text-[var(--muted)] transition hover:bg-[var(--action-soft)] hover:text-[var(--action)]" href="/console">Web Call</Link>
-            <Link className="inline-flex min-h-11 items-center rounded-full px-3 py-2 text-[var(--muted)] transition hover:bg-[var(--action-soft)] hover:text-[var(--action)]" href="/evidence">Bằng chứng</Link>
-          </nav>
+          {context === 'review' ? (
+            <nav aria-label="Điều hướng chấm thi" className="flex items-center gap-1 text-sm">
+              <Link className="inline-flex min-h-11 items-center rounded-full px-3 py-2 text-[var(--muted)] transition hover:bg-[var(--action-soft)] hover:text-[var(--action)]" href="/ban-to-chuc">Khu vực chấm thi</Link>
+              <Link className="inline-flex min-h-11 items-center rounded-full px-3 py-2 text-[var(--muted)] transition hover:bg-[var(--action-soft)] hover:text-[var(--action)]" href="/evidence">Bằng chứng</Link>
+            </nav>
+          ) : (
+            <nav aria-label="Điều hướng hành khách" className="flex items-center gap-1 text-sm">
+              <Link className="inline-flex min-h-11 items-center rounded-full px-3 py-2 text-[var(--muted)] transition hover:bg-[var(--action-soft)] hover:text-[var(--action)]" href="/">Trang chủ</Link>
+              <Link className="inline-flex min-h-11 items-center rounded-full px-3 py-2 text-[var(--muted)] transition hover:bg-[var(--action-soft)] hover:text-[var(--action)]" href="/console">Web Call</Link>
+            </nav>
+          )}
         </div>
       </header>
       {children}

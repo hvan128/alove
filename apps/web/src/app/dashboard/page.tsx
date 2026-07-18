@@ -1,7 +1,8 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { ChevronRight, Globe, Phone, PhoneCall, RefreshCw } from 'lucide-react'
+import { ChevronRight, Globe, LogOut, Phone, PhoneCall, RefreshCw } from 'lucide-react'
 
 import { Panel } from '@/components/ui/panel'
 import {
@@ -19,6 +20,12 @@ import { DashboardLoginForm } from '@/components/dashboard/dashboard-login-form'
 
 export const dynamic = 'force-dynamic'
 
+export const metadata: Metadata = {
+  title: 'Vận hành Nhà xe Mai Anh | Alove',
+  description: 'Màn hình nội bộ để theo dõi cuộc gọi, booking và mã vé Alove.',
+  robots: { index: false, follow: false },
+}
+
 async function login(formData: FormData) {
   'use server'
   if (keyMatches(String(formData.get('key') ?? ''))) {
@@ -35,6 +42,13 @@ async function login(formData: FormData) {
   redirect('/dashboard?error=1')
 }
 
+async function logout() {
+  'use server'
+  const store = await cookies()
+  store.delete(DASHBOARD_COOKIE)
+  redirect('/dashboard')
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -44,10 +58,10 @@ export default async function DashboardPage({
     return (
       <AuthShell>
         <Brand />
-        <h1 className="mt-5 text-lg font-semibold tracking-[-0.025em] text-[var(--ink)]">Dashboard chưa được bật</h1>
+        <h1 className="mt-5 text-lg font-semibold tracking-[-0.025em] text-[var(--ink)]">Màn hình vận hành chưa được bật</h1>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
           Đặt biến môi trường <code className="font-mono text-[var(--ink)]">DASHBOARD_ACCESS_KEY</code> (tối thiểu 32 ký
-          tự) để mở dashboard giám sát cuộc gọi.
+          tự) để mở khu vực nội bộ của nhà xe.
         </p>
       </AuthShell>
     )
@@ -58,8 +72,9 @@ export default async function DashboardPage({
     return (
       <AuthShell>
         <Brand />
-        <h1 className="mt-5 text-lg font-semibold tracking-[-0.025em] text-[var(--ink)]">Đăng nhập dashboard</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">Nhập khóa truy cập để xem cuộc gọi Alove.</p>
+        <p className="mt-5 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--action)]">Nội bộ nhà xe</p>
+        <h1 className="mt-2 text-lg font-semibold tracking-[-0.025em] text-[var(--ink)]">Đăng nhập màn hình vận hành</h1>
+        <p className="mt-1 text-sm leading-6 text-[var(--muted)]">Nhập khóa do đội Alove cung cấp để xem cuộc gọi và booking.</p>
         <DashboardLoginForm action={login} {...(error ? { error: 'Khóa không đúng.' } : {})} />
       </AuthShell>
     )
@@ -77,13 +92,23 @@ export default async function DashboardPage({
         <div className="flex items-center gap-3">
           <BrandMark className="size-11 shrink-0" />
           <div>
-            <h1 className="text-xl font-semibold tracking-[-0.035em] text-[var(--ink)]">Alove Giám sát</h1>
+            <h1 className="text-xl font-semibold tracking-[-0.035em] text-[var(--ink)]">Vận hành Nhà xe Mai Anh</h1>
             <p className="text-sm text-[var(--muted)]">Cuộc gọi đặt vé — trực tiếp và lịch sử</p>
           </div>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--muted)]">
-          <RefreshCw size={13} aria-hidden /> Tự cập nhật mỗi 5 giây
-        </span>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--muted)]">
+            <RefreshCw size={13} aria-hidden /> Tự cập nhật mỗi 5 giây
+          </span>
+          <form action={logout}>
+            <button
+              type="submit"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--muted)] transition hover:bg-[var(--pearl)] hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action-focus)]"
+            >
+              <LogOut size={13} aria-hidden /> Đăng xuất
+            </button>
+          </form>
+        </div>
       </header>
 
       {callList !== null ? (
