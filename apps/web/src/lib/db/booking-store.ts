@@ -187,6 +187,73 @@ export async function releaseHolds(callId: string): Promise<void> {
   `)
 }
 
+export type BookingSummary = {
+  code: string
+  passengerName: string
+  phone: string
+  seatCodes: string[]
+  totalVnd: number
+  status: string
+  departureLabel: string
+  originCity: string
+  destinationCity: string
+  pickupPoint: string
+}
+
+/**
+ * Look a booking up by ticket code or phone number.
+ *
+ * A caller who booked yesterday rings back on a fresh call, so the booking is not
+ * attached to this conversation id and cancel-by-call finds nothing. Phone number
+ * is what a real caller actually has to hand.
+ */
+export async function findBookings(input: {
+  code?: string | null | undefined
+  phone?: string | null | undefined
+}): Promise<BookingSummary[]> {
+  const db = getDb()
+  if (!db) return []
+  if (!input.code && !input.phone) return []
+
+  const rows = await db
+    .select({
+      code: bookings.code,
+      passengerName: bookings.passengerName,
+      phone: bookings.phone,
+      seatCodes: bookings.seatCodes,
+      totalFareVnd: bookings.totalFareVnd,
+      status: bookings.status,
+      departureAt: trips.departureAt,
+      pickupPoint: trips.pickupPoint,
+      originCity: routes.originCity,
+      destinationCity: routes.destinationCity,
+    })
+    .from(bookings)
+    .innerJoin(trips, eq(trips.id, bookings.tripId))
+    .innerJoin(routes, eq(routes.id, trips.routeId))
+    .where(input.code ? eq(bookings.code, input.code) : eq(bookings.phone, input.phone!))
+    .orderBy(sql`${bookings.id} desc`)
+    .limit(5)
+
+  return rows
+    .filter((r) => r.status !== 'cancelled')
+    .map((r) => ({
+      code: r.code,
+      passengerName: r.passengerName,
+      phone: r.phone,
+      seatCodes: r.seatCodes,
+      totalVnd: r.totalFareVnd,
+      status: r.status,
+      departureLabel: new Intl.DateTimeFormat('vi-VN', {
+        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+        timeZone: 'Asia/Ho_Chi_Minh', hour12: false,
+      }).format(r.departureAt),
+      originCity: r.originCity,
+      destinationCity: r.destinationCity,
+      pickupPoint: r.pickupPoint,
+    }))
+}
+
 /**
  * Cancel this call's booking and put its seats back on sale. Without this the
  * agent could only apologise when a caller changed their mind after confirming —
@@ -195,20 +262,36 @@ export async function releaseHolds(callId: string): Promise<void> {
 export async function cancelBooking(input: {
   callId: string
   code?: string | null
+  phone?: string | null
 }): Promise<{ cancelled: boolean; code?: string; seatCodes?: string[] }> {
   const db = getDb()
   if (!db) return { cancelled: false }
 
+  // Ticket code identifies exactly one booking, so prefer it. Phone covers the
+  // caller ringing back on a new call. Falling back to this conversation handles
+  // "actually, cancel that" moments inside the call that just made the booking.
+  const where = input.code
+    ? eq(bookings.code, input.code)
+    : input.phone
+      ? eq(bookings.phone, input.phone)
+      : eq(bookings.callId, input.callId)
+
   const rows = await db
     .select({ id: bookings.id, code: bookings.code, seatCodes: bookings.seatCodes, status: bookings.status })
     .from(bookings)
-    .where(input.code ? eq(bookings.code, input.code) : eq(bookings.callId, input.callId))
+    .where(where)
     .orderBy(sql`${bookings.id} desc`)
     .limit(1)
   const booking = rows[0]
   if (!booking || booking.status === 'cancelled') return { cancelled: false }
 
-  await db.update(bookings).set({ status: 'cancelled' }).where(eq(bookings.id, booking.id))
+  // Giải phóng idempotency key: nó là callId:tripId, nên nếu giữ nguyên thì khách
+  // huỷ xong đặt lại đúng chuyến đó trong cùng cuộc gọi sẽ nhận về chính tấm vé
+  // vừa huỷ thay vì vé mới. Gắn hậu tố để key cũ dùng lại được mà vẫn duy nhất.
+  await db
+    .update(bookings)
+    .set({ status: 'cancelled', idempotencyKey: `cancelled:${booking.id}` })
+    .where(eq(bookings.id, booking.id))
   await db.execute(sql`
     UPDATE ${seats} SET status = 'available', booking_id = NULL,
                         held_by_call_id = NULL, hold_expires_at = NULL

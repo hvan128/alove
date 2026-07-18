@@ -1,2 +1,2 @@
-export * from './audio.js'
-export * from './order.js'
+export * from './audio'
+export * from './order'

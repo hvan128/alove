@@ -148,7 +148,12 @@ def bus_agent_instructions(today_vn: str) -> str:
         "- Khách chọn chuyến thì gọi hold_seats, rồi xin họ tên và số điện thoại.\n"
         "- Đọc lại cho khách nghe, khách đồng ý mới gọi confirm_booking.\n"
         "- Báo mã vé, chúc đi đường bình an, rồi gọi end_call.\n"
-        "- Khách muốn đổi chuyến hoặc bỏ vé đã đặt thì gọi cancel_booking rồi tìm chuyến khác.\n\n"
+        "- Khách đổi ý ngay trong cuộc gọi này thì gọi cancel_booking (không cần tham số) "
+        "rồi tìm chuyến khác.\n"
+        "- Khách gọi lại để hỏi, đổi hay huỷ vé đã đặt HÔM TRƯỚC thì vé đó không thuộc cuộc "
+        "gọi này. Hỏi khách mã vé, nếu khách không nhớ thì hỏi số điện thoại lúc đặt, rồi "
+        "gọi find_booking. Đọc lại vé tìm được cho khách xác nhận đúng vé trước khi huỷ, "
+        "và truyền mã vé đó vào cancel_booking.\n\n"
         "KHÔNG ĐƯỢC:\n"
         "- Không tự nghĩ ra chuyến, giờ chạy, giá vé, số ghế trống hay mã vé. Những thứ đó chỉ "
         "lấy từ kết quả công cụ. Chưa gọi công cụ thì chưa được nói.\n"
@@ -546,18 +551,45 @@ class BusBookingAgent(Agent):
         return data
 
     @function_tool()
-    async def cancel_booking(self, context: RunContext) -> dict:
-        """Huỷ vé đã đặt trong cuộc gọi này và trả ghế lại cho khách khác.
+    async def find_booking(self, context: RunContext, code: str = "", phone: str = "") -> dict:
+        """Tra vé đã đặt TRƯỚC ĐÓ, ở cuộc gọi khác.
 
-        Gọi khi khách đổi ý, muốn đổi chuyến hoặc đổi giờ sau khi đã xuất vé.
-        Huỷ xong thì tìm chuyến mới bằng search_trips như bình thường.
-        cancelled=false nghĩa là không có vé nào để huỷ — nói thật với khách.
+        Dùng khi khách gọi lại để hỏi, đổi hoặc huỷ vé đã đặt hôm trước. Truyền mã
+        vé nếu khách đọc được, không thì truyền số điện thoại khách dùng lúc đặt.
+        Trả về danh sách vé còn hiệu lực kèm tuyến, giờ chạy và ghế.
+
+        bookings rỗng nghĩa là không tìm thấy — hỏi lại khách mã vé hoặc số điện
+        thoại, đừng đoán.
+        """
+        if not code and not phone:
+            return {"error": "need_code_or_phone"}
+        body: dict = {}
+        if code:
+            body["code"] = code
+        if phone:
+            body["phone"] = phone
+        data = await self._call_api("/api/booking/lookup", body)
+        if data is None:
+            return {"error": "backend_unavailable"}
+        return data
+
+    @function_tool()
+    async def cancel_booking(self, context: RunContext, code: str = "", phone: str = "") -> dict:
+        """Huỷ vé và trả ghế lại cho khách khác.
+
+        Không truyền gì thì huỷ vé vừa đặt trong chính cuộc gọi này. Khách gọi lại
+        để huỷ vé cũ thì truyền mã vé, hoặc số điện thoại lúc đặt.
+        Huỷ xong muốn đổi chuyến thì gọi search_trips như bình thường.
+        cancelled=false nghĩa là không tìm thấy vé nào để huỷ — nói thật với khách.
         """
         if not self._conversation_id:
             return {"error": "no_conversation"}
-        data = await self._call_api(
-            "/api/booking/cancel", {"conversationId": self._conversation_id}
-        )
+        body: dict = {"conversationId": self._conversation_id}
+        if code:
+            body["code"] = code
+        if phone:
+            body["phone"] = phone
+        data = await self._call_api("/api/booking/cancel", body)
         if data is None:
             return {"error": "backend_unavailable"}
         if data.get("cancelled"):

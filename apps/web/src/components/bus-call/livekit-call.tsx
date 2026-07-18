@@ -14,6 +14,8 @@ import { ConnectionState } from 'livekit-client'
 import { Loader2, Mic, MicOff, PhoneOff, Wifi, WifiOff } from 'lucide-react'
 import type { BookingDraft } from '@ordervoice/contracts'
 
+import { useRingback } from '@/hooks/use-ringback'
+
 // Data-channel topic shared with the Python agent worker (agent/agent.py).
 const EVENTS_TOPIC = 'vedi-events'
 
@@ -119,6 +121,14 @@ function RoomBridge({
   const transcriptions = useTranscriptions()
   const [agentState, setAgentState] = useState<LiveKitAgentState>('idle')
   const redispatchTries = useRef(0)
+
+  // Chuông chờ chạy tới lúc tổng đài viên cất tiếng, không phải lúc vào phòng:
+  // agent vào room xong vẫn mất vài giây nạp phiên và nghĩ câu chào, im lặng
+  // quãng đó khiến người gọi tưởng máy hỏng.
+  const agentHasSpoken = transcriptions.some(
+    (seg) => seg.participantInfo?.identity !== localParticipant.identity && seg.text.trim().length > 0,
+  )
+  useRingback(!agentHasSpoken && agentState !== 'speaking')
 
   // Self-heal a silent line: the token's agent dispatch is one-shot, so if it
   // fired while no worker was ready nobody ever joins and the caller just hears
