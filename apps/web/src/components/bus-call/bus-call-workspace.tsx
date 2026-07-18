@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { BookingDraft, BusDemoWorkspace, CallMessage, CallMessageChannel, CallRole } from '@ordervoice/contracts'
 import { advanceBookingAgent, createInitialBooking } from '@ordervoice/core/bus-booking'
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
+import { useTtsProvider } from '@/hooks/use-tts-provider'
 import { speakVietnamese, stopVietnameseSpeech } from '@/lib/device-speech'
 import { CallStage } from './call-stage'
 import { TicketCard } from './ticket-card'
@@ -24,6 +25,7 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
   const [agentSpeaking, setAgentSpeaking] = useState(false)
   const [liveAgentState, setLiveAgentState] = useState<LiveKitAgentState>('idle')
   const sequence = useRef(0)
+  const tts = useTtsProvider()
 
   // LiveKit transport: the agent worker owns STT, booking and TTS. Declared
   // before the handlers below because they all read it to stay inert while the
@@ -173,8 +175,11 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
 
   return (
     <div className="mx-auto flex min-h-[100dvh] w-full max-w-6xl flex-col px-4 py-5 sm:px-6 lg:py-7">
-      <main className="grid flex-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
+      {/* Trên màn rộng hai cột kéo bằng nhau để phiếu vé không hụt một mảng
+          trắng dưới đáy; màn hẹp thì xếp dọc theo chiều cao nội dung. */}
+      <main className="grid flex-1 content-start items-start gap-5 lg:content-stretch lg:items-stretch lg:grid-cols-[minmax(0,1fr)_380px]">
         <CallStage
+          onBrandTap={tts.toggle}
           status={workspace.callStatus}
           elapsedSec={elapsedSec}
           messages={workspace.messages}
@@ -194,6 +199,7 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
           liveKitSlot={
             liveKitActive ? (
               <LiveKitCall
+              ttsProvider={tts.provider}
                 conversationId={workspace.conversationId}
                 onTranscript={upsertLiveTranscript}
                 onBooking={applyLiveBooking}

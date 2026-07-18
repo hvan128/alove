@@ -9,6 +9,7 @@ dependencies = [
     "livekit-plugins-speechmatics>=1.5.14",
     "livekit-plugins-openai>=1.5.14",
     "livekit-plugins-cartesia>=1.5.14",
+    "livekit-plugins-elevenlabs>=1.5.14",
     "livekit-plugins-google>=1.5.14",
     "python-dotenv>=1.0",
     "httpx>=0.27.0",

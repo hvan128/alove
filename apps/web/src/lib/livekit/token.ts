@@ -33,6 +33,8 @@ export async function createParticipantToken(
   identity: string,
   displayName: string,
   role: CallRole,
+  // Đi kèm participant để worker biết chọn giọng nào cho cuộc gọi này.
+  metadata?: Record<string, string>,
 ): Promise<string> {
   const apiKey = process.env.LIVEKIT_API_KEY
   const apiSecret = process.env.LIVEKIT_API_SECRET
@@ -42,6 +44,7 @@ export async function createParticipantToken(
     identity,
     name: displayName,
     ttl: '2h',
+    ...(metadata ? { metadata: JSON.stringify(metadata) } : {}),
   })
   const observer = role === 'observer'
   at.addGrant({

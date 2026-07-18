@@ -28,6 +28,8 @@ type CallStageProps = {
   onStart: () => void
   onEnd: () => void
   onStopSpeech: () => void
+  /** Chạm vào tên nhà xe: đổi giọng đọc. Không có dấu hiệu nào trên giao diện. */
+  onBrandTap?: () => void
   recognitionState: SpeechRecognitionState
   interimText: string
   onStartMic: () => void
@@ -58,6 +60,7 @@ export function CallStage({
   onStartMic,
   onStopMic,
   liveKitSlot,
+  onBrandTap,
 }: CallStageProps) {
   const connected = status === 'connected'
   const confirmed = booking.status === 'confirmed'
@@ -99,7 +102,9 @@ export function CallStage({
       <div className="relative z-10 flex items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 font-semibold">
-            Nhà xe Mai Anh
+            {/* Công tắc đổi giọng ẩn. Cố ý không có con trỏ, tooltip hay trạng
+                thái hiển thị — chỉ người biết mới bấm được. */}
+            <span onClick={onBrandTap} className="select-none">Nhà xe Mai Anh</span>
             {agentSpeaking ? <SpeakBars /> : null}
           </h1>
           <p className="text-xs text-white/50" role="status">
@@ -197,7 +202,13 @@ export function CallStage({
                       latest ? 'text-xl font-medium text-white sm:text-2xl' : 'text-sm text-white/70 sm:text-base',
                     )}
                   >
-                    {latest ? <TypewriterCaption text={message.text} terms={terms} /> : renderHighlighted(message.text, terms)}
+                    {/* Transcript kênh voice đã tự hiện dần theo lời nói thật —
+                        typewriter chỉ dành cho câu xuất hiện nguyên khối. */}
+                    {latest && message.channel !== 'voice' ? (
+                      <TypewriterCaption text={message.text} terms={terms} />
+                    ) : (
+                      renderHighlighted(message.text, terms)
+                    )}
                   </p>
                 </li>
               )
@@ -332,8 +343,9 @@ export function CallStage({
 
 /**
  * Máy đánh chữ cho caption mới nhất: gõ dần từng cụm ký tự, xong mới áp
- * highlight. Transcript LiveKit lớn dần trong cùng một message nên chỉ gõ phần
- * mới thêm. Tắt trong test và khi prefers-reduced-motion.
+ * highlight. Khi text bị sửa lại (STT thêm dấu, đổi từ) thì giữ vị trí gõ theo
+ * phần đầu chung — không bao giờ quay về gõ lại từ đầu. Tắt trong test và khi
+ * prefers-reduced-motion.
  */
 function TypewriterCaption({ text, terms }: { text: string; terms: string[] }) {
   const animate = typewriterEnabled()
@@ -345,7 +357,10 @@ function TypewriterCaption({ text, terms }: { text: string; terms: string[] }) {
       setVisibleChars(text.length)
       return
     }
-    if (!text.startsWith(previousText.current)) setVisibleChars(0)
+    if (!text.startsWith(previousText.current)) {
+      const prefix = commonPrefixLength(text, previousText.current)
+      setVisibleChars((current) => Math.min(current, prefix))
+    }
     previousText.current = text
     const timer = window.setInterval(() => {
       setVisibleChars((current) => {
@@ -368,6 +383,13 @@ function TypewriterCaption({ text, terms }: { text: string; terms: string[] }) {
   )
 }
 
+function commonPrefixLength(a: string, b: string): number {
+  const max = Math.min(a.length, b.length)
+  let index = 0
+  while (index < max && a[index] === b[index]) index += 1
+  return index
+}
+
 function typewriterEnabled(): boolean {
   if (process.env.NODE_ENV === 'test') return false
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true
@@ -377,17 +399,40 @@ function typewriterEnabled(): boolean {
 /** Orb ánh sáng: thở khi chờ, đập nhanh khi agent nói, lan sóng khi mic nghe. */
 function Orb({ speaking, listening, connected }: { speaking: boolean; listening: boolean; connected: boolean }) {
   return (
-    <div className={cn('relative size-24 sm:size-28', !connected && 'opacity-75')} aria-hidden>
+    <div
+      className={cn(
+        'relative size-28 sm:size-32',
+        !connected && 'opacity-75',
+        speaking ? 'animate-orb-speak' : 'animate-orb-breathe',
+      )}
+      aria-hidden
+    >
+      {/* Quầng sáng lan — ánh cyan điện */}
       <div
         className={cn(
-          'absolute -inset-7 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--action)_60%,transparent),transparent_70%)] blur-2xl transition-opacity duration-500',
-          speaking ? 'opacity-95' : 'opacity-50',
+          'absolute -inset-8 rounded-full bg-[radial-gradient(circle,oklch(0.8_0.15_200_/_0.65),transparent_70%)] blur-2xl transition-opacity duration-500',
+          speaking ? 'opacity-100' : 'opacity-55',
         )}
       />
+      {/* Thân lỏng: neon cyan → electric blue → magenta xoay + biến dạng bo góc */}
       <div
         className={cn(
-          'absolute inset-0 rounded-full bg-[radial-gradient(circle_at_32%_28%,white_0%,color-mix(in_srgb,var(--action)_55%,white)_16%,var(--action)_46%,var(--violet)_78%,oklch(0.32_0.12_290)_100%)] shadow-[0_0_60px_color-mix(in_srgb,var(--action)_50%,transparent)]',
-          speaking ? 'animate-orb-speak' : 'animate-orb-breathe',
+          'absolute inset-0 bg-[conic-gradient(from_220deg,oklch(0.87_0.17_195),oklch(0.6_0.26_262),oklch(0.62_0.29_320),oklch(0.5_0.25_285),oklch(0.87_0.17_195))] blur-[1px] shadow-[0_0_80px_oklch(0.75_0.18_210_/_0.6)]',
+          speaking ? 'orb-liquid-fast' : 'orb-liquid',
+        )}
+      />
+      {/* Lớp giao thoa chạy ngược chiều — vệt aqua và magenta lướt qua nhau */}
+      <div
+        className={cn(
+          'absolute inset-[8%] bg-[conic-gradient(from_40deg,transparent_15%,oklch(0.9_0.14_190)_40%,transparent_58%,oklch(0.72_0.26_330)_80%,transparent)] opacity-90 mix-blend-screen blur-[2px]',
+          speaking ? 'orb-liquid-alt-fast' : 'orb-liquid-alt',
+        )}
+      />
+      {/* Lõi sáng mềm */}
+      <div
+        className={cn(
+          'absolute inset-[22%] rounded-full bg-[radial-gradient(circle_at_36%_32%,white,oklch(0.85_0.15_200)_45%,transparent_78%)] opacity-85 mix-blend-screen blur-sm',
+          speaking ? 'orb-liquid-alt-fast' : 'orb-liquid-alt',
         )}
       />
       {listening ? <div className="animate-listen-ring absolute inset-0 rounded-full" /> : null}
