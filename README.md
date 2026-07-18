@@ -178,5 +178,6 @@ cd agent && uv run python -m unittest discover -s tests
 - [Triển khai](docs/deployment.md)
 - [Dữ liệu nhà xe](docs/operator-data-format.md)
 - [LiveKit SIP runbook](docs/pstn-sip-runbook.md)
+- [Lộ trình pilot 90 ngày](docs/pilot-roadmap.md)
 - [Quyết định STT/TTS](adrs/0009-valsea-stt-google-chirp3-tts.md)
 - [Checklist rubric và mức bằng chứng](docs/rubric-checklist.md)

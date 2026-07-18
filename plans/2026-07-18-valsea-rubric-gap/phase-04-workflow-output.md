@@ -11,8 +11,9 @@ plan: 2026-07-18-valsea-rubric-gap
 ## Context
 
 Confirmed bookings already persist atomically in Neon and the current ticket has a
-real QR plus PNG download. Missing pieces are machine-readable JSON, a secure phone
-verification flow, and optional server-to-server delivery.
+real QR plus PNG download. JSON export, secure phone verification and optional
+server-to-server delivery are implemented and production API/browser validation is
+complete. A physical phone-camera QR scan remains the only Phase 04 evidence gap.
 
 ## Requirements
 
@@ -39,6 +40,8 @@ verification flow, and optional server-to-server delivery.
 - [x] QR encodes the verification URL, not a protected API URL.
 - [x] Server-side signed/idempotent webhook with bounded retry.
 - [x] Route, component and E2E tests.
+- [x] Production search/hold/confirm, correct/wrong-phone verification and cancel
+      smoke without retained hold or PII in the report.
 - [ ] Manual QR phone verification recorded in rubric checklist.
 
 ## Acceptance
@@ -47,6 +50,11 @@ verification flow, and optional server-to-server delivery.
 - A phone scan opens verification and reveals booking only after matching phone.
 - Wrong phone/code does not disclose booking data.
 - Webhook retries transient failures and never sends when unconfigured.
+
+Automated and production API/browser evidence satisfies the software behavior.
+Phase status remains `in-progress` until a physical phone scan records the QR
+handoff itself; no external receiver is configured, so delivery evidence also
+remains open without invalidating the explicit disabled behavior.
 
 ## Out of scope
 

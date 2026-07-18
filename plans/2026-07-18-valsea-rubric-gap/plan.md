@@ -11,7 +11,8 @@ progress: 6/7 phases
 
 # Đóng lỗ hổng rubric VALSEA — Vietnam AI Innovation Challenge
 
-**Status:** In progress — Phase 00–03 và 05–06 hoàn tất; Phase 04 còn bằng chứng deploy/manual
+**Status:** In progress — Phase 00–03 và 05–06 hoàn tất; Phase 04 đã triển khai và
+kiểm tra API/browser production, còn bằng chứng scan QR bằng điện thoại thật
 **Ngày lập:** 2026-07-18
 **Vertical đã chốt:** Tổng đài nhà xe (Mai Anh) → phiếu đặt vé có thể thực thi
 
@@ -81,13 +82,18 @@ Plan coi là xong khi tất cả đúng:
       Alove↔baseline và số WER cho từng clip.
 - [x] Baseline Whisper chạy **có** `language: "vi"` — thắng một đối chứng đã được
       ưu ái, không phải đối chứng bị làm yếu.
-- [ ] Phiếu xác nhận sinh QR tới flow verification có code + phone, tải JSON đúng
+- [x] Phiếu xác nhận sinh QR tới flow verification có code + phone, tải JSON đúng
       `bookingSnapshotSchema`, và webhook server-side có idempotency khi được cấu hình.
 - [x] Latency mỗi lượt (eou/ttft/ttfb) hiện trên `/console`, không chỉ trong log.
 - [x] `agent/agent.py` mặc định `STT_PROVIDER=valsea` — thiếu `.env` không làm
       demo âm thầm chạy sai engine.
 - [x] `docs/rubric-checklist.md` map từng tiêu chí ↔ bằng chứng ↔ file:line và
       không đánh ✅ cho bằng chứng giọng vùng miền chưa có.
+
+Phase 04 vẫn được giữ `in-progress` (6/7 phase hoàn tất) vì chưa có bằng chứng
+camera điện thoại quét QR. Hành vi JSON/verification/webhook, production
+correct/wrong-phone và cancel đã được xác minh; receiver webhook ngoài vẫn chưa
+được cấu hình nên không claim delivery.
 
 ## Điều kiện dừng (giữ nguyên từ pilot roadmap)
 
