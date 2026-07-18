@@ -1,7 +1,10 @@
+import { after } from 'next/server'
 import { z } from 'zod'
 import type { CallMessage } from '@ordervoice/contracts'
 import { bookingDraftSchema } from '@ordervoice/contracts'
 import { advanceBookingAgent, createInitialBooking } from '@ordervoice/core/bus-booking'
+
+import { recordAdvance } from '@/lib/db/call-store'
 
 export const runtime = 'nodejs'
 
@@ -47,5 +50,17 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const turn = advanceBookingAgent(draft, message)
+
+  // Audit history goes to Neon after the response is sent — the caller (a live
+  // voice turn) never waits on the database. Outside a request scope (unit
+  // tests call POST directly) `after` throws, so fall back to fire-and-forget;
+  // recordAdvance itself never rejects.
+  const persist = () => recordAdvance(draft.conversationId, text, turn.reply, turn.draft)
+  try {
+    after(persist)
+  } catch {
+    void persist()
+  }
+
   return Response.json({ draft: turn.draft, reply: turn.reply })
 }

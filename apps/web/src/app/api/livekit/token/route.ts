@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { z } from 'zod'
 
+import { checkDashboardRequest } from '@/lib/dashboard-auth'
 import {
   createParticipantToken,
   isLiveKitConfigured,
@@ -13,7 +14,7 @@ export const runtime = 'nodejs'
 
 const BodySchema = z.object({
   conversationId: z.string().min(1).max(120),
-  role: z.enum(['customer', 'staff']).default('customer'),
+  role: z.enum(['customer', 'staff', 'observer']).default('customer'),
   identity: z.string().min(1).max(120).optional(),
   displayName: z.string().min(1).max(120).optional(),
 })
@@ -29,9 +30,17 @@ export async function POST(req: NextRequest) {
   }
   const { conversationId, role } = parsed.data
 
+  // An observer token lets its holder listen in on a live call — only the
+  // dashboard (gated by DASHBOARD_ACCESS_KEY) may mint one.
+  if (role === 'observer' && !checkDashboardRequest(req)) {
+    return Response.json({ error: 'unauthorized' }, { status: 401 })
+  }
+
   const roomName = roomNameForConversation(conversationId)
   const identity = parsed.data.identity ?? `${role}-${conversationId}`
-  const displayName = parsed.data.displayName ?? (role === 'customer' ? 'Khách' : 'Nhân viên')
+  const displayName =
+    parsed.data.displayName ??
+    (role === 'customer' ? 'Khách' : role === 'observer' ? 'Giám sát' : 'Nhân viên')
 
   const token = await createParticipantToken(roomName, identity, displayName, role)
   return Response.json({ token, serverUrl: LIVEKIT_WS_URL, roomName })

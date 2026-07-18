@@ -11,7 +11,9 @@ const LIVEKIT_AGENT_NAME = process.env.LIVEKIT_AGENT_NAME ?? 'vedi'
 
 const ROOM_PREFIX = 'booking-'
 
-export type CallRole = 'customer' | 'staff'
+// observer = dashboard monitoring: subscribe-only, never publishes audio/data
+// and never triggers an agent dispatch.
+export type CallRole = 'customer' | 'staff' | 'observer'
 
 export function roomNameForConversation(conversationId: string): string {
   return `${ROOM_PREFIX}${conversationId}`
@@ -41,12 +43,13 @@ export async function createParticipantToken(
     name: displayName,
     ttl: '2h',
   })
+  const observer = role === 'observer'
   at.addGrant({
     roomJoin: true,
     room: roomName,
-    canPublish: true,
+    canPublish: !observer,
     canSubscribe: true,
-    canPublishData: true,
+    canPublishData: !observer,
   })
   // Dispatch the booking agent into the room when the CUSTOMER joins. The staff
   // participant listens/assists but never triggers a second agent — one agent per room.

@@ -12,9 +12,11 @@
   },
   "dependencies": {
     "@livekit/components-react": "^2.9.21",
+    "@neondatabase/serverless": "^1.1.0",
     "@ordervoice/contracts": "workspace:*",
     "@ordervoice/core": "workspace:*",
     "clsx": "^2.1.1",
+    "drizzle-orm": "^0.45.2",
     "livekit-client": "^2.19.0",
     "livekit-server-sdk": "^2.15.4",
     "lucide-react": "^1.24.0",
@@ -26,6 +28,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
+    "drizzle-kit": "^0.31.10",
     "tailwindcss": "^4.1.18"
   }
 }

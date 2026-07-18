@@ -133,6 +133,38 @@ def conversation_id_from_room(room_name: str) -> Optional[str]:
     return None
 
 
+def detect_sip_caller(room) -> tuple[str, Optional[str]]:
+    """Return (channel, caller_number). A PSTN caller joins as a SIP participant
+    whose attributes carry the dialed metadata (sip.phoneNumber); browser callers
+    have no such attributes."""
+    try:
+        for participant in room.remote_participants.values():
+            attrs = getattr(participant, "attributes", None) or {}
+            if any(key.startswith("sip.") for key in attrs):
+                return "phone", attrs.get("sip.phoneNumber") or None
+    except Exception as exc:  # noqa: BLE001 — detection is best-effort metadata
+        logger.debug("sip caller detection failed: %s", exc)
+    return "web", None
+
+
+async def post_call_event(
+    conversation_id: str, event_type: str, channel: str = "web", caller_number: Optional[str] = None
+) -> None:
+    """Audit-only notification to the web app; losing it never affects the call."""
+    body: dict = {"conversationId": conversation_id, "type": event_type, "channel": channel}
+    if caller_number:
+        body["callerNumber"] = caller_number
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.post(
+                f"{NEXTJS_API_URL}/api/call/events",
+                json=body,
+                headers={"Authorization": f"Bearer {AGENT_WEBHOOK_SECRET}"},
+            )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("post_call_event(%s) failed: %s", event_type, exc)
+
+
 # --- Cascade provider builders ---------------------------------------------------
 def _cascade_llm():
     if OPENAI_API_KEY and LLM_PROVIDER.startswith("openai/"):
@@ -342,7 +374,19 @@ async def entrypoint(ctx: JobContext):
     await ctx.connect()
 
     conversation_id = conversation_id_from_room(ctx.room.name)
-    logger.info("VéĐi agent connected — room=%s conversation=%s", ctx.room.name, conversation_id)
+    channel, caller_number = detect_sip_caller(ctx.room)
+    logger.info(
+        "VéĐi agent connected — room=%s conversation=%s channel=%s",
+        ctx.room.name, conversation_id, channel,
+    )
+
+    if conversation_id:
+        asyncio.create_task(post_call_event(conversation_id, "call.started", channel, caller_number))
+
+        async def _post_call_ended() -> None:
+            await post_call_event(conversation_id, "call.ended", channel, caller_number)
+
+        ctx.add_shutdown_callback(_post_call_ended)
 
     agent = BusBookingAgent(conversation_id=conversation_id, room=ctx.room)
     session = build_agent_session("vi", vad=ctx.proc.userdata.get("vad"))
@@ -401,11 +445,18 @@ async def entrypoint(ctx: JobContext):
 
     ctx.add_shutdown_callback(_log_usage)
 
+    # Telephony audio is narrowband — Krisp ships a dedicated BVCTelephony model
+    # for it. Fall back to plain BVC on older plugin versions.
+    if channel == "phone" and hasattr(noise_cancellation, "BVCTelephony"):
+        cancellation = noise_cancellation.BVCTelephony()
+    else:
+        cancellation = noise_cancellation.BVC()
+
     await session.start(
         agent=agent,
         room=ctx.room,
         room_options=room_io.RoomOptions(
-            audio_input=room_io.AudioInputOptions(noise_cancellation=noise_cancellation.BVC()),
+            audio_input=room_io.AudioInputOptions(noise_cancellation=cancellation),
         ),
     )
 
