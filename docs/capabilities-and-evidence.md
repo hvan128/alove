@@ -8,7 +8,8 @@ Kết luận ngắn:
 
 - Local/public profile đã chứng minh UI hai phía, final-only field filling, evidence, suggestion, Human/Auto boundary, confirmation demo và fallback.
 - LiveKit, VALSEA và Neon có code/schema/tests nhưng chưa có credentialed runtime proof trên release public.
-- Queue/assignment, enterprise dashboard, operator catalog và conflict-safe seat inventory thuộc roadmap.
+- Enterprise dashboard đã có queue, atomic ownership, delegation/takeover có lý do, audit trail và bốn role, verified ở memory profile; realtime notification và concurrency proof trên Neon vẫn thiếu.
+- Operator catalog và conflict-safe seat inventory thuộc roadmap.
 - Payment, external seat guarantee, PSTN/SIP, Zalo raw-call audio, delivery messaging và autonomous confirmation ngoài phạm vi đến khi phê duyệt riêng.
 
 ## Cách đọc trạng thái
@@ -37,7 +38,7 @@ Kết luận ngắn:
 | **F-09 Catalog-bound trip proposal** | Không bịa chuyến, giá hoặc ghế | **Verified** — sample catalog | Core chỉ chọn từ `createBusDemoCatalog()` và deterministic seat list | `packages/core/src/bus-booking.ts` | `packages/core/test/bus-booking.test.ts` | Published catalog version, operator workflow và inventory source | P2 |
 | **F-10 Field validation and explicit confirmation** | Chặn booking thiếu hoặc mơ hồ | **Verified** — local scope | Confirmation gate kiểm required fields, evidence và blocking review; Agent không có authority | `packages/core/src/bus-booking.ts`; `assistant-rail.tsx` | `bus-booking.test.ts`; `staff-workspace.test.tsx` | Identity/authorization và production catalog/inventory validation | P1 |
 | **F-11 Idempotent booking issuance** | Retry không tạo booking kép | **Verified** — demo scope | Core sinh stable code và event repository dedupe duplicate event | `packages/core/src/bus-booking.ts`; `session-repository.ts` | `bus-booking.test.ts`; `session-repository.test.ts` | Durable transaction, scoped request/summary hash, conflict/retry test | P1 |
-| **F-12 Enterprise operations dashboard** | Supervisor quản lý queue, owner, metrics và audit | **Roadmap** | Chỉ có single-session staff cockpit | `apps/web/src/components/staff/staff-workspace.tsx` | Current UI/component tests | Multi-session queue, roles, search, departures, metrics, alerts | P2 |
+| **F-12 Enterprise operations dashboard** | Supervisor quản lý queue, owner, metrics và audit | **Verified** — memory profile | Queue, active sessions, atomic ownership, Agent delegation, takeover kèm lý do, departures/occupancy, alerts, metrics, search và cross-session audit trail; bốn role gate server-side | `operations-dashboard.tsx`; `ownership-repository.ts`; `operator-permissions.ts` | `operations-dashboard.test.tsx`, `session-ownership.test.ts`, `ownership-repository.test.ts`, `operations-http.test.ts`; `operations.spec.ts` 9 E2E pass tại SHA `c133540`, `OPERATOR_DEMO_MODE=true`, mode memory | Realtime notification cho queue, concurrency proof trên Neon có credential, identity provider thật thay `OPERATOR_STAFF_DIRECTORY` | P2 |
 | **F-13 Bus-operator data management** | Nhà xe cập nhật tuyến/chuyến/xe/giá có version | **Roadmap** | Catalog tĩnh trong code; chưa có CRUD/draft/publish | `packages/core/src/bus-booking.ts` | Sample catalog unit tests | Normalized model, validation, immutable publish, CSV dry-run, role access | P2 |
 | **F-14 Persistence and audit** | Khôi phục và audit final facts/authority | **Code-ready** | Memory repository hoạt động; Neon schema/migration/repository có, partial bị bỏ qua | `apps/web/src/lib/db/session-repository.ts`; `db/schema.ts` | `session-repository.test.ts`; `db/test/db.test.ts` | Credentialed migration/query, retention/deletion job, transaction evidence | P1 |
 | **F-15 Multilingual and code-switch handling** | Giữ English terms trong hội thoại tiếng Việt | **Code-ready** | Original final được giữ; staff có original/vi/en view; English translation dùng `store:false` | `agent/transcript_translation.py`; `staff-workspace.tsx` | `agent/test_transcript_translation.py`; component test | Live intra-sentence benchmark, low-confidence identity policy | P1 |
@@ -51,7 +52,7 @@ Kết luận ngắn:
 |---|---|---|---|
 | Vietnamese voice qua VALSEA | **Code-ready** | Worker/adapters và protocol tests | Credentialed difficult-audio run |
 | Messy audio/code-switch | **Code-ready** | Unicode/original preservation, translation fallback | Consented benchmark theo accent/noise |
-| Staff dashboard | **Verified** single-session; **Roadmap** enterprise | `/staff` component/E2E evidence | Incoming queue, assignment, multi-session operations |
+| Staff dashboard | **Verified** single-session và enterprise ở memory profile | `/staff` component/E2E evidence; `operations.spec.ts` nhận cuộc gọi → trao quyền Agent → thu quyền có lý do → audit | Realtime notification, credentialed multi-dispatcher concurrency |
 | Auto-fill | **Verified** local | Core unit + staff component tests | Pilot accuracy sample |
 | Agent delegation | **Verified** local; live worker **Code-ready** | Human/Auto tests và worker policy | Authenticated owner + live LLM/TTS |
 | Evidence và safety | **Verified** local | Exact quote/revision, confirmation gate, stable code | Durable transaction và retention controls |

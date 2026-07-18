@@ -44,9 +44,9 @@ Ma trận theo design doc §9:
 | `call.reassign` | ✅ | ✅ | ❌ | ❌ |
 | `call.release` | ✅ | ✅ | ✅ (chỉ phiên mình) | ❌ |
 
-- [ ] Step 1: test đỏ cho phân giải role + ma trận quyền
-- [ ] Step 2: implement, giữ fail-closed khi chưa cấu hình
-- [ ] Step 3: `pnpm --filter @ordervoice/web test -- operator-actor operator-permissions`
+- [x] Step 1: test đỏ cho phân giải role + ma trận quyền
+- [x] Step 2: implement, giữ fail-closed khi chưa cấu hình
+- [x] Step 3: `pnpm --filter @ordervoice/web test -- operator-actor operator-permissions`
 
 ### Task 2: State machine ownership / delegation / takeover
 
@@ -65,9 +65,9 @@ Luật bắt buộc:
 - takeover **bắt buộc** `reason` không rỗng, ngược lại `TAKEOVER_REASON_REQUIRED`.
 - mọi transition tăng `ownershipRevision` và sinh đúng một audit event.
 
-- [ ] Step 1: test đỏ cho từng luật
-- [ ] Step 2: implement pure, không I/O
-- [ ] Step 3: test xanh + typecheck
+- [x] Step 1: test đỏ cho từng luật
+- [x] Step 2: implement pure, không I/O
+- [x] Step 3: test xanh + typecheck
 
 ### Task 3: Persistence — migration 0006 và ownership repository
 
@@ -84,9 +84,9 @@ Index bổ sung cho `bus_calls(status)` và `bus_calls(owner_id)`.
 
 Accept phải atomic: `UPDATE ... WHERE id = ? AND owner_id IS NULL RETURNING *` → đúng một người thắng.
 
-- [ ] Step 1: test đỏ, gồm hai accept đồng thời chỉ một thắng
-- [ ] Step 2: migration + schema + repo memory/neon
-- [ ] Step 3: cập nhật `db/test/db.test.ts` (assert danh sách bảng)
+- [x] Step 1: test đỏ, gồm hai accept đồng thời chỉ một thắng
+- [x] Step 2: migration + schema + repo memory/neon
+- [x] Step 3: cập nhật `db/test/db.test.ts` (assert danh sách bảng)
 
 ### Task 4: Command API role-gated
 
@@ -100,9 +100,9 @@ Accept phải atomic: `UPDATE ... WHERE id = ? AND owner_id IS NULL RETURNING *`
 
 Mã lỗi ổn định: `FORBIDDEN` 403, `CALL_ALREADY_OWNED` 409, `TAKEOVER_REASON_REQUIRED` 422, `OPERATOR_AUTH_UNCONFIGURED` 503. Mọi mutation ghi audit; `Cache-Control: no-store`.
 
-- [ ] Step 1: test đỏ cho mỗi route, gồm 403 của `read-only`
-- [ ] Step 2: implement
-- [ ] Step 3: test xanh
+- [x] Step 1: test đỏ cho mỗi route, gồm 403 của `read-only`
+- [x] Step 2: implement
+- [x] Step 3: test xanh
 
 ### Task 5: Read model — owner, delegation, takeover, audit, search
 
@@ -117,9 +117,9 @@ Mã lỗi ổn định: `FORBIDDEN` 403, `CALL_ALREADY_OWNED` 409, `TAKEOVER_REA
 - Sửa `conversionRate`: mẫu số và tử số cùng khung thời gian.
 - Alerts thêm nguồn catalog (`status='draft'` sau validate) và hold hết hạn có `ORDER BY`.
 
-- [ ] Step 1: test đỏ gồm regression cho conversionRate
-- [ ] Step 2: implement cả hai nhánh memory/neon
-- [ ] Step 3: test xanh
+- [x] Step 1: test đỏ gồm regression cho conversionRate
+- [x] Step 2: implement cả hai nhánh memory/neon
+- [x] Step 3: test xanh
 
 ### Task 6: Dashboard UI
 
@@ -138,9 +138,9 @@ Mã lỗi ổn định: `FORBIDDEN` 403, `CALL_ALREADY_OWNED` 409, `TAKEOVER_REA
 - Search: lọc queue + active theo code/tuyến/owner.
 - `read-only` không thấy nút hành động nào.
 
-- [ ] Step 1: test đỏ cho từng thành phần
-- [ ] Step 2: implement
-- [ ] Step 3: test xanh + typecheck
+- [x] Step 1: test đỏ cho từng thành phần
+- [x] Step 2: implement
+- [x] Step 3: test xanh + typecheck
 
 ### Task 7: E2E và đồng bộ truth docs
 
@@ -150,9 +150,9 @@ Mã lỗi ổn định: `FORBIDDEN` 403, `CALL_ALREADY_OWNED` 409, `TAKEOVER_REA
 - Modify: `docs/current-vs-target-architecture.md`
 - Modify: `specs/features.md` nếu cần nhãn trạng thái
 
-- [ ] Step 1: E2E accept → delegate → takeover có lý do → audit hiển thị
-- [ ] Step 2: `pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e && pnpm build`
-- [ ] Step 3: cập nhật doc theo đúng điều đã quan sát, ghi mode `memory`/non-durable
+- [x] Step 1: E2E accept → delegate → takeover có lý do → audit hiển thị
+- [x] Step 2: `pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e && pnpm build`
+- [x] Step 3: cập nhật doc theo đúng điều đã quan sát, ghi mode `memory`/non-durable
 
 ## Ngoài phạm vi
 
