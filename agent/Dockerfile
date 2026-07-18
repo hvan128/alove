@@ -6,7 +6,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 
 RUN pip install --no-cache-dir uv==0.11.17 && \
-    uv export --frozen --no-dev --no-emit-project -o requirements.txt && \
+    uv export --quiet --frozen --no-dev --no-emit-project -o requirements.txt && \
     uv pip install --system --no-cache -r requirements.txt
 
 # Download the Silero VAD model at build time so cold starts don't fetch it.
