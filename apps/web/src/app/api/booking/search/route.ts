@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { requireAgent } from '@/lib/agent-auth'
-import { listServedRoutes, searchTrips } from '@/lib/db/booking-store'
+import { nextDeparturesOnRoute, searchTrips, suggestRoutes } from '@/lib/db/booking-store'
 
 export const runtime = 'nodejs'
 
@@ -21,10 +21,32 @@ export async function POST(req: Request): Promise<Response> {
   if (!parsed.success) {
     return Response.json({ error: 'invalid_request', issues: parsed.error.issues }, { status: 400 })
   }
+  const { origin, destination, date, passengers } = parsed.data
 
   const trips = await searchTrips(parsed.data)
-  // An empty result is a normal answer, not an error — the agent must say the
-  // route/date has nothing rather than invent a departure. Hand back what IS
-  // served so it can offer a real alternative.
-  return Response.json({ trips, servedRoutes: trips.length === 0 ? await listServedRoutes() : [] })
+  if (trips.length > 0) {
+    return Response.json({ trips, routeServed: true })
+  }
+
+  // "We don't run this route at all" and "we run it, just not that day" need
+  // different answers. Collapsing them told a caller asking for the right route
+  // on the wrong date that the route did not exist.
+  const otherDates = await nextDeparturesOnRoute({ origin, destination, passengers })
+  if (otherDates.length > 0) {
+    return Response.json({
+      trips: [],
+      routeServed: true,
+      reason: date ? 'no_trip_on_date' : 'no_seats',
+      otherDates,
+      suggestedRoutes: [],
+    })
+  }
+
+  return Response.json({
+    trips: [],
+    routeServed: false,
+    reason: 'route_not_served',
+    otherDates: [],
+    suggestedRoutes: await suggestRoutes({ origin, destination }),
+  })
 }

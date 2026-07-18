@@ -160,7 +160,10 @@ def bus_agent_instructions(today_vn: str) -> str:
         "KHÔNG ĐƯỢC:\n"
         "- Không tự nghĩ ra chuyến, giờ chạy, giá vé, số ghế trống hay mã vé. Những thứ đó chỉ "
         "lấy từ kết quả công cụ. Chưa gọi công cụ thì chưa được nói.\n"
-        "- search_trips không có chuyến nào thì nói thật, rồi gợi ý tuyến nhà xe đang chạy.\n"
+        "- search_trips không có chuyến thì phân biệt rõ: tuyến có mà ngày đó không chạy thì "
+        "mời ngày khác; tuyến thật sự không chạy thì nói thật.\n"
+        "- Chỉ mời những tuyến công cụ trả về trong suggestedRoutes. Không tự nghĩ ra tuyến "
+        "thay thế, và không bao giờ mời khách đi chiều ngược lại với chiều họ cần.\n"
         "- Không hứa giữ đủ ghế khi hold_seats báo còn ít hơn."
     )
 
@@ -479,9 +482,17 @@ class BusBookingAgent(Agent):
         date: ngày khởi hành dạng YYYY-MM-DD, tự quy đổi từ cách khách nói.
         passengers: số vé cần.
 
-        Trả về danh sách chuyến kèm giờ chạy, loại xe, giá và số ghế còn trống.
-        Nếu trips rỗng thì tuyến/ngày đó KHÔNG có chuyến — hãy nói thật, và dùng
-        servedRoutes để gợi ý tuyến nhà xe đang chạy. Không được tự nghĩ ra chuyến.
+        trips có phần tử: đọc cho khách giờ chạy, loại xe, giá, số ghế còn.
+
+        trips rỗng thì xem hai trường sau, ĐỪNG gộp làm một:
+        - routeServed=true kèm otherDates: nhà xe CÓ chạy tuyến này, chỉ là ngày
+          khách hỏi không có chuyến. Nói đúng vậy rồi mời khách các ngày trong
+          otherDates. Không được bảo là không có tuyến.
+        - routeServed=false kèm suggestedRoutes: thật sự chưa chạy tuyến này. Nói
+          thật, rồi mời các tuyến trong suggestedRoutes nếu danh sách không rỗng.
+          Danh sách này đã lọc sẵn, không bao giờ chứa chiều ngược lại của tuyến
+          khách hỏi. suggestedRoutes rỗng thì chỉ xin lỗi, tuyệt đối không tự bịa
+          tuyến thay thế.
         """
         data = await self._call_api(
             "/api/booking/search",

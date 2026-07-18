@@ -48,15 +48,49 @@ function cityKey(value: string): string {
   return CITY_ALIASES[key] ?? key
 }
 
-/** Cities the operator actually serves — used to answer "where do you run?". */
-export async function listServedRoutes(): Promise<{ origin: string; destination: string }[]> {
+/**
+ * Alternatives worth offering when the requested route has nothing.
+ *
+ * Never suggest the exact reverse of what was asked: someone in Nghệ An wanting
+ * to reach Hà Nội is not helped by a bus running Hà Nội → Nghệ An. Routes leaving
+ * from the caller's own origin come first, since those are the only ones that can
+ * actually carry them.
+ */
+export async function suggestRoutes(asked: {
+  origin: string
+  destination: string
+}): Promise<{ origin: string; destination: string }[]> {
   const db = getDb()
   if (!db) return []
   const rows = await db
     .select({ origin: routes.originCity, destination: routes.destinationCity })
     .from(routes)
     .where(eq(routes.active, 'yes'))
-  return rows
+
+  const askedOrigin = cityKey(asked.origin)
+  const askedDestination = cityKey(asked.destination)
+
+  const usable = rows.filter(
+    (r) => !(cityKey(r.origin) === askedDestination && cityKey(r.destination) === askedOrigin),
+  )
+  const fromSameOrigin = usable.filter((r) => cityKey(r.origin) === askedOrigin)
+  return fromSameOrigin.length > 0 ? fromSameOrigin : usable
+}
+
+/** Next departures on a route the operator DOES serve, ignoring the asked date. */
+export async function nextDeparturesOnRoute(input: {
+  origin: string
+  destination: string
+  passengers?: number | null | undefined
+  limit?: number
+}): Promise<TripOffer[]> {
+  const all = await searchTrips({
+    origin: input.origin,
+    destination: input.destination,
+    date: null,
+    passengers: input.passengers,
+  })
+  return all.slice(0, input.limit ?? 3)
 }
 
 /**
