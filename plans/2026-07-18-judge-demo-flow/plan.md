@@ -37,10 +37,10 @@ trang chủ nhà xe Mai Anh với CTA duy nhất **"Gọi để đặt xe"** →
 | Phase | Name | Status |
 |-------|------|--------|
 | 1 | [Landing nhà xe](./phase-01-landing-nh-xe.md) | Completed |
-| 2 | [Overlay gọi morph](./phase-02-overlay-g-i-morph.md) | In Progress |
-| 3 | [Màn Vé của bạn](./phase-03-m-n-v-c-a-b-n.md) | Pending |
-| 4 | [Độ bền lỗi và mobile](./phase-04-b-n-l-i-v-mobile.md) | Pending |
-| 5 | [Sẵn sàng demo](./phase-05-s-n-s-ng-demo.md) | Pending |
+| 2 | [Overlay gọi morph](./phase-02-overlay-g-i-morph.md) | Completed |
+| 3 | [Màn Vé của bạn](./phase-03-m-n-v-c-a-b-n.md) | Completed |
+| 4 | [Độ bền lỗi và mobile](./phase-04-b-n-l-i-v-mobile.md) | Completed |
+| 5 | [Sẵn sàng demo](./phase-05-s-n-s-ng-demo.md) | In Progress |
 
 ## Dependencies
 

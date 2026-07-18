@@ -1,9 +1,13 @@
 ---
 phase: 5
-title: "Sẵn sàng demo"
-status: pending
+title: Sẵn sàng demo
+status: in-progress
 priority: P1
-dependencies: [1, 2, 3, 4]
+dependencies:
+  - 1
+  - 2
+  - 3
+  - 4
 ---
 
 # Phase 5: Sẵn sàng demo (P0-2, P0-3, P0-4, P1-5, P1-6, P2-9)
@@ -32,6 +36,13 @@ Biến code thành buổi demo chạy được: verify end-to-end với credenti
 5. **Video backup (P0-4):** quay trọn luồng (landing → morph → đặt vé → dashboard → gọi lại → QR) bản mượt nhất.
 6. **Credit + latency (P2-9):** check quota ElevenLabs/OpenAI/STT; đo độ trễ mỗi lượt; note vào kịch bản.
 7. Tập dượt: 3 lần chạy trọn không lỗi trước ngày demo (tiêu chí từ brainstorm).
+
+## Tiến độ 2026-07-18
+
+- [x] P0-3 kịch bản demo 4 cảnh (`docs/vedi-demo-script.md`) + README theo luồng khách mới.
+- [ ] Các mục còn lại **chặn vì thiếu credentials**: mọi biến LiveKit trong `.env` gốc và
+  `apps/web/.env.production.local` đều rỗng, không có `agent/.env` → `/api/livekit/token`
+  trả 503. Chi tiết và cách chạy local đúng: `reports/phase-05-verify-findings.md`.
 
 ## Success Criteria
 

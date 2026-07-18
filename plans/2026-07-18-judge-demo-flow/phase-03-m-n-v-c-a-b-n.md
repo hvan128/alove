@@ -1,9 +1,10 @@
 ---
 phase: 3
-title: "Màn Vé của bạn"
-status: pending
+title: Màn Vé của bạn
+status: completed
 priority: P1
-dependencies: [2]
+dependencies:
+  - 2
 ---
 
 # Phase 3: Màn "Vé của bạn" (UX-3)
