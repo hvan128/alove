@@ -1,9 +1,10 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { Banknote, KeyRound, PhoneCall, RefreshCw, Target, TicketCheck } from 'lucide-react'
+import { Banknote, PhoneCall, RefreshCw, Target, TicketCheck } from 'lucide-react'
 
 import { AutoRefresh } from '@/components/dashboard/auto-refresh'
 import { CallTable } from '@/components/dashboard/call-table'
+import { DashboardLoginForm } from '@/components/dashboard/dashboard-login-form'
 import {
   ChannelSection,
   EmptyBlock,
@@ -17,7 +18,6 @@ import {
 } from '@/components/dashboard/dashboard-sections'
 import { KpiCard } from '@/components/dashboard/kpi-card'
 import { BrandMark } from '@/components/ui/brand-mark'
-import { TextInput } from '@/components/ui/input'
 import {
   createDashboardSession,
   DASHBOARD_COOKIE,
@@ -98,23 +98,7 @@ export default async function DashboardPage({
         <BrandMark className="mx-auto size-12" />
         <h1 className="mt-5 text-section font-semibold tracking-[-0.03em] text-[var(--ink)]">Đăng nhập dashboard</h1>
         <p className="mt-1 text-ui text-[var(--muted)]">Nhập khóa truy cập để xem cuộc gọi Alove.</p>
-        <form action={login} className="mt-5 flex flex-col gap-3 text-left">
-          <TextInput
-            label="Khóa truy cập"
-            id="dashboard-key"
-            name="key"
-            type="password"
-            autoComplete="off"
-            required
-            {...(error ? { error: 'Khóa không đúng.' } : {})}
-          />
-          <button
-            type="submit"
-            className="mt-1 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--action)] px-4 text-ui font-medium text-[var(--on-action)] transition hover:bg-[var(--action-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action-focus)] active:scale-[0.98]"
-          >
-            <KeyRound size={16} aria-hidden /> Vào dashboard
-          </button>
-        </form>
+        <DashboardLoginForm action={login} {...(error ? { error: 'Khóa không đúng.' } : {})} />
       </AuthShell>
     )
   }

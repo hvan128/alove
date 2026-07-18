@@ -118,12 +118,37 @@ describe('Alove call contracts', () => {
     expect(agentEventSchema.safeParse(event).success).toBe(true)
   })
 
+  it('counts semantic text and display limits by Unicode code point', () => {
+    const emoji = '🚌'
+    const event = {
+      type: 'semantic.annotation',
+      callId: 'call-1',
+      eventId: 'event-unicode-boundary',
+      sequence: 4,
+      timestamp: '2026-07-18T12:00:00.000Z',
+      sourceTranscript: emoji.repeat(SEMANTIC_ANNOTATION_TEXT_MAX_CHARS),
+      correctedText: emoji.repeat(SEMANTIC_ANNOTATION_TEXT_MAX_CHARS),
+      tags: [emoji.repeat(SEMANTIC_ANNOTATION_DISPLAY_MAX_CHARS)],
+      annotations: [emoji.repeat(SEMANTIC_ANNOTATION_DISPLAY_MAX_CHARS)],
+    }
+
+    expect(agentEventSchema.safeParse(event).success).toBe(true)
+    expect(agentEventSchema.safeParse({
+      ...event,
+      sourceTranscript: emoji.repeat(SEMANTIC_ANNOTATION_TEXT_MAX_CHARS + 1),
+    }).success).toBe(false)
+    expect(agentEventSchema.safeParse({
+      ...event,
+      tags: [emoji.repeat(SEMANTIC_ANNOTATION_DISPLAY_MAX_CHARS + 1)],
+    }).success).toBe(false)
+  })
+
   it('rejects semantic evidence beyond text, item, or display limits', () => {
     const event = {
       type: 'semantic.annotation',
       callId: 'call-1',
       eventId: 'event-oversized',
-      sequence: 4,
+      sequence: 5,
       timestamp: '2026-07-18T12:00:00.000Z',
       sourceTranscript: 'source',
       correctedText: 'corrected',

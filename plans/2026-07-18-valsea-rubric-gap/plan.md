@@ -6,12 +6,12 @@ effort: high
 branch: feat/livekit-agent
 tags: [valsea, rubric, hackathon]
 created: 2026-07-18
-progress: 2/7 phases
+progress: 3/7 phases
 ---
 
 # Đóng lỗ hổng rubric VALSEA — Vietnam AI Innovation Challenge
 
-**Status:** In progress — Phase 00–01 hoàn tất; Phase 02–06 theo current Alove
+**Status:** In progress — Phase 00–02 hoàn tất; Phase 03–06 theo current Alove
 **Ngày lập:** 2026-07-18
 **Vertical đã chốt:** Tổng đài nhà xe (Mai Anh) → phiếu đặt vé có thể thực thi
 
@@ -54,7 +54,7 @@ key về muộn. Đây là lý do xếp chúng tách khỏi nhánh VALSEA.
 
 - [x] Phase 00 — probe sandbox, report live, security review và clean-install verification
 - [x] Phase 01 — VALSEA-first provider config + maintainer batch evidence
-- [ ] Phase 02 — advisory semantic annotation trên live call
+- [x] Phase 02 — advisory semantic annotation trên live call
 - [ ] Phase 03 — synthetic hard-case harness + trang `/evidence` mới
 - [ ] Phase 04 — workflow output
 - [ ] Phase 05 — latency surface

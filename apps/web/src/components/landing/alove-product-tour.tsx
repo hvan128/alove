@@ -2,14 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'framer-motion'
-import { Mic, Pause, PhoneOff, Play } from 'lucide-react'
+import { Check, CheckCircle2, Clock3, MapPin, Pause, Play, Search, Sparkles } from 'lucide-react'
 
+import { CallControlDock } from '@/components/bus-call/call-control-dock'
 import { CallStage } from '@/components/bus-call/call-stage'
 import { TicketCard } from '@/components/bus-call/ticket-card'
 import { TicketResult } from '@/components/bus-call/ticket-result'
 import { TicketSheet } from '@/components/bus-call/ticket-sheet'
 import { VehicleSeatVisual } from '@/components/bus-call/vehicle-seat-visual'
-import type { BookingSnapshot, CallMessage } from '@/lib/call-contract'
+import type { BookingSnapshot, CallMessage, SemanticAnnotation } from '@/lib/call-contract'
 
 const STAGE_DURATION_MS = 4800
 const EASE = [0.22, 1, 0.36, 1] as const
@@ -56,6 +57,7 @@ const fallbackTrip: AloveTourTrip = {
 type TourState = {
   booking: BookingSnapshot
   messages: CallMessage[]
+  semanticAnnotations: SemanticAnnotation[]
   agentThinking?: boolean
   agentListening?: boolean
   agentSpeaking?: boolean
@@ -64,27 +66,14 @@ type TourState = {
 function ProductCallControls({ thinking = false }: { thinking?: boolean }) {
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <button
-          type="button"
-          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 text-sm font-medium text-white/90"
-        >
-          <Mic className="size-4" aria-hidden /> Tắt mic
-        </button>
-        <button
-          type="button"
-          disabled={thinking}
-          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 text-sm font-medium text-white/90 disabled:opacity-40"
-        >
-          Tôi nói xong
-        </button>
-        <button
-          type="button"
-          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--danger)_55%,transparent)] bg-[color-mix(in_srgb,var(--danger)_22%,transparent)] px-4 text-sm font-medium text-white"
-        >
-          <PhoneOff className="size-4" aria-hidden /> Kết thúc
-        </button>
-      </div>
+      <CallControlDock
+        connected
+        microphoneEnabled
+        busy={thinking}
+        onToggleMicrophone={NOOP}
+        onEndTurn={NOOP}
+        onEndCall={NOOP}
+      />
     </div>
   )
 }
@@ -95,7 +84,7 @@ function TourCallStage({ state }: { state: TourState }) {
       status="connected"
       elapsedSec={18}
       messages={state.messages}
-      semanticAnnotations={[]}
+      semanticAnnotations={state.semanticAnnotations}
       booking={state.booking}
       agentSpeaking={Boolean(state.agentSpeaking)}
       agentThinking={Boolean(state.agentThinking)}
@@ -109,21 +98,28 @@ function TourCallStage({ state }: { state: TourState }) {
 }
 
 /**
- * Bản desktop dùng đúng ba khối của BusCallWorkspace. Canvas được thu theo cùng
- * tỉ lệ để toàn bộ bố cục xl của sản phẩm lọt vào khung landing mà không phải
- * dựng lại phiên bản marketing riêng.
+ * Khi chưa có chuyến, giữ nguyên lưới lg hai cột của BusCallWorkspace để chữ
+ * semantic đọc được ở kích thước thật. Khi sơ đồ ghế xuất hiện, thu toàn bộ
+ * bố cục xl ba cột theo cùng một tỉ lệ để vừa khung landing.
  */
 function DesktopProductPreview({ state, showVehicle }: { state: TourState; showVehicle: boolean }) {
+  if (!showVehicle) {
+    return (
+      <div className="hidden overflow-hidden p-4 lg:block">
+        <div className="grid grid-cols-[minmax(0,1fr)_380px] items-start gap-5">
+          <TourCallStage state={state} />
+          <TicketCard booking={state.booking} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="hidden h-[520px] overflow-hidden p-4 lg:block">
       <div className="w-[147.0588%] origin-top-left scale-[0.68]">
-        <div
-          className={showVehicle
-            ? 'grid items-start gap-5 grid-cols-[minmax(520px,1fr)_minmax(420px,480px)_380px]'
-            : 'grid items-start gap-5 grid-cols-[minmax(520px,1fr)_380px]'}
-        >
+        <div className="grid grid-cols-[minmax(520px,1fr)_minmax(420px,480px)_380px] items-start gap-5">
           <TourCallStage state={state} />
-          {showVehicle ? <VehicleSeatVisual booking={state.booking} /> : null}
+          <VehicleSeatVisual booking={state.booking} />
           <TicketCard booking={state.booking} />
         </div>
       </div>
@@ -150,34 +146,234 @@ function ProductWorkspaceStage({ state, showVehicle = false }: { state: TourStat
   )
 }
 
+function SearchingProductPreview({ trip, reducedMotion }: { trip: AloveTourTrip; reducedMotion: boolean }) {
+  const options = [
+    {
+      departure: trip.departure,
+      arrival: trip.arrival,
+      priceVnd: trip.priceVnd,
+      vehicleType: trip.vehicleType,
+      seats: trip.seatsAvailable,
+      recommended: true,
+    },
+    {
+      departure: '06:00',
+      arrival: '11:20',
+      priceVnd: 350_000,
+      vehicleType: 'Giường nằm 34 chỗ',
+      seats: 7,
+      recommended: false,
+    },
+    {
+      departure: '13:00',
+      arrival: '18:10',
+      priceVnd: 520_000,
+      vehicleType: 'Cabin 22 phòng',
+      seats: 4,
+      recommended: false,
+    },
+  ]
+
+  return (
+    <div className="h-full overflow-y-auto p-3 sm:p-5 lg:p-6">
+      <div className="grid min-h-full gap-4 lg:grid-cols-[0.82fr_1.18fr]">
+        <section className="relative flex flex-col overflow-hidden rounded-2xl bg-[#0f172a] p-4 text-white sm:p-6">
+          <div className="absolute -right-16 -top-20 size-56 rounded-full bg-blue-500/20 blur-3xl" aria-hidden />
+          <div className="relative flex flex-1 flex-col">
+            <div className="flex items-center justify-between gap-3">
+              <span className="inline-flex items-center gap-2 rounded-full border border-blue-300/20 bg-blue-400/10 px-3 py-1.5 text-xs font-semibold text-blue-200">
+                <Search size={14} aria-hidden /> Đang xử lý…
+              </span>
+              <span className="font-mono text-[11px] text-white/35">00:02.4</span>
+            </div>
+
+            <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35 lg:mt-6">Câu nói vừa nhận</p>
+            <blockquote className="mt-2 text-base font-medium leading-6 text-white sm:text-lg sm:leading-7">
+              “Cho mình đặt hai vé từ {trip.origin} vô {trip.destination}, chuyến mô gần nhất hỉ.”
+            </blockquote>
+
+            <div className="mt-4 rounded-xl border border-white/10 bg-white/6 p-3 sm:mt-6 sm:p-4">
+              <div className="flex items-center gap-2 text-xs font-semibold text-cyan-300">
+                <Sparkles size={14} aria-hidden /> VALSEA semantic
+              </div>
+              <p className="mt-3 text-[11px] text-white/40">Hiệu chỉnh:</p>
+              <p className="mt-1 text-sm leading-6 text-white/85">
+                “Đặt <strong className="text-white">2 vé</strong> từ {trip.origin} đi {trip.destination}, chuyến gần nhất.”
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {[
+                  ['quantity', '2'],
+                  ['location', trip.destination],
+                  ['date', trip.travelDateLabel],
+                ].map(([key, value], index) => (
+                  <motion.span
+                    key={key}
+                    initial={reducedMotion ? false : { opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: reducedMotion ? 0 : 0.18 + index * 0.1, duration: 0.25 }}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/8 px-2.5 py-1.5 font-mono text-[10px] text-white/65"
+                  >
+                    <span className="text-blue-300">{key}</span>
+                    <span>=</span>
+                    <strong className="font-semibold text-white">{value}</strong>
+                  </motion.span>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-2.5 text-xs sm:mt-5">
+              <div className="flex items-center gap-2 text-emerald-300"><CheckCircle2 size={15} aria-hidden /> Đã hiểu nhu cầu</div>
+              <div className="flex items-center gap-2 text-blue-200">
+                <motion.span
+                  className="size-3.5 rounded-full border-2 border-blue-300 border-t-transparent"
+                  {...(reducedMotion
+                    ? {}
+                    : {
+                        animate: { rotate: 360 },
+                        transition: { duration: 0.9, repeat: Infinity, ease: 'linear' },
+                      })}
+                />
+                Đang đối chiếu lịch và chỗ trống
+              </div>
+            </div>
+
+            <div className="mt-8 hidden rounded-xl border border-white/10 bg-white/5 p-4 lg:mt-auto lg:block">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold text-white/80">Truy vấn song song</p>
+                <span className="font-mono text-[10px] text-blue-300">3 nguồn</span>
+              </div>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <motion.span
+                  className="block h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-500"
+                  initial={reducedMotion ? false : { width: '18%' }}
+                  animate={{ width: '86%' }}
+                  transition={{ duration: reducedMotion ? 0 : 1.4, ease: EASE }}
+                />
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[10px] text-white/45">
+                {['Lịch chạy', 'Kho ghế', 'Giá bán'].map((source, index) => (
+                  <div key={source}>
+                    <span className={`mx-auto mb-1.5 block size-2 rounded-full ${index === 1 ? 'bg-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.8)]' : 'bg-emerald-400'}`} />
+                    {source}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="flex flex-col rounded-2xl border border-[var(--hairline)] bg-white p-4 shadow-[var(--shadow-card)] sm:p-5">
+          <div className="flex flex-col gap-3 border-b border-[var(--divider)] pb-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold text-[var(--action)]">Kết quả từ hệ thống nhà xe</p>
+              <h3 className="mt-1 text-xl font-bold tracking-[-0.035em] text-slate-950">{trip.origin} → {trip.destination}</h3>
+            </div>
+            <span className="inline-flex self-start items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+              <span className="size-1.5 rounded-full bg-emerald-500" /> 3 chuyến phù hợp
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {options.map((option, index) => (
+              <motion.article
+                key={`${option.departure}-${index}`}
+                initial={reducedMotion ? false : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: reducedMotion ? 0 : 0.16 + index * 0.12, duration: 0.3, ease: EASE }}
+                className={`relative rounded-xl border p-4 ${option.recommended ? 'border-blue-400 bg-blue-50/70 sm:col-span-2' : 'border-slate-200 bg-white'}`}
+              >
+                {option.recommended ? (
+                  <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-blue-600 px-2 py-1 text-[10px] font-semibold text-white">
+                    <Check size={11} aria-hidden /> Gần nhất
+                  </span>
+                ) : null}
+                <div className="flex items-end gap-2">
+                  <p className="font-mono text-2xl font-bold text-slate-950">{option.departure}</p>
+                  <p className="pb-1 text-xs text-slate-400">→ {option.arrival}</p>
+                </div>
+                <p className="mt-2 text-xs text-slate-500">{option.vehicleType}</p>
+                <div className="mt-4 flex items-end justify-between gap-3 border-t border-slate-200 pt-3">
+                  <span className="inline-flex items-center gap-1.5 text-xs text-slate-500"><Clock3 size={13} aria-hidden /> còn {option.seats} {trip.seatNoun}</span>
+                  <span className="text-sm font-bold text-blue-700">{formatVnd(option.priceVnd)}</span>
+                </div>
+              </motion.article>
+            ))}
+          </div>
+
+          <div className="mt-3 flex items-start gap-2 rounded-xl bg-slate-50 px-3.5 py-3 text-xs leading-5 text-slate-600">
+            <MapPin size={15} className="mt-0.5 shrink-0 text-blue-600" aria-hidden />
+            Ưu tiên chuyến {trip.departure}, còn đủ 2 {trip.seatNoun} và đón tại {trip.pickupPoint}.
+          </div>
+
+          <div className="mt-8 border-t border-[var(--divider)] pt-5 lg:mt-auto">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Alove xếp hạng theo</p>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {[
+                ['01', 'Khởi hành gần nhất'],
+                ['02', 'Còn đủ chỗ'],
+                ['03', 'Đúng điểm đón'],
+              ].map(([number, label]) => (
+                <div key={number} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <span className="font-mono text-[10px] font-bold text-blue-600">{number}</span>
+                  <p className="mt-1 text-[11px] font-medium leading-4 text-slate-600">{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  )
+}
+
 function StageFrame({ stageIndex, trip, reducedMotion }: {
   stageIndex: number
   trip: AloveTourTrip
   reducedMotion: boolean
 }) {
   const states = createTourStates(trip)
-  const resultHeight = stageIndex === 3
-    ? 'min-h-[1100px] sm:min-h-[940px] lg:min-h-[760px]'
-    : 'min-h-[660px] lg:min-h-0 lg:h-[520px]'
 
   return (
     <div className="overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--canvas)] shadow-[var(--shadow-panel)]">
-      <div className={`relative ${resultHeight}`}>
+      <div className="relative h-[820px] sm:h-[720px]">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={stageIndex}
-            className="w-full"
+            className="h-full w-full"
             initial={reducedMotion ? false : { opacity: 0, y: 10, scale: 0.992 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             {...(reducedMotion ? {} : { exit: { opacity: 0, y: -8, scale: 0.992 } })}
             transition={{ duration: reducedMotion ? 0 : 0.28, ease: EASE }}
           >
-            {stageIndex === 0 ? <ProductWorkspaceStage state={states.listening} /> : null}
-            {stageIndex === 1 ? <ProductWorkspaceStage state={states.searching} /> : null}
-            {stageIndex === 2 ? <ProductWorkspaceStage state={states.confirming} showVehicle /> : null}
+            {stageIndex === 0 ? (
+              <div inert aria-hidden="true" className="h-full overflow-y-auto overscroll-contain">
+                <ProductWorkspaceStage state={states.listening} />
+              </div>
+            ) : null}
+            {stageIndex === 1 ? (
+              <div inert aria-hidden="true" className="h-full overscroll-contain">
+                <SearchingProductPreview trip={trip} reducedMotion={reducedMotion} />
+              </div>
+            ) : null}
+            {stageIndex === 2 ? (
+              <div inert aria-hidden="true" className="flex h-full items-center overflow-y-auto overscroll-contain">
+                <div className="w-full"><ProductWorkspaceStage state={states.confirming} showVehicle /></div>
+              </div>
+            ) : null}
             {stageIndex === 3 ? (
-              <div className="px-3 sm:px-5">
-                <TicketResult booking={states.confirmed.booking} onNewCall={NOOP} onClose={NOOP} />
+              <div
+                data-testid="alove-product-tour-scroll"
+                role="region"
+                aria-label="Màn vé và mã QR"
+                tabIndex={0}
+                className="flex h-full overflow-y-auto overscroll-contain px-3 pb-24 sm:px-5 sm:pb-0"
+              >
+                <TicketResult
+                  booking={states.confirmed.booking}
+                  onNewCall={NOOP}
+                  onClose={NOOP}
+                  interactive={false}
+                />
               </div>
             ) : null}
           </motion.div>
@@ -187,11 +383,27 @@ function StageFrame({ stageIndex, trip, reducedMotion }: {
   )
 }
 
+/** Hero dùng thẳng sân khấu cuộc gọi của sản phẩm, không dựng một dashboard marketing riêng. */
+export function AloveHeroProductPreview({ trip = fallbackTrip }: { trip?: AloveTourTrip }) {
+  const state: TourState = {
+    ...createTourStates(trip).searching,
+    semanticAnnotations: [],
+  }
+
+  return (
+    <div className="relative mx-auto w-full" data-testid="alove-hero-product-preview">
+      <p className="sr-only">Giao diện Web Call thật của Alove đang xử lý câu nói đặt vé.</p>
+      <div inert aria-hidden="true">
+        <TourCallStage state={state} />
+      </div>
+    </div>
+  )
+}
+
 export function AloveProductTour({ trip = fallbackTrip }: { trip?: AloveTourTrip }) {
   const reducedMotion = Boolean(useReducedMotion())
   const [stageIndex, setStageIndex] = useState(0)
   const [paused, setPaused] = useState(false)
-  const [hovered, setHovered] = useState(false)
   const [visible, setVisible] = useState(false)
   const [progress, setProgress] = useState(0)
   const progressRef = useRef(0)
@@ -207,7 +419,7 @@ export function AloveProductTour({ trip = fallbackTrip }: { trip?: AloveTourTrip
     return () => observer.disconnect()
   }, [])
 
-  const isPlaying = visible && !paused && !hovered && !reducedMotion
+  const isPlaying = visible && !paused && !reducedMotion
 
   useEffect(() => {
     if (!isPlaying) return
@@ -235,6 +447,7 @@ export function AloveProductTour({ trip = fallbackTrip }: { trip?: AloveTourTrip
     progressRef.current = 0
     setProgress(0)
     setStageIndex(index)
+    setPaused(true)
   }
 
   return (
@@ -242,14 +455,12 @@ export function AloveProductTour({ trip = fallbackTrip }: { trip?: AloveTourTrip
       <div
         ref={frameRef}
         className="mx-auto w-full max-w-5xl"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
       >
         <p className="sr-only">
           Bốn trạng thái thật trong sản phẩm Alove: cuộc gọi đang nghe, tổng đài đang tìm chuyến,
           ghế được giữ để khách xác nhận, rồi màn vé có mã QR sau khi hoàn tất.
         </p>
-        <div inert aria-hidden="true" data-testid="alove-product-tour-stage">
+        <div data-testid="alove-product-tour-stage">
           <StageFrame stageIndex={stageIndex} trip={trip} reducedMotion={reducedMotion} />
         </div>
 
@@ -352,12 +563,21 @@ function createTourStates(trip: AloveTourTrip): {
     bookingCode: 'MA-260718-0001',
   }
 
+  const sourceTranscript = `Cho mình đặt hai vé từ ${trip.origin} vô ${trip.destination}, chuyến mô gần nhất hỉ.`
+  const correctedRequest = `Cho mình đặt hai vé từ ${trip.origin} đi ${trip.destination}, chuyến gần nhất nhé.`
   const customerRequest = message(
     'customer-request',
     'customer',
-    `Cho mình chuyến từ ${trip.origin} đi ${trip.destination} gần nhất, hai người.`,
+    sourceTranscript,
     0,
   )
+  const requestAnnotation: SemanticAnnotation = {
+    timestamp: new Date(Date.UTC(2026, 6, 18, 8, 0, 1)).toISOString(),
+    sourceTranscript,
+    correctedText: correctedRequest,
+    tags: ['quantity', 'location'],
+    annotations: ['hai vé', trip.destination],
+  }
   const heldReply = message(
     'agent-held',
     'agent',
@@ -382,21 +602,25 @@ function createTourStates(trip: AloveTourTrip): {
     listening: {
       booking: emptyBooking,
       messages: [customerRequest],
+      semanticAnnotations: [],
       agentListening: true,
     },
     searching: {
       booking: emptyBooking,
       messages: [customerRequest],
+      semanticAnnotations: [requestAnnotation],
       agentThinking: true,
     },
     confirming: {
       booking: proposedBooking,
       messages: [customerRequest, heldReply, passengerDetails, confirmationPrompt, confirmation],
+      semanticAnnotations: [requestAnnotation],
       agentListening: true,
     },
     confirmed: {
       booking: confirmedBooking,
       messages: [customerRequest, heldReply, passengerDetails, confirmationPrompt, confirmation],
+      semanticAnnotations: [requestAnnotation],
     },
   }
 }

@@ -1,6 +1,6 @@
 ---
 title: Phase 03 — Synthetic hard-case evidence
-status: pending
+status: in-progress
 priority: P1
 effort: medium
 plan: 2026-07-18-valsea-rubric-gap

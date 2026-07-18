@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional
@@ -9,6 +10,11 @@ from typing import Any, Mapping, Optional
 
 _CLOCK_RE = re.compile(r"\b(\d{1,2}):(\d{2})\b")
 _VIETNAM_TIMEZONE = timezone(timedelta(hours=7))
+MAX_REALTIME_EVENT_BYTES = 60 * 1_024
+
+
+class RealtimeEventEncodingError(ValueError):
+    """Raised when a realtime event cannot fit the bounded JSON transport."""
 
 
 def clock_from_label(label: Optional[str]) -> str:
@@ -103,6 +109,25 @@ def build_realtime_event(
         "eventId": event_id,
         "sequence": sequence,
     }
+
+
+def encode_realtime_event(event: Mapping[str, Any]) -> bytes:
+    """Encode one complete event as bounded compact UTF-8 JSON."""
+
+    try:
+        encoded = json.dumps(
+            event,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    except Exception as exc:
+        raise RealtimeEventEncodingError("realtime event is not valid finite JSON") from exc
+    if len(encoded) > MAX_REALTIME_EVENT_BYTES:
+        raise RealtimeEventEncodingError(
+            f"realtime event exceeds {MAX_REALTIME_EVENT_BYTES} bytes"
+        )
+    return encoded
 
 
 def build_confirmation_request(
