@@ -9,7 +9,9 @@ const BodySchema = z.object({
   conversationId: z.string().min(1).max(120),
   tripId: z.string().min(1).max(160),
   passengerName: z.string().min(1).max(120),
-  phone: z.string().regex(/^0\d{8,10}$/u),
+  // Đầu số Việt Nam thật: di động 03/05/07/08/09 mười số, cố định 02x mười tới
+  // mười một số. Ràng buộc cũ ^0\d{8,10}$ cho lọt 01122334466 mà STT nghe nhầm.
+  phone: z.string().regex(/^(0(3|5|7|8|9)\d{8}|02\d{8,9})$/u),
 })
 
 export async function POST(req: Request): Promise<Response> {

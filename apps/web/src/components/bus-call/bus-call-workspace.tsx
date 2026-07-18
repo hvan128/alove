@@ -13,6 +13,10 @@ import { LiveKitCall, type LiveKitAgentState } from './livekit-call'
 // zero-key demo) → the in-browser Web Speech path below stays the default.
 const LIVEKIT_ENABLED = Boolean(process.env.NEXT_PUBLIC_LIVEKIT_URL)
 
+// Bản ghi tạm của STT tới liên tiếp trong khoảng này được coi là cùng một lượt
+// nói. Rộng hơn nhịp sửa chữ của STT, hẹp hơn khoảng nghỉ giữa hai lượt thật.
+const SAME_UTTERANCE_MS = 4000
+
 export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDemoWorkspace }) {
   const [workspace, setWorkspace] = useState(initialWorkspace)
   const [customerText, setCustomerText] = useState('')
@@ -115,21 +119,21 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
     setWorkspace((current) => {
       const id = `lk-${segmentId}`
       let index = current.messages.findIndex((message) => message.id === id)
-      // Streaming STT (VALSEA especially) emits a growing transcript — "Tôi",
-      // "Tôi đi", "Tôi đi từ Sài Gòn" — and not every provider reuses a segment
-      // id across those updates. Collapse by prefix so one utterance stays one
-      // bubble no matter how the ids behave.
+      // Streaming STT emits a transcript that both grows AND gets revised:
+      // "tới Thành phố" → "tới TP." → "tới Thành phố Hồ" → "tới TP.HC". Those are
+      // not prefixes of one another, so prefix matching alone left one utterance
+      // scattered across five bubbles. The agent still commits a single turn (its
+      // own end-of-turn detection does that), so anything the same speaker says
+      // within a few seconds belongs to the same bubble.
       if (index === -1) {
         const last = current.messages.length - 1
         const previous = current.messages[last]
-        if (
+        const withinSameUtterance =
           previous
           && previous.role === role
           && previous.channel === 'voice'
-          && (text.startsWith(previous.text) || previous.text.startsWith(text))
-        ) {
-          index = last
-        }
+          && Date.now() - new Date(previous.createdAt).getTime() < SAME_UTTERANCE_MS
+        if (withinSameUtterance) index = last
       }
       const message: CallMessage = {
         id,
