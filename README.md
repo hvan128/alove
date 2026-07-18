@@ -1,19 +1,17 @@
 # Alove
 
-Alove là ứng dụng đặt vé nhà xe Mai Anh bằng hội thoại tiếng Việt, với thông điệp “Alo là có vé”. Một màn hình trình bày đồng thời phía khách hàng và phía chăm sóc khách hàng, hỗ trợ hai chế độ:
+Alove là ứng dụng đặt vé nhà xe Mai Anh bằng hội thoại tiếng Việt, với thông điệp “Alo là có vé”. Khách vào trang nhà xe, bấm một nút là nói chuyện được với tổng đài viên AI và cầm mã vé về.
 
-- **Nhân viên:** khách gửi yêu cầu, nhân viên tự nhập và phát câu trả lời, sau đó xác nhận thủ công.
-- **Agent tự động:** engine thu thập hành trình, đề xuất chuyến, hỏi thông tin hành khách, đọc lại và chỉ chốt sau câu xác nhận rõ ràng.
-
-Demo Web Call chạy ngay trong trình duyệt, không cần số điện thoại, LiveKit, API key hay database. Mic STT và giọng đọc tiếng Việt dùng khả năng của trình duyệt/thiết bị khi có; câu mẫu và text là fallback bảo đảm.
+Luồng khách gồm ba màn: trang chủ nhà xe → khung cuộc gọi (nút gọi phình ra thành chính khung đó) → màn vé kèm mã QR. Cuộc gọi chạy trong trình duyệt, không cần số điện thoại.
 
 ## Đã triển khai
 
-- Luồng mẫu Sài Gòn → Đà Lạt, hai vé, chuyến 22:00, thông tin hành khách và mã vé ổn định.
-- Hai phía khách hàng và nhân viên chăm sóc trong cùng workspace responsive.
-- Chuyển Human/Agent giữa cuộc gọi mà không mất transcript hoặc phiếu vé.
-- Agent đặt vé xác định, không phụ thuộc LLM nên demo không bị lỗi do quota hoặc mạng.
-- Web Speech Recognition `vi-VN` tùy chọn và device Speech Synthesis có phát lại/dừng.
+- Luồng khách một chạm từ trang chủ tới cuộc gọi, phiếu vé điền dần theo lời nói.
+- Màn vé sau khi chốt: mã vé, QR lên xe, lưu ảnh vé về máy, đặt chuyến khác.
+- Trang chủ đọc tuyến/giờ/giá từ cùng catalog agent dùng, nên con số trên trang luôn khớp con số agent tư vấn.
+- Agent đặt vé xác định phía server, không tự bịa giá, chuyến, ghế hay mã vé.
+- Chờ mãi không ai bắt máy thì dừng chuông, báo tổng đài bận kèm nút gọi lại.
+- Màn hẹp: nút gọi bám đáy màn, phiếu vé thu thành thanh tóm tắt chạm-để-mở.
 - Điều kiện xác nhận đầy đủ, giữ ghế theo số hành khách và idempotency cho mã vé.
 - Next.js App Router, design system SaaS trung tính (IBM Plex, icon lucide, token `oklch`, primary indigo, elevation ngữ nghĩa), light/dark mode, Playwright E2E.
 - Các adapter VALSEA, OpenAI, Twilio và Neon từ kiến trúc trước được giữ làm seam cho pilot, không bị trình bày là live khi chưa có credentials.
@@ -30,7 +28,7 @@ agent                    LiveKit voice agent worker (Python) cho cuộc gọi th
 db                       Neon/Drizzle persistence boundary
 ```
 
-Demo zero-key vẫn là mặc định. Khi có LiveKit credentials, đặt `NEXT_PUBLIC_LIVEKIT_URL` để `/console` (chế độ **Agent tự động**) chuyển sang cuộc gọi LiveKit thật do [`agent/`](agent/README.md) phục vụ; bỏ trống thì transport in-browser giữ nguyên. Booking vẫn xác định phía server: agent không tự bịa giá, chuyến, ghế hay mã vé mà gọi `POST /api/booking/advance` chạy `@ordervoice/core`. Chi tiết trong [`docs/livekit-bus-pilot.md`](docs/livekit-bus-pilot.md).
+Demo zero-key vẫn là mặc định. Khi có LiveKit credentials, đặt `NEXT_PUBLIC_LIVEKIT_URL` để mọi cuộc gọi (từ trang chủ lẫn `/console`) chuyển sang LiveKit thật do [`agent/`](agent/README.md) phục vụ; bỏ trống thì transport in-browser giữ nguyên. Booking vẫn xác định phía server: agent không tự bịa giá, chuyến, ghế hay mã vé mà gọi `POST /api/booking/advance` chạy `@ordervoice/core`. Chi tiết trong [`docs/livekit-bus-pilot.md`](docs/livekit-bus-pilot.md).
 
 ## Chạy local
 
@@ -39,14 +37,18 @@ pnpm install
 pnpm dev:web
 ```
 
-Mở `http://localhost:3000/console`:
+Mở `http://localhost:3000`:
 
-1. Chọn **Agent tự động** rồi **Bắt đầu Web Call**.
-2. Chạy lần lượt bốn câu demo từ yêu cầu đến xác nhận.
-3. Quan sát mã vé, ghế và phản hồi phát bằng giọng thiết bị.
-4. Tải lại trang, chọn **Nhân viên** để demo manual reply và xác nhận thủ công.
+1. Trang chủ là trang bán vé của nhà xe: tuyến, giờ chạy và giá đọc thẳng từ
+   catalog dùng chung với agent.
+2. Bấm **Gọi để đặt xe** — nút phình ra thành khung cuộc gọi và tự bắt đầu, không
+   phải bấm thêm lần nữa.
+3. Nói hoặc chạy hết lượt hội thoại tới khi xác nhận; phiếu vé điền dần theo lời nói.
+4. Chốt vé xong màn **Vé của bạn** hiện mã vé, QR và nút lưu vé về máy.
 
-Kịch bản chi tiết: [`docs/vedi-demo-script.md`](docs/vedi-demo-script.md).
+`/console` giữ nguyên làm màn cuộc gọi độc lập cho demo kỹ thuật và nội bộ.
+
+Kịch bản trình bày cho giám khảo: [`docs/vedi-demo-script.md`](docs/vedi-demo-script.md).
 
 ## Environment
 
@@ -81,7 +83,7 @@ pnpm build
 
 Web demo được deploy vào Vercel. Bản demo không cần deploy media server. Khi chuyển sang LiveKit, dùng LiveKit Cloud để pilot nhanh hoặc deploy LiveKit Server và Agent worker trên host hỗ trợ kết nối lâu dài; Vercel vẫn phục vụ Next.js và token endpoint.
 
-Demo production: [https://ordervoice-vn.vercel.app/console](https://ordervoice-vn.vercel.app/console)
+Demo production: [https://ordervoice-vn.vercel.app](https://ordervoice-vn.vercel.app)
 
 ## Tài liệu chính
 
