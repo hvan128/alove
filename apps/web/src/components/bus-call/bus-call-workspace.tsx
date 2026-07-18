@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { BookingDraft, BusDemoWorkspace, CallMessage, CallMessageChannel, CallMode, CallRole } from '@ordervoice/contracts'
-import { advanceBookingAgent, confirmBooking } from '@ordervoice/core/bus-booking'
+import { advanceBookingAgent, confirmBooking, createInitialBooking } from '@ordervoice/core/bus-booking'
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
 import { speakVietnamese, stopVietnameseSpeech } from '@/lib/device-speech'
 import { CallHeader } from './call-header'
@@ -47,8 +47,32 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
 
   const startCall = () => {
     const now = new Date().toISOString()
-    const system = createMessage('system', 'Web Call đã kết nối. Demo chạy trong cùng trình duyệt.', 'text')
-    setWorkspace({ ...workspace, callStatus: 'connected', startedAt: now, endedAt: null, messages: [...workspace.messages, system] })
+    // Every call needs its OWN conversation id. The room is booking-<id>, and a
+    // participant token dispatches the agent once per room — reusing one id meant
+    // the second call rejoined a spent room and no agent ever came back, so the
+    // line just stayed silent. A fresh id also stops every call collapsing onto
+    // one `calls` row and inheriting the previous booking. Generated on click
+    // (not at render) so server and client markup still match.
+    const conversationId = `vedi-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+    const system: CallMessage = {
+      id: `system-${conversationId}`,
+      conversationId,
+      role: 'system',
+      text: 'Cuộc gọi đã kết nối.',
+      createdAt: now,
+      channel: 'text',
+      final: true,
+    }
+    sequence.current = 0
+    setWorkspace({
+      ...workspace,
+      conversationId,
+      callStatus: 'connected',
+      startedAt: now,
+      endedAt: null,
+      messages: [system],
+      booking: createInitialBooking(conversationId),
+    })
   }
 
   const endCall = () => {

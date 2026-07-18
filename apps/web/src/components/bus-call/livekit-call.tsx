@@ -19,6 +19,10 @@ const EVENTS_TOPIC = 'vedi-events'
 
 export type LiveKitAgentState = 'idle' | 'listening' | 'thinking' | 'speaking'
 
+// Wait this long with no agent in the room before asking for a fresh dispatch.
+const REDISPATCH_AFTER_MS = 12_000
+const REDISPATCH_MAX_TRIES = 3
+
 type LiveKitCallProps = {
   conversationId: string
   /** Upsert a transcript segment into the workspace message list (keyed by id). */
@@ -93,21 +97,52 @@ export function LiveKitCall(props: LiveKitCallProps) {
       onDisconnected={props.onEnded}
     >
       <RoomAudioRenderer />
-      <RoomBridge onTranscript={props.onTranscript} onBooking={props.onBooking} onEnded={props.onEnded} />
+      <RoomBridge
+        conversationId={props.conversationId}
+        onTranscript={props.onTranscript}
+        onBooking={props.onBooking}
+        onEnded={props.onEnded}
+      />
     </LiveKitRoom>
   )
 }
 
 function RoomBridge({
+  conversationId,
   onTranscript,
   onBooking,
   onEnded,
-}: Pick<LiveKitCallProps, 'onTranscript' | 'onBooking' | 'onEnded'>) {
+}: Pick<LiveKitCallProps, 'conversationId' | 'onTranscript' | 'onBooking' | 'onEnded'>) {
   const connectionState = useConnectionState()
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant()
   const remoteParticipants = useRemoteParticipants()
   const transcriptions = useTranscriptions()
   const [agentState, setAgentState] = useState<LiveKitAgentState>('idle')
+  const redispatchTries = useRef(0)
+
+  // Self-heal a silent line: the token's agent dispatch is one-shot, so if it
+  // fired while no worker was ready nobody ever joins and the caller just hears
+  // nothing. Ask for a fresh dispatch a few times while the room has no agent.
+  useEffect(() => {
+    if (connectionState !== ConnectionState.Connected) return
+    if (remoteParticipants.length > 0) {
+      redispatchTries.current = 0
+      return
+    }
+    const timer = setInterval(() => {
+      if (redispatchTries.current >= REDISPATCH_MAX_TRIES) {
+        clearInterval(timer)
+        return
+      }
+      redispatchTries.current += 1
+      void fetch('/api/livekit/redispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId }),
+      }).catch(() => {})
+    }, REDISPATCH_AFTER_MS)
+    return () => clearInterval(timer)
+  }, [connectionState, remoteParticipants.length, conversationId])
 
   // Forward each transcription segment (customer input + agent output) to the
   // workspace. The key MUST stay stable while a segment grows, otherwise every

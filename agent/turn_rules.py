@@ -60,18 +60,32 @@ _EN_DANGLING = {
 _WORD_RE = re.compile(r"[\wÀ-ỹ]+", re.UNICODE)
 
 
-def is_dangling(text: str) -> bool:
-    """True when the utterance ends mid-clause (turn very likely unfinished)."""
+def is_dangling(text: str, language: str = "vi") -> bool:
+    """True when the utterance ends mid-clause (turn very likely unfinished).
+
+    The English list is only consulted for en/bilingual sessions. Applying it to
+    Vietnamese misfires badly: "Nghệ An" and "Long An" end in "an", the English
+    article, so a finished sentence was scored unfinished and every such turn
+    waited out the full max_endpointing_delay (5s). Vietnamese collides with
+    plenty of English function words this way — a, at, be, can, in, is, my, of,
+    on, or, so, to, the.
+    """
     words = _WORD_RE.findall(text.lower())
     if not words:
         return False
-    if words[-1] in _VI_DANGLING or words[-1] in _EN_DANGLING:
+    last = words[-1]
+    if last in _VI_DANGLING:
+        return True
+    if language != "vi" and last in _EN_DANGLING:
         return True
     return len(words) >= 2 and f"{words[-2]} {words[-1]}" in _VI_DANGLING_BIGRAMS
 
 
 class RuleBasedTurnDetector:
     """livekit-agents _TurnDetector backed by is_dangling()."""
+
+    def __init__(self, language: str = "vi") -> None:
+        self._language = language
 
     @property
     def model(self) -> str:
@@ -97,7 +111,7 @@ class RuleBasedTurnDetector:
                     break
             if not text:
                 return 1.0  # nothing transcribed -> behave like plain VAD
-            dangling = is_dangling(text)
+            dangling = is_dangling(text, self._language)
             probability = 0.0 if dangling else 1.0
             logger.info(
                 "[turn-rules] dangling=%s tail=%r took=%.1fms",
