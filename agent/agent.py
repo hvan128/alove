@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -108,19 +109,33 @@ EVENTS_TOPIC = "vedi-events"
 
 ROOM_PREFIX = "booking-"
 
-BUS_AGENT_INSTRUCTIONS = (
-    "Bạn là tổng đài viên đặt vé xe khách của VéĐi, nói tiếng Việt, giọng thân thiện, "
-    "ngắn gọn, lịch sự (xưng \"em\", gọi khách \"anh/chị\").\n\n"
-    "QUY TẮC BẮT BUỘC:\n"
-    "- Bạn KHÔNG tự quyết định bất cứ điều gì về vé. Với MỖI lượt khách nói, hãy gọi ngay "
-    "công cụ advance_booking và truyền NGUYÊN VĂN lời khách vào tham số customer_message.\n"
-    "- Công cụ trả về đúng một câu — hãy đọc lại chính xác câu đó cho khách (có thể thêm một "
-    "từ đệm rất ngắn như \"Dạ,\"). TUYỆT ĐỐI không tự bịa hoặc đổi giá, giờ chuyến, số ghế, "
-    "tên khách, số điện thoại hay mã vé.\n"
-    "- Nếu khách nói điều ngoài lề, vẫn gọi advance_booking với lời khách rồi đọc câu trả về.\n"
-    "- Khi câu trả về có \"Mã vé\" (vé đã xác nhận), cảm ơn khách rồi gọi công cụ end_call.\n\n"
-    "Mở đầu: chào khách và hỏi anh/chị muốn đi từ đâu đến đâu, ngày nào, mấy vé."
-)
+def bus_agent_instructions(today_vn: str) -> str:
+    """System prompt. The model owns the CONVERSATION — understanding whatever the
+    caller says, in any phrasing, and holding a natural exchange. It owns none of
+    the FACTS: departures, prices, seats and ticket codes come back from tools that
+    read the database, so the model can restate them but never make them up."""
+    return (
+        "Bạn là tổng đài viên đặt vé xe khách của nhà xe VéĐi. Nói tiếng Việt tự nhiên như "
+        "người thật: thân thiện, ngắn gọn, xưng \"em\", gọi khách \"anh/chị\".\n\n"
+        f"Hôm nay là {today_vn} (giờ Việt Nam). Tự quy đổi mọi cách nói ngày sang dạng "
+        "YYYY-MM-DD: \"mai\", \"ngày 20 tháng 7\", \"thứ sáu tuần này\", \"cuối tuần\"...\n\n"
+        "CÁCH LÀM VIỆC:\n"
+        "- Hiểu khách nói gì theo cách tự nhiên nhất. Khách có thể nói lộn xộn, đổi ý, nói "
+        "thiếu, hỏi ngoài lề, hay gộp nhiều thông tin vào một câu — cứ xử lý như người thật.\n"
+        "- Cần điểm đi, điểm đến, ngày và số vé thì mới tìm được chuyến. Thiếu gì hỏi nấy, "
+        "hỏi gọn, đừng hỏi lại thứ khách đã nói.\n"
+        "- Có đủ thông tin thì gọi search_trips. Đọc cho khách các chuyến tìm được.\n"
+        "- Khách chọn chuyến thì gọi hold_seats để giữ ghế, rồi xin họ tên và số điện thoại.\n"
+        "- Có đủ tên và số điện thoại, đọc lại toàn bộ cho khách nghe và hỏi xác nhận. "
+        "Khách đồng ý mới gọi confirm_booking.\n"
+        "- Báo mã vé cho khách, chúc đi đường bình an, rồi gọi end_call.\n\n"
+        "TUYỆT ĐỐI KHÔNG:\n"
+        "- Không tự nghĩ ra chuyến, giờ chạy, giá vé, số ghế còn trống hay mã vé. Những thứ "
+        "đó CHỈ được lấy từ kết quả công cụ trả về. Chưa gọi công cụ thì chưa được nói.\n"
+        "- search_trips không trả về chuyến nào thì nói thật là tuyến hoặc ngày đó chưa có, "
+        "và gợi ý tuyến mà nhà xe đang chạy (công cụ có trả về danh sách này).\n"
+        "- Không hứa giữ ghế khi hold_seats báo không đủ chỗ."
+    )
 
 # Spoken when the booking backend is unreachable — never leave the caller in silence.
 BACKEND_ERROR_REPLY = "Dạ xin lỗi anh chị, hệ thống đặt vé đang bận, anh chị chờ em một chút ạ."
@@ -316,16 +331,20 @@ def build_agent_session(language: str, vad=None) -> AgentSession:
 
 
 class BusBookingAgent(Agent):
-    """Relays every customer turn to the deterministic booking core and speaks the
-    exact reply it returns. Holds the booking draft between turns and publishes the
-    authoritative snapshot to the browser after each advance."""
+    """Conversation is the model's job; inventory is the database's.
 
-    def __init__(self, conversation_id: Optional[str], room=None) -> None:
-        super().__init__(instructions=BUS_AGENT_INSTRUCTIONS)
+    The model understands whatever the caller says and drives the exchange, but
+    every departure, price, seat and ticket code comes from these tools, which read
+    and write real rows. The model can restate those facts, never invent them."""
+
+    def __init__(self, conversation_id: Optional[str], room=None, today_vn: str = "") -> None:
+        super().__init__(instructions=bus_agent_instructions(today_vn))
         self._conversation_id = conversation_id
         self._room = room
-        self._draft = None  # None on the first turn; core initializes it
         self._ended = False
+        # Last offers/hold, mirrored to the browser so the ticket card matches
+        # what the caller is being told.
+        self._selected_trip: Optional[dict] = None
 
     async def _publish(self, payload: dict) -> None:
         if self._room is None:
@@ -337,31 +356,93 @@ class BusBookingAgent(Agent):
         except Exception as exc:  # noqa: BLE001 — data-channel best-effort
             logger.debug("publish_data failed: %s", exc)
 
-    @function_tool()
-    async def advance_booking(self, context: RunContext, customer_message: str) -> str:
-        """Relay the customer's latest utterance to the booking system and get the
-        exact sentence to say back. Call this for EVERY customer turn, passing their
-        words verbatim as customer_message. Never invent prices, times, seats,
-        passenger details or ticket codes — only this tool is authoritative."""
-        if not self._conversation_id:
-            return BACKEND_ERROR_REPLY
-        url = f"{NEXTJS_API_URL}/api/booking/advance"
-        body = {"conversationId": self._conversation_id, "draft": self._draft, "text": customer_message}
+    async def _call_api(self, path: str, body: dict) -> Optional[dict]:
         try:
-            resp = await api_client().post(url, json=body)
+            resp = await api_client().post(f"{NEXTJS_API_URL}{path}", json=body)
             resp.raise_for_status()
-            data = resp.json()
-        except Exception as exc:  # noqa: BLE001 — booking backend down → safe fallback
-            logger.error("advance_booking failed: %s", exc)
-            return BACKEND_ERROR_REPLY
-        self._draft = data.get("draft")
-        await self._publish({"type": "booking.update", "booking": self._draft})
-        return data.get("reply") or BACKEND_ERROR_REPLY
+            return resp.json()
+        except Exception as exc:  # noqa: BLE001 — backend down → agent apologises
+            logger.error("%s failed: %s", path, exc)
+            return None
+
+    @function_tool()
+    async def search_trips(
+        self,
+        context: RunContext,
+        origin: str,
+        destination: str,
+        date: str,
+        passengers: int = 1,
+    ) -> dict:
+        """Tìm chuyến xe THẬT đang mở bán.
+
+        origin/destination: tên thành phố khách nói (ví dụ "Hà Nội", "Nghệ An").
+        date: ngày khởi hành dạng YYYY-MM-DD, tự quy đổi từ cách khách nói.
+        passengers: số vé cần.
+
+        Trả về danh sách chuyến kèm giờ chạy, loại xe, giá và số ghế còn trống.
+        Nếu trips rỗng thì tuyến/ngày đó KHÔNG có chuyến — hãy nói thật, và dùng
+        servedRoutes để gợi ý tuyến nhà xe đang chạy. Không được tự nghĩ ra chuyến.
+        """
+        data = await self._call_api(
+            "/api/booking/search",
+            {"origin": origin, "destination": destination, "date": date, "passengers": passengers},
+        )
+        if data is None:
+            return {"error": "backend_unavailable"}
+        return data
+
+    @function_tool()
+    async def hold_seats(self, context: RunContext, trip_id: str, passengers: int) -> dict:
+        """Giữ chỗ THẬT trên một chuyến, dùng trip_id lấy từ search_trips.
+
+        Trả về seatCodes đã giữ được và tổng tiền. Nếu seatsHeld nhỏ hơn số vé
+        khách cần (shortfall > 0) thì xe chỉ còn từng ấy chỗ — phải nói đúng số
+        còn lại, không được hứa đủ. held=false nghĩa là hết chỗ.
+        """
+        if not self._conversation_id:
+            return {"error": "no_conversation"}
+        data = await self._call_api(
+            "/api/booking/hold",
+            {"conversationId": self._conversation_id, "tripId": trip_id, "passengers": passengers},
+        )
+        if data is None:
+            return {"error": "backend_unavailable"}
+        self._selected_trip = {"tripId": trip_id, **data}
+        await self._publish({"type": "booking.hold", "hold": self._selected_trip})
+        return data
+
+    @function_tool()
+    async def confirm_booking(
+        self, context: RunContext, trip_id: str, passenger_name: str, phone: str
+    ) -> dict:
+        """Chốt vé sau khi khách đã xác nhận rõ ràng. Chỉ gọi khi đã giữ chỗ và đã
+        đọc lại thông tin cho khách nghe.
+
+        phone: dạng số Việt Nam bắt đầu bằng 0.
+        Trả về mã vé thật, danh sách ghế và tổng tiền — đọc đúng những giá trị này.
+        """
+        if not self._conversation_id:
+            return {"error": "no_conversation"}
+        data = await self._call_api(
+            "/api/booking/confirm",
+            {
+                "conversationId": self._conversation_id,
+                "tripId": trip_id,
+                "passengerName": passenger_name,
+                "phone": phone,
+            },
+        )
+        if data is None:
+            return {"error": "backend_unavailable"}
+        if data.get("confirmed"):
+            await self._publish({"type": "booking.confirmed", "ticket": data})
+        return data
 
     @function_tool()
     async def end_call(self, context: RunContext):
-        """End the call once the ticket is confirmed (the advance_booking reply
-        contained a ticket code). Speak a short thank-you first, then call this."""
+        """Kết thúc cuộc gọi sau khi đã báo mã vé cho khách (hoặc khách không đặt
+        nữa). Nói lời cảm ơn ngắn trước, rồi gọi công cụ này."""
         if self._ended:
             raise StopResponse()
         self._ended = True
@@ -414,7 +495,10 @@ async def entrypoint(ctx: JobContext):
 
         ctx.add_shutdown_callback(_post_call_ended)
 
-    agent = BusBookingAgent(conversation_id=conversation_id, room=ctx.room)
+    # The model resolves "mai" / "thứ sáu tuần này" itself, so it needs today's
+    # date in Vietnam time — the worker runs UTC.
+    today_vn = datetime.now(timezone(timedelta(hours=7))).strftime("%d/%m/%Y")
+    agent = BusBookingAgent(conversation_id=conversation_id, room=ctx.room, today_vn=today_vn)
     session = build_agent_session("vi", vad=ctx.proc.userdata.get("vad"))
 
     # Commit the customer turn immediately when they press "Tôi nói xong".
@@ -488,7 +572,10 @@ async def entrypoint(ctx: JobContext):
 
     # AI speaks first — greet AFTER the session is live so the greeting isn't dropped.
     await session.generate_reply(
-        instructions="Chào khách và hỏi anh/chị muốn đi từ đâu đến đâu, ngày nào, mấy vé."
+        instructions=(
+            "Chào khách thật tự nhiên và hỏi anh/chị muốn đi từ đâu đến đâu, "
+            "ngày nào và mấy vé. Chưa gọi công cụ nào ở lượt này."
+        )
     )
 
 
