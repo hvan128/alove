@@ -5,3 +5,8 @@
 __pycache__/
 *.pyc
 requirements.txt
+
+# Khoá service account Google TTS — chứa private key, tuyệt đối không commit.
+*credentials*.json
+*.pem
+*.key
