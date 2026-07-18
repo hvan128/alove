@@ -20,6 +20,30 @@ function customer(text: string, id = `message-${text.length}`): CallMessage {
 }
 
 describe('deterministic bus booking agent', () => {
+  it('says the route is unavailable instead of re-asking forever', () => {
+    // A caller naming an unserved city used to loop on "cho em xin điểm đi và
+    // điểm đến" because the catalog only knows Sài Gòn – Đà Lạt.
+    const turn = advanceBookingAgent(
+      createInitialBooking('call-demo-001'),
+      customer('Tôi muốn đi từ Hà Nội tới Hải Phòng.', 'message-unserved'),
+    )
+
+    expect(turn.reply).toContain('Hà Nội')
+    expect(turn.reply).toContain('Hải Phòng')
+    expect(turn.reply).toContain('Sài Gòn')
+    expect(turn.reply).not.toBe('Anh chị cho em xin điểm đi và điểm đến ạ.')
+    expect(turn.draft.status).toBe('collecting')
+  })
+
+  it('still asks for the route when no city is recognised at all', () => {
+    const turn = advanceBookingAgent(
+      createInitialBooking('call-demo-001'),
+      customer('Alo em ơi cho anh hỏi chút.', 'message-vague'),
+    )
+
+    expect(turn.reply).toBe('Anh chị cho em xin điểm đi và điểm đến ạ.')
+  })
+
   it('extracts a Vietnamese route request and proposes the recommended trip', () => {
     const turn = advanceBookingAgent(
       createInitialBooking('call-demo-001'),

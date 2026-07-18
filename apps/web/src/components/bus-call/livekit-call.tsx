@@ -110,13 +110,17 @@ function RoomBridge({
   const [agentState, setAgentState] = useState<LiveKitAgentState>('idle')
 
   // Forward each transcription segment (customer input + agent output) to the
-  // workspace, keyed by stream id so streaming updates replace in place.
+  // workspace. The key MUST stay stable while a segment grows, otherwise every
+  // interim update appends a new bubble ("Tôi" → "Tôi muốn" → …). streamInfo.id
+  // is not populated by every LiveKit build, so fall back to the segment's index:
+  // useTranscriptions keeps a segment at the same index and mutates it in place.
   useEffect(() => {
-    for (const seg of transcriptions) {
-      const isLocal = seg.participantInfo?.identity === localParticipant.identity
-      const id = seg.streamInfo?.id ?? `${seg.participantInfo?.identity ?? 'x'}-${seg.text.length}`
+    transcriptions.forEach((seg, index) => {
+      const identity = seg.participantInfo?.identity
+      const isLocal = identity === localParticipant.identity
+      const id = seg.streamInfo?.id ?? `${identity ?? 'x'}-${index}`
       onTranscript(id, isLocal ? 'customer' : 'agent', seg.text)
-    }
+    })
   }, [transcriptions, localParticipant.identity, onTranscript])
 
   useDataChannel(EVENTS_TOPIC, (msg) => {
