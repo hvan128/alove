@@ -2,7 +2,7 @@
 
 ## Ý đồ
 
-Apple-like ở đây nghĩa là calm, rõ hierarchy, type dễ đọc, hairline tinh và tương tác có phản hồi. Sản phẩm không sao chép giao diện Apple. Một màu xanh hành trình dẫn hướng; semantic colors chỉ xuất hiện khi cần truyền trạng thái.
+Ngôn ngữ thị giác SaaS trung tính: nền neutral, card trắng nổi bằng elevation ngữ nghĩa, rõ hierarchy, type dễ đọc, hairline tinh và tương tác có phản hồi. Một màu **indigo** (`--action`) dẫn hướng cho hành động, mic và focus; semantic colors (xanh lá / cam / đỏ) chỉ xuất hiện khi cần truyền trạng thái. Icon dùng bộ **lucide** (outline). Token dạng `oklch` để light/dark cân bằng cảm nhận.
 
 ## Tokens
 
@@ -10,12 +10,13 @@ Apple-like ở đây nghĩa là calm, rõ hierarchy, type dễ đọc, hairline 
 |---|---|---|
 | Surface | `canvas`, `surface`, `surface-tint`, `pearl` | nền trang, workspace, phiếu vé |
 | Content | `ink`, `muted`, `hairline`, `divider` | chữ và phân cấp |
-| Journey | `action`, `action-hover`, `action-focus`, `action-soft` | CTA, mic, focus, customer turn |
+| Primary | `action`, `action-hover`, `action-focus`, `action-soft` | CTA, mic, focus, customer turn (indigo) |
 | Semantic | `success`, `warning`, `danger`, `violet` | hoàn tất, chờ, lỗi, demo |
-| Type | Geist/system, 12/14/17/21/34/60 px | metric, UI, body, section, display |
+| Elevation | `shadow-card`, `shadow-panel` | card nổi nhẹ, panel/hero nổi rõ |
+| Type | IBM Plex Sans + IBM Plex Mono, 12/14/17/21/34/60 px | metric, UI, body, section, display |
 | Radius | 9/12/16/18/28/9999 px | logo, control, panel, hero, action |
 
-Light và dark token được đổi qua `prefers-color-scheme`; component không hardcode surface trắng.
+Token màu và elevation dạng `oklch`, đổi qua `prefers-color-scheme`; component không hardcode surface trắng. IBM Plex nạp qua `next/font/google` với subset `vietnamese`.
 
 ## Component dùng chung
 

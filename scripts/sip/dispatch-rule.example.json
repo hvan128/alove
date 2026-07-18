@@ -1,0 +1,13 @@
+{
+  "dispatch_rule": {
+    "name": "alove-booking-dispatch",
+    "rule": {
+      "dispatchRuleIndividual": {
+        "roomPrefix": "booking-"
+      }
+    },
+    "room_config": {
+      "agents": [{ "agent_name": "alove" }]
+    }
+  }
+}

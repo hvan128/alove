@@ -1,6 +1,6 @@
 'use client'
 
-import { FileAudioIcon, MicrophoneIcon, PhoneIcon } from '@phosphor-icons/react'
+import { FileMusic, Mic, Phone, type LucideIcon } from 'lucide-react'
 import type { Source } from '@ordervoice/contracts'
 import { cn } from '@/lib/cn'
 import { StatusPill } from '@/components/ui/status'
@@ -11,10 +11,10 @@ type SourceSwitcherProps = {
   onSourceChange: (source: Source) => void
 }
 
-const sources: Array<{ source: Source; label: string; detail: string; icon: typeof MicrophoneIcon }> = [
-  { source: 'browser', label: 'Web gọi', detail: 'Mic trực tiếp', icon: MicrophoneIcon },
-  { source: 'replay', label: 'Zalo replay', detail: 'Audio/video đồng bộ', icon: FileAudioIcon },
-  { source: 'telephony', label: 'Điện thoại', detail: 'Twilio Media Stream', icon: PhoneIcon },
+const sources: Array<{ source: Source; label: string; detail: string; icon: LucideIcon }> = [
+  { source: 'browser', label: 'Web gọi', detail: 'Mic trực tiếp', icon: Mic },
+  { source: 'replay', label: 'Zalo replay', detail: 'Audio/video đồng bộ', icon: FileMusic },
+  { source: 'telephony', label: 'Điện thoại', detail: 'Twilio Media Stream', icon: Phone },
 ]
 
 const toneFor = (state: SourceSwitcherProps['sourceStates'][Source]) => {

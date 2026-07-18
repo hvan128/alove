@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1784354090191,
+      "tag": "0000_init-call-persistence",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784356795152,
+      "tag": "0001_left_lady_mastermind",
+      "breakpoints": true
+    }
+  ]
+}

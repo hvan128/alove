@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('VéĐi exposes a two-sided Web Call with human and agent modes', async ({ page }) => {
+test('Alove exposes a two-sided Web Call with human and agent modes', async ({ page }) => {
   const hydrationErrors: string[] = []
   page.on('console', (message) => {
     if (message.type() === 'error' && /hydrat|server rendered text/iu.test(message.text())) hydrationErrors.push(message.text())
@@ -14,7 +14,7 @@ test('VéĐi exposes a two-sided Web Call with human and agent modes', async ({ 
   await page.goto('/console')
   await page.waitForLoadState('networkidle')
 
-  await expect(page.getByRole('heading', { name: 'VéĐi Web Call' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Nhà xe Mai Anh' })).toBeVisible()
   await expect.poll(() => page.evaluate(() => typeof window.webkitSpeechRecognition)).toBe('function')
   await expect(page.getByText('Phía khách hàng')).toBeVisible()
   await expect(page.getByText('Nhân viên chăm sóc')).toBeVisible()

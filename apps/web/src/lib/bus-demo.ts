@@ -2,7 +2,7 @@ import type { BusDemoWorkspace } from '@ordervoice/contracts'
 import { createInitialBooking } from '@ordervoice/core/bus-booking'
 
 export function createInitialBusDemoWorkspace(): BusDemoWorkspace {
-  const conversationId = 'vedi-call-demo-001'
+  const conversationId = 'alove-call-demo-001'
   return {
     conversationId,
     callStatus: 'idle',
@@ -14,4 +14,3 @@ export function createInitialBusDemoWorkspace(): BusDemoWorkspace {
     booking: createInitialBooking(conversationId),
   }
 }
-

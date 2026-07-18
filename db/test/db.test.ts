@@ -21,7 +21,7 @@ describe('Neon database initialization', () => {
     expect(() => getDb()).toThrow('DATABASE_URL is required')
   })
 
-  it('exports the VéĐi call, message, booking and audit schema', () => {
+  it('exports the Alove call, message, booking and audit schema', () => {
     expect([busCalls, busCallMessages, busBookings, bookingAuditEvents].map(getTableName)).toEqual([
       'bus_calls',
       'bus_call_messages',

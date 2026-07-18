@@ -7,6 +7,30 @@ export type AgentTurn = {
 
 const RECOMMENDED_TRIP_ID = 'SG-DL-2200'
 
+const SERVED_ORIGIN = 'Sài Gòn'
+const SERVED_DESTINATION = 'Đà Lạt'
+
+// Cities the demo catalog does NOT serve. Recognised solely so the agent can say
+// so once, instead of re-asking for a route it can never accept — a caller who
+// names an unserved city otherwise loops on "cho em xin điểm đi và điểm đến".
+const UNSERVED_CITIES: ReadonlyArray<readonly [RegExp, string]> = [
+  [/ha noi/u, 'Hà Nội'],
+  [/hai phong/u, 'Hải Phòng'],
+  [/da nang/u, 'Đà Nẵng'],
+  [/nha trang/u, 'Nha Trang'],
+  [/\bhue\b/u, 'Huế'],
+  [/can tho/u, 'Cần Thơ'],
+  [/vung tau/u, 'Vũng Tàu'],
+  [/quy nhon/u, 'Quy Nhơn'],
+  [/phan thiet/u, 'Phan Thiết'],
+  [/buon ma thuot/u, 'Buôn Ma Thuột'],
+  [/sa pa|lao cai/u, 'Sa Pa'],
+]
+
+function unservedCities(normalized: string): string[] {
+  return UNSERVED_CITIES.filter(([pattern]) => pattern.test(normalized)).map(([, label]) => label)
+}
+
 export function createBusDemoCatalog(): BusTrip[] {
   return [
     {
@@ -87,6 +111,13 @@ export function advanceBookingAgent(draft: BookingDraft, message: CallMessage): 
   }
 
   if (!next.origin || !next.destination) {
+    const unserved = unservedCities(normalized)
+    if (unserved.length > 0) {
+      return {
+        draft: { ...next, status: 'collecting' },
+        reply: `Dạ nhà xe Mai Anh chưa chạy tuyến ${unserved.join(' – ')} ạ. Hiện nhà xe chỉ có tuyến ${SERVED_ORIGIN} đi ${SERVED_DESTINATION}. Anh chị có muốn đặt tuyến này không ạ?`,
+      }
+    }
     return { draft: { ...next, status: 'collecting' }, reply: 'Anh chị cho em xin điểm đi và điểm đến ạ.' }
   }
   if (!next.travelDateLabel) {
@@ -257,4 +288,3 @@ function normalize(value: string): string {
     .replace(/[^a-z0-9:]+/gu, ' ')
     .trim()
 }
-

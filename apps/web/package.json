@@ -8,20 +8,29 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "seed:operator": "tsx scripts/seed-operator.ts"
   },
   "dependencies": {
+    "@livekit/components-react": "^2.9.21",
+    "@neondatabase/serverless": "^1.1.0",
     "@ordervoice/contracts": "workspace:*",
     "@ordervoice/core": "workspace:*",
-    "@phosphor-icons/react": "^2.1.10",
+    "@ordervoice/providers": "workspace:*",
     "clsx": "^2.1.1",
+    "drizzle-orm": "^0.45.2",
+    "livekit-client": "^2.19.0",
+    "livekit-server-sdk": "^2.15.4",
+    "lucide-react": "^1.24.0",
     "next": "16.1.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
+    "drizzle-kit": "^0.31.10",
     "tailwindcss": "^4.1.18"
   }
 }
