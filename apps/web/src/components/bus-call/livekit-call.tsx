@@ -12,7 +12,7 @@ import {
 } from '@livekit/components-react'
 import { ConnectionState } from 'livekit-client'
 import { Loader2, Mic, MicOff, PhoneOff } from 'lucide-react'
-import type { BookingDraft } from '@ordervoice/contracts'
+import { type BookingDraft, bookingDraftSchema } from '@ordervoice/contracts'
 
 import { useRingback } from '@/hooks/use-ringback'
 
@@ -27,8 +27,8 @@ const REDISPATCH_MAX_TRIES = 3
 
 type LiveKitCallProps = {
   conversationId: string
-  /** Giọng đọc cho cuộc gọi này, chọn bằng công tắc ẩn. */
-  ttsProvider?: string
+  /** Giọng đọc cho cuộc gọi này. undefined = để worker dùng mặc định của nó. */
+  ttsProvider?: string | undefined
   /** Upsert a transcript segment into the workspace message list (keyed by id). */
   onTranscript: (segmentId: string, role: 'customer' | 'agent', text: string) => void
   /** Authoritative booking snapshot published by the agent after each turn. */
@@ -185,6 +185,14 @@ function RoomBridge({
         | { type: 'agent.state'; state: string }
         | { type: 'call.end' }
       if (payload.type === 'booking.update') {
+        // Soi bằng schema thay vì tin vào cast: vé từng hiện ô trống vì agent
+        // gửi draft thiếu trường mà phía này nhận im lặng, không ai biết. Sai
+        // schema thì vẫn hiển thị — chặn giữa cuộc gọi thật còn tệ hơn — nhưng
+        // phải kêu to trong console.
+        const parsed = bookingDraftSchema.safeParse(payload.booking)
+        if (!parsed.success) {
+          console.error('booking.update sai schema', parsed.error.issues, payload.booking)
+        }
         onBooking(payload.booking)
       } else if (payload.type === 'agent.state') {
         const s = payload.state.toLowerCase()

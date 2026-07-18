@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from 'react'
 export type TtsProvider = 'elevenlabs' | 'google'
 
 const STORAGE_KEY = 'alove.tts'
-const DEFAULT_PROVIDER: TtsProvider = 'elevenlabs'
 
 /**
  * Hidden A/B switch for the agent's voice.
@@ -14,8 +13,11 @@ const DEFAULT_PROVIDER: TtsProvider = 'elevenlabs'
  * rides the next call's token to the worker, so it takes effect on the call
  * after the toggle, not mid-sentence.
  */
-export function useTtsProvider(): { provider: TtsProvider; toggle: () => void } {
-  const [provider, setProvider] = useState<TtsProvider>(DEFAULT_PROVIDER)
+export function useTtsProvider(): { provider: TtsProvider | undefined; toggle: () => void } {
+  // undefined = chưa từng bấm công tắc, để worker dùng mặc định của nó (TTS_DEFAULT).
+  // Gửi cứng một giá trị từ client sẽ đè lên cấu hình server và làm việc đổi
+  // giọng bằng env trở nên vô tác dụng.
+  const [provider, setProvider] = useState<TtsProvider | undefined>(undefined)
 
   // Read after mount only: localStorage is unavailable during SSR, and seeding
   // state from it directly would make server and client markup disagree.
