@@ -121,10 +121,11 @@ async function main() {
     }
   }
 
-  const [{ count: freeSeats }] = await db
+  const freeSeatRows = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(seats)
     .where(and(eq(seats.status, 'available')))
+  const freeSeats = freeSeatRows[0]?.count ?? 0
 
   console.log(`nhà xe:   ${operatorRows.length}`)
   console.log(`tuyến:    ${routeRows.length}`)
