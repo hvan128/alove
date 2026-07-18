@@ -1,39 +1,25 @@
-# ADR 0007: Pivot to deterministic two-sided bus-ticket Web Call
+# ADR 0007: Same-browser Web Call public profile; LiveKit worker pilot profile
 
-**Status:** Accepted  
-**Date:** 2026-07-18
+## Status
+
+Accepted — 2026-07-18
 
 ## Context
 
-The product must pivot from B2B sales orders to bus-ticket booking, show passenger and customer-care sides, support an automatic speaking agent, and remain demonstrable without a real phone number. LiveKit was evaluated against current official docs and project-4 operational evidence.
-
-LiveKit production requires signed room tokens plus either managed Cloud resources or self-hosted TLS/TURN/firewall infrastructure. Voice agents also require a separately deployed worker and model/provider credentials. Project-4 records failed dispatches, duplicate workers, cold starts and under-sized CPU as real demo risks.
+SpeechToInvoice must show a two-sided Vietnamese bus-ticket booking experience reliably without a phone number, media server or provider credentials. A real multi-device call needs short-lived room tokens, LiveKit infrastructure, consented media, ASR/TTS credentials and a separately running Agent worker.
 
 ## Decision
 
-Ship a zero-key, same-browser Web Call workspace as the default demo:
+Make the same-browser passenger/staff Web Call the public demo profile. It uses text and preset input, a deterministic booking core, optional browser STT/TTS, automatic/human modes, staff takeover, final-message evidence, explicit confirmation and idempotent booking-code issuance.
 
-- both roles are visible together;
-- preset/text input guarantees the scenario;
-- browser speech recognition is optional;
-- device TTS makes replies audible;
-- a pure deterministic agent performs slot filling and confirmation;
-- staff can switch between human and automatic modes without losing state.
-
-Do not deploy or claim LiveKit in this release. Preserve a documented LiveKit pilot seam using server-only token generation, room transport and a named Singapore agent worker after credentials are supplied.
+Make LiveKit plus a separate Agent worker the credentialed pilot profile for two browsers/devices. Next.js signs short-lived tokens server-side; the worker joins the room and invokes VALSEA/LLM/TTS adapters. Fastify remains optional for direct media or PSTN.
 
 ## Consequences
 
-- Production demo is reliable, cheap, secret-free and fully testable on Vercel.
-- It is a call simulation, not remote two-device media or telephony; UI labels this explicitly.
-- Booking logic remains reusable when LiveKit, VALSEA or phone transport is added.
-- Real inventory, payment and delivery integrations remain separate pilot work.
+- Public-demo claims are limited to same-browser Web Call and optional device speech; they do not claim remote media, PSTN, inventory, payment or provider success.
+- The pilot retains the same contracts and booking core, so media transport cannot bypass confirmation safety.
+- Staff takeover keeps the same call session, draft, messages and evidence; it only changes reply authority.
 
-## Evidence
+## Migration impact
 
-- https://docs.livekit.io/transport/self-hosting/
-- https://docs.livekit.io/deploy/custom/deployments/
-- https://docs.livekit.io/frontends/build/authentication/endpoint/
-- `project-4-reference/docs/live-interview-agent-hosting.md`
-- `project-4-reference/src/components/interview/livekit-room.tsx`
-
+Keep UI labels explicit about the active profile. Do not enable or market LiveKit until two-device, credentialed-smoke and worker-health evidence exists; preserve browser fallback throughout pilot rollout.

@@ -1,7 +1,0 @@
-{
-  "trunk": {
-    "name": "alove-pstn-inbound",
-    "numbers": ["+15105550123"],
-    "krisp_enabled": true
-  }
-}

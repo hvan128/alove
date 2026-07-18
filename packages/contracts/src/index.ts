@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+export * from './catalog'
+export * from './inventory'
+
 export const sourceSchema = z.enum(['browser', 'telephony', 'replay'])
 export const speakerSchema = z.enum(['caller', 'agent', 'unknown'])
 export const transcriptKindSchema = z.enum(['partial', 'final'])
@@ -112,7 +115,7 @@ export const demoWorkspaceSchema = z.object({
 
 export const callModeSchema = z.enum(['human', 'auto'])
 export const callStatusSchema = z.enum(['idle', 'connected', 'ended'])
-export const callRoleSchema = z.enum(['customer', 'staff', 'agent', 'system'])
+export const callRoleSchema = z.enum(['caller', 'customer', 'staff', 'agent', 'system'])
 export const callMessageChannelSchema = z.enum(['voice', 'text', 'preset'])
 export const bookingStatusSchema = z.enum([
   'collecting',
@@ -134,10 +137,59 @@ export const busTripSchema = z.object({
   availableSeats: z.array(z.string().min(1)),
 })
 
+export const bookingFieldKeySchema = z.enum([
+  'origin',
+  'destination',
+  'travelDateLabel',
+  'timeWindow',
+  'passengerCount',
+  'passengerName',
+  'phone',
+  'pickupPoint',
+  'dropoffPoint',
+  'selectedTrip',
+  'seats',
+  'vehiclePreference',
+  'paymentMethod',
+  'note',
+])
+
+export const bookingEvidenceSourceSchema = z.enum([
+  'caller_speech',
+  'staff_edit',
+  'catalog',
+  'system',
+])
+
+export const bookingFieldEvidenceSchema = z.object({
+  id: z.string().min(1),
+  field: bookingFieldKeySchema,
+  messageId: z.string().min(1),
+  quote: z.string().min(1),
+  confidence: z.number().min(0).max(1),
+  source: bookingEvidenceSourceSchema,
+  capturedAt: z.string().datetime(),
+}).strict()
+
+export const bookingReviewItemSchema = z.object({
+  id: z.string().min(1),
+  field: bookingFieldKeySchema,
+  code: z.enum(['ambiguous', 'conflict', 'invalid', 'correction']),
+  message: z.string().min(1),
+  sourceMessageId: z.string().min(1).nullable(),
+  proposedValue: z.string().min(1).nullable(),
+  status: z.enum(['open', 'resolved']),
+  createdAt: z.string().datetime(),
+}).strict()
+
 export const bookingDraftSchema = z.object({
   id: z.string().min(1),
   conversationId: z.string().min(1),
   status: bookingStatusSchema,
+  runtimeProfile: z.enum(['demo', 'durable']).default('demo'),
+  catalogVersionId: z.string().min(1).nullable().default(null),
+  tripId: z.string().min(1).nullable().default(null),
+  seatHoldId: z.string().min(1).nullable().default(null),
   origin: z.string().min(1).nullable(),
   destination: z.string().min(1).nullable(),
   travelDateLabel: z.string().min(1).nullable(),
@@ -147,10 +199,21 @@ export const bookingDraftSchema = z.object({
   seats: z.array(z.string().min(1)),
   passengerName: z.string().min(1).nullable(),
   phone: z.string().regex(/^0\d{9}$/u).nullable(),
+  pickupPoint: z.string().min(1).nullable().default(null),
+  dropoffPoint: z.string().min(1).nullable().default(null),
+  vehiclePreference: z.string().min(1).nullable().default(null),
+  paymentMethod: z.string().min(1).nullable().default(null),
+  note: z.string().min(1).nullable().default(null),
   totalFareVnd: z.number().int().nonnegative().nullable(),
   bookingCode: z.string().min(1).nullable(),
   evidenceMessageIds: z.array(z.string().min(1)),
-}).superRefine((draft, context) => {
+  fieldEvidence: z.partialRecord(
+    bookingFieldKeySchema,
+    z.array(bookingFieldEvidenceSchema),
+  ).default({}),
+  confirmedFields: z.array(bookingFieldKeySchema).default([]),
+  reviewItems: z.array(bookingReviewItemSchema).default([]),
+}).strict().superRefine((draft, context) => {
   if (draft.status !== 'confirmed') return
 
   if (!draft.bookingCode) {
@@ -164,6 +227,17 @@ export const bookingDraftSchema = z.object({
   }
   if (draft.passengerCount && draft.seats.length !== draft.passengerCount) {
     context.addIssue({ code: 'custom', path: ['seats'], message: 'Confirmed booking requires one seat per passenger.' })
+  }
+  if (draft.runtimeProfile === 'durable') {
+    if (!draft.catalogVersionId) {
+      context.addIssue({ code: 'custom', path: ['catalogVersionId'], message: 'Durable booking requires a catalog version.' })
+    }
+    if (!draft.tripId) {
+      context.addIssue({ code: 'custom', path: ['tripId'], message: 'Durable booking requires an authoritative trip.' })
+    }
+    if (!draft.seatHoldId) {
+      context.addIssue({ code: 'custom', path: ['seatHoldId'], message: 'Durable booking requires an active seat hold.' })
+    }
   }
 })
 
@@ -187,6 +261,134 @@ export const busDemoWorkspaceSchema = z.object({
   messages: z.array(callMessageSchema),
   booking: bookingDraftSchema,
 })
+
+export const transcriptDisplayLanguageSchema = z.enum(['original', 'vi', 'en'])
+export const transcriptLanguageCodeSchema = z.enum(['vi', 'en'])
+export const callTransportSchema = z.enum(['local', 'livekit'])
+
+export const realtimeTranscriptMessageSchema = z.object({
+  id: z.string().min(1),
+  role: z.enum(['caller', 'staff', 'agent']),
+  text: z.string().min(1),
+  language: transcriptLanguageCodeSchema,
+  translations: z.partialRecord(
+    transcriptLanguageCodeSchema,
+    z.string().min(1),
+  ).default({}),
+  confidence: z.number().min(0).max(1).nullable(),
+  startedAtMs: z.number().nonnegative(),
+  endedAtMs: z.number().nonnegative(),
+  channel: callMessageChannelSchema.default('voice'),
+}).strict()
+
+export const replySuggestionSchema = z.object({
+  id: z.string().min(1),
+  text: z.string().min(1),
+  reason: z.enum(['missing_fields', 'conflict', 'confirmation', 'staff_request']),
+  missingFields: z.array(bookingFieldKeySchema).max(2),
+  speakable: z.boolean(),
+}).strict()
+
+const realtimeEnvelopeShape = {
+  version: z.literal(1),
+  eventId: z.string().min(1),
+  sessionCode: z.string().regex(/^[A-Z0-9]{4,12}$/u),
+  occurredAt: z.string().datetime(),
+}
+
+export const sessionStatusEventSchema = z.object({
+  ...realtimeEnvelopeShape,
+  type: z.literal('session.status'),
+  transport: callTransportSchema,
+  state: z.enum(['waiting', 'connecting', 'connected', 'reconnecting', 'ended', 'error']),
+  callerPresent: z.boolean(),
+  valsea: z.enum(['unconfigured', 'connecting', 'live', 'error']),
+  agent: z.enum(['unconfigured', 'dispatching', 'ready', 'speaking', 'error']),
+  detail: z.string().min(1).nullable(),
+}).strict()
+
+export const transcriptPartialEventSchema = z.object({
+  ...realtimeEnvelopeShape,
+  type: z.literal('transcript.partial'),
+  message: realtimeTranscriptMessageSchema,
+}).strict()
+
+export const transcriptFinalEventSchema = z.object({
+  ...realtimeEnvelopeShape,
+  type: z.literal('transcript.final'),
+  message: realtimeTranscriptMessageSchema,
+}).strict()
+
+export const bookingSnapshotEventSchema = z.object({
+  ...realtimeEnvelopeShape,
+  type: z.literal('booking.snapshot'),
+  revision: z.number().int().nonnegative(),
+  booking: bookingDraftSchema,
+}).strict()
+
+export const replySuggestedEventSchema = z.object({
+  ...realtimeEnvelopeShape,
+  type: z.literal('reply.suggested'),
+  suggestion: replySuggestionSchema,
+}).strict()
+
+export const agentStateEventSchema = z.object({
+  ...realtimeEnvelopeShape,
+  type: z.literal('agent.state'),
+  state: z.enum(['idle', 'listening', 'thinking', 'speaking', 'offline']),
+  detail: z.string().min(1).nullable(),
+}).strict()
+
+export const agentErrorEventSchema = z.object({
+  ...realtimeEnvelopeShape,
+  type: z.literal('agent.error'),
+  code: z.string().min(1),
+  message: z.string().min(1),
+  recoverable: z.boolean(),
+}).strict()
+
+export const realtimeEventSchema = z.discriminatedUnion('type', [
+  sessionStatusEventSchema,
+  transcriptPartialEventSchema,
+  transcriptFinalEventSchema,
+  bookingSnapshotEventSchema,
+  replySuggestedEventSchema,
+  agentStateEventSchema,
+  agentErrorEventSchema,
+])
+
+export const staffPreferencesCommandSchema = z.object({
+  ...realtimeEnvelopeShape,
+  type: z.literal('staff.preferences'),
+  mode: callModeSchema,
+  transcriptLanguage: transcriptDisplayLanguageSchema,
+}).strict()
+
+export const staffSpeakCommandSchema = z.object({
+  ...realtimeEnvelopeShape,
+  type: z.literal('staff.speak'),
+  text: z.string().min(1),
+}).strict()
+
+export const staffEndTurnCommandSchema = z.object({
+  ...realtimeEnvelopeShape,
+  type: z.literal('staff.end_turn'),
+}).strict()
+
+export const staffEndCallCommandSchema = z.object({
+  ...realtimeEnvelopeShape,
+  type: z.literal('staff.end_call'),
+  reason: z.string().min(1).optional(),
+}).strict()
+
+export const staffCommandSchema = z.discriminatedUnion('type', [
+  staffPreferencesCommandSchema,
+  staffSpeakCommandSchema,
+  staffEndTurnCommandSchema,
+  staffEndCallCommandSchema,
+])
+
+export const roomEventSchema = z.union([realtimeEventSchema, staffCommandSchema])
 
 export const mediaControlSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('start'), source: sourceSchema, trackId: z.string().min(1) }),
@@ -218,6 +420,29 @@ export type CallRole = z.infer<typeof callRoleSchema>
 export type CallMessageChannel = z.infer<typeof callMessageChannelSchema>
 export type BookingStatus = z.infer<typeof bookingStatusSchema>
 export type BusTrip = z.infer<typeof busTripSchema>
+export type BookingFieldKey = z.infer<typeof bookingFieldKeySchema>
+export type BookingEvidenceSource = z.infer<typeof bookingEvidenceSourceSchema>
+export type BookingFieldEvidence = z.infer<typeof bookingFieldEvidenceSchema>
+export type BookingReviewItem = z.infer<typeof bookingReviewItemSchema>
 export type BookingDraft = z.infer<typeof bookingDraftSchema>
 export type CallMessage = z.infer<typeof callMessageSchema>
 export type BusDemoWorkspace = z.infer<typeof busDemoWorkspaceSchema>
+export type TranscriptDisplayLanguage = z.infer<typeof transcriptDisplayLanguageSchema>
+export type TranscriptLanguageCode = z.infer<typeof transcriptLanguageCodeSchema>
+export type CallTransport = z.infer<typeof callTransportSchema>
+export type RealtimeTranscriptMessage = z.infer<typeof realtimeTranscriptMessageSchema>
+export type ReplySuggestion = z.infer<typeof replySuggestionSchema>
+export type SessionStatusEvent = z.infer<typeof sessionStatusEventSchema>
+export type TranscriptPartialEvent = z.infer<typeof transcriptPartialEventSchema>
+export type TranscriptFinalEvent = z.infer<typeof transcriptFinalEventSchema>
+export type BookingSnapshotEvent = z.infer<typeof bookingSnapshotEventSchema>
+export type ReplySuggestedEvent = z.infer<typeof replySuggestedEventSchema>
+export type AgentStateEvent = z.infer<typeof agentStateEventSchema>
+export type AgentErrorEvent = z.infer<typeof agentErrorEventSchema>
+export type RealtimeEvent = z.infer<typeof realtimeEventSchema>
+export type StaffPreferencesCommand = z.infer<typeof staffPreferencesCommandSchema>
+export type StaffSpeakCommand = z.infer<typeof staffSpeakCommandSchema>
+export type StaffEndTurnCommand = z.infer<typeof staffEndTurnCommandSchema>
+export type StaffEndCallCommand = z.infer<typeof staffEndCallCommandSchema>
+export type StaffCommand = z.infer<typeof staffCommandSchema>
+export type RoomEvent = z.infer<typeof roomEventSchema>

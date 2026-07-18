@@ -1,18 +1,26 @@
-# ADR 0002: Next.js 16, Fastify, Neon and Drizzle
+# ADR 0002: TypeScript stack for web, core and pilot persistence
 
-**Status:** Accepted
+## Status
+
+Accepted — 2026-07-18
+
+## Context
+
+SpeechToInvoice needs a browser-first public demo and a credible path to a Node-based, credentialed pilot. The stack must support server-only credentials, typed persistence and both deterministic and provider-backed flows without making credentials a public-demo requirement.
 
 ## Decision
 
-Use Next.js App Router with React 19.2+, TypeScript, Tailwind CSS and native accessible HTML primitives for the web application. Use Fastify with WebSocket support for media. Use Neon Postgres and Drizzle ORM/migrations for persistent data. Use Vitest, Playwright and ESLint for quality gates.
+Use Next.js App Router on the Node.js runtime with TypeScript for the web/BFF. Use Neon Postgres with Drizzle for pilot persistence. Use Vitest for unit, contract and integration coverage, and Playwright for browser E2E coverage.
 
-## Rationale
+Fastify remains available only as an optional Node direct-media gateway. LiveKit, VALSEA, LLM and TTS libraries are pilot adapters, not baseline runtime dependencies.
 
-Next.js/Vercel is explicitly required for the frontend and supplies a deployable App Router UI. Fastify has a small Node runtime and a clear WebSocket lifecycle. Neon provides serverless Postgres; Drizzle supplies typed schema/migration ownership. Keeping core logic package-local makes rules testable without credentials.
+## Consequences
 
-## Guardrails
+- Node.js, rather than Edge, is the default for database, token-signing and provider-SDK paths.
+- Drizzle schema and migrations own persistent storage shape; the public demo may retain explicitly labelled local state.
+- Provider and database clients are initialized lazily and only in server/worker code.
+- A missing `DATABASE_URL` or provider credential prevents credentialed-pilot evidence, not the public demo.
 
-- Initialize Neon, Drizzle and provider SDKs lazily inside getters, never at module scope.
-- Use a safe current Next.js 16 patch and React 19.2.4+.
-- Production persistence requires `DATABASE_URL`; development may use explicitly labelled in-memory fixture data only.
-- Provider keys remain server-only environment variables and are absent from `NEXT_PUBLIC_*` values.
+## Migration impact
+
+Retain current Next.js, Fastify and Drizzle seams while replacing legacy business naming in future schemas and modules. Add pilot tables through reviewed Drizzle migrations; do not imply that a local schema seam is a connected Neon deployment.

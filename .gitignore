@@ -2,7 +2,9 @@
 
 # Reference project supplied for architecture research; maintained as its own Git repository.
 project-4/
+portfolio/
 .worktrees/
+.superpowers/
 
 # Local credentials and build output.
 .env*
@@ -15,4 +17,12 @@ playwright-report/
 test-results/
 tmp/
 *.tsbuildinfo
-.vercel
+
+# Python voice worker.
+agent/.venv/
+agent/.pytest_cache/
+agent/.ruff_cache/
+agent/__pycache__/
+agent/dist/
+agent/livekit.toml
+agent/*.egg-info/
