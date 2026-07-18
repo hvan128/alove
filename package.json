@@ -1,5 +1,5 @@
 {
-  "name": "ordervoice",
+  "name": "alove",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@10.33.0",
@@ -7,15 +7,14 @@
     "node": ">=20.9.0"
   },
   "scripts": {
-    "dev:web": "pnpm --filter @ordervoice/web dev",
-    "dev:api": "pnpm --filter @ordervoice/api dev",
+    "dev:web": "pnpm --filter @alove/web dev",
     "lint": "pnpm -r --if-present lint",
     "typecheck": "pnpm -r --if-present typecheck",
-    "test": "pnpm --filter @ordervoice/contracts --filter @ordervoice/core --filter @ordervoice/providers --filter @ordervoice/api --filter @ordervoice/web --filter @ordervoice/db -r test",
-    "test:watch": "pnpm --filter @ordervoice/web test -- --watch",
+    "test": "pnpm --filter @alove/web test",
+    "test:watch": "pnpm --filter @alove/web test -- --watch",
     "test:e2e": "playwright test",
-    "build": "pnpm --filter @ordervoice/web build && pnpm --filter @ordervoice/api build",
-    "deploy:web": "pnpm --filter @ordervoice/web exec vercel --prod"
+    "build": "pnpm --filter @alove/web build",
+    "deploy:web": "vercel --prod"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
@@ -25,6 +24,7 @@
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.39.2",
     "eslint-config-next": "16.1.6",
@@ -34,6 +34,7 @@
     "react-dom": "19.2.4",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "ws": "^8.21.1"
   }
 }

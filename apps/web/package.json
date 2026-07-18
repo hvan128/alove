@@ -1,5 +1,5 @@
 {
-  "name": "@ordervoice/web",
+  "name": "@alove/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -14,9 +14,6 @@
   "dependencies": {
     "@livekit/components-react": "^2.9.21",
     "@neondatabase/serverless": "^1.1.0",
-    "@ordervoice/contracts": "workspace:*",
-    "@ordervoice/core": "workspace:*",
-    "@ordervoice/providers": "workspace:*",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "framer-motion": "^12.42.2",
