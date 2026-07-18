@@ -73,6 +73,9 @@ _MONEY_RE = re.compile(r"\b(\d{1,3}(?:[.,]\d{3})+|\d{4,})\s*(đồng|đ|vnđ|vnd
 # Nuốt luôn chữ "ngày" đứng trước nếu có, nếu không sẽ thành "ngày ngày 20 tháng 7".
 _ISO_DATE_RE = re.compile(r"\b(?:ngày\s+)?(\d{4})-(\d{2})-(\d{2})\b", re.IGNORECASE)
 _TIME_RE = re.compile(r"\b(\d{1,2}):(\d{2})\b")
+# Ngày dạng "19-07" hay "19/07" do định dạng vi-VN sinh ra. Chốt chặn hai đầu để
+# không cắn vào mã vé VD-260719-0009: hai bên không được là chữ số hay dấu nối.
+_DAY_MONTH_RE = re.compile(r"(?<![\d\-/])(0?[1-9]|[12]\d|3[01])[-/](0?[1-9]|1[0-2])(?![\d\-/])")
 # "anh/chị", "và/hoặc" — dấu gạch chéo giữa hai chữ bị đọc thành "trên".
 _SLASH_RE = re.compile(r"(?<=[^\W\d_])\s*/\s*(?=[^\W\d_])", re.UNICODE)
 
@@ -87,6 +90,10 @@ def _iso_date(match: re.Match) -> str:
     # người thật chỉ nói "ngày 20 tháng 7".
     _, month, day = int(match.group(1)), int(match.group(2)), int(match.group(3))
     return f"ngày {day} tháng {month}"
+
+
+def _day_month(match: re.Match) -> str:
+    return f"ngày {int(match.group(1))} tháng {int(match.group(2))}"
 
 
 def _time(match: re.Match) -> str:
@@ -105,6 +112,7 @@ def normalize_for_speech(text: str) -> str:
     text = _MONEY_RE.sub(_money, text)
     text = _ISO_DATE_RE.sub(_iso_date, text)
     text = _TIME_RE.sub(_time, text)
+    text = _DAY_MONTH_RE.sub(_day_month, text)
     text = _SLASH_RE.sub(" ", text)
     return text
 

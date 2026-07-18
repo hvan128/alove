@@ -165,6 +165,12 @@ def bus_agent_instructions(today_vn: str) -> str:
         "- Khách thường tự khai sẵn nhiều thứ trong một câu (\"cho tôi 2 vé đi Vinh mai\"). "
         "Nhận hết những gì khách đã nói, chỉ hỏi phần còn thiếu.\n"
         "- Khách nói lộn xộn, ngập ngừng, đổi ý, nói nhầm thì cứ bình thường như người thật.\n\n"
+        "AI NÓI KẾT QUẢ:\n"
+        "- search_trips: công cụ chỉ trả dữ liệu, CHÍNH BẠN đọc các chuyến cho khách nghe, "
+        "nói tự nhiên và gợi ý giúp khách chọn.\n"
+        "- hold_seats, confirm_booking, cancel_booking: hệ thống TỰ ĐỌC kết quả cho khách ngay "
+        "sau khi công cụ chạy xong. Bạn chỉ cần nói câu báo đang xử lý trước khi gọi, rồi "
+        "dừng lại. Đừng nói lại số ghế, giá tiền hay mã vé nữa — khách đã nghe rồi.\n\n"
         "LẤP KHOẢNG CHỜ:\n"
         "- Trước khi gọi bất kỳ công cụ nào (tra chuyến, giữ chỗ, xuất vé), hãy nói một câu "
         "ngắn báo cho khách biết mình đang làm gì rồi hãy gọi: \"Dạ anh chờ em chút, em kiểm "
@@ -575,6 +581,28 @@ class BusBookingAgent(Agent):
         base.update(over)
         return base
 
+    async def _say_result(self, context: RunContext, text: str):
+        """Đọc thẳng kết quả công cụ rồi dừng, không cho mô hình chạy vòng hai.
+
+        Vòng LLM thứ hai chỉ làm mỗi việc diễn đạt lại dữ liệu đã đầy đủ và chính
+        xác, đo được tốn khoảng 730ms mỗi lượt, lại thêm rủi ro mô hình đọc sai
+        con số. Câu đệm ở vòng một vẫn đang phát nên khách không nghe im lặng;
+        chờ nó phát xong rồi mới đọc kết quả cho khỏi chồng tiếng.
+
+        Chuẩn hoá tại chỗ vì câu này không đi qua đường sinh lời thông thường."""
+        handle = getattr(context, "speech_handle", None)
+        if handle is not None:
+            try:
+                await handle.wait_for_playout()
+            except Exception:
+                pass
+        try:
+            await context.session.say(normalize_for_speech(text), allow_interruptions=True)
+        except Exception as exc:  # noqa: BLE001 — nói hỏng thì để mô hình tự xoay
+            logger.warning("say kết quả thất bại: %s", exc)
+            return
+        raise StopResponse()
+
     async def _call_api(self, path: str, body: dict) -> Optional[dict]:
         try:
             resp = await api_client().post(f"{NEXTJS_API_URL}{path}", json=body)
@@ -645,11 +673,27 @@ class BusBookingAgent(Agent):
         if data is None:
             return {"error": "backend_unavailable"}
         self._selected_trip = {"tripId": trip_id, "offer": self._offers.get(trip_id, {}), **data}
-        if data.get("held"):
-            await self._publish(
-                {"type": "booking.update", "booking": self._draft_payload(status="trip_proposed")}
+        noun = data.get("seatNoun") or "chỗ"
+        if not data.get("held"):
+            return await self._say_result(
+                context, f"Dạ chuyến này hết {noun} rồi ạ. Anh chị muốn em tìm chuyến khác không ạ?"
             )
-        return data
+        await self._publish(
+            {"type": "booking.update", "booking": self._draft_payload(status="trip_proposed")}
+        )
+        codes = ", ".join(data.get("seatCodes") or [])
+        total = f"{data.get('totalVnd', 0):,}".replace(",", ".")
+        if (data.get("shortfall") or 0) > 0:
+            return await self._say_result(
+                context,
+                f"Dạ chuyến này chỉ còn {data.get('seatsHeld')} {noun} thôi ạ, {codes}. "
+                f"Anh chị lấy từng này được không ạ?",
+            )
+        return await self._say_result(
+            context,
+            f"Dạ em giữ được {noun} {codes}, tổng {total} đồng ạ. "
+            f"Anh chị cho em xin họ tên và số điện thoại nhé.",
+        )
 
     @function_tool()
     async def confirm_booking(
@@ -674,6 +718,11 @@ class BusBookingAgent(Agent):
         )
         if data is None:
             return {"error": "backend_unavailable"}
+        if not data.get("confirmed"):
+            return await self._say_result(
+                context,
+                "Dạ chỗ em giữ đã hết hạn mất rồi ạ. Em giữ lại cho mình nhé?",
+            )
         if data.get("confirmed"):
             self._booked = True
             await self._publish({
@@ -688,6 +737,15 @@ class BusBookingAgent(Agent):
                     passengerCount=len(data.get("seatCodes") or []),
                 ),
             })
+            noun = (self._selected_trip or {}).get("seatNoun") or "chỗ"
+            codes = ", ".join(data.get("seatCodes") or [])
+            total = f"{data.get('totalVnd', 0):,}".replace(",", ".")
+            return await self._say_result(
+                context,
+                f"Dạ vé của anh chị xong rồi ạ. Mã vé {data.get('code')}. "
+                f"{noun.capitalize()} {codes}, tổng {total} đồng. "
+                f"Xe đón tại {data.get('pickupPoint')} lúc {data.get('departureLabel')} ạ.",
+            )
         return data
 
     @function_tool()
@@ -732,10 +790,16 @@ class BusBookingAgent(Agent):
         data = await self._call_api("/api/booking/cancel", body)
         if data is None:
             return {"error": "backend_unavailable"}
-        if data.get("cancelled"):
-            self._selected_trip = None
-            await self._publish({"type": "booking.update", "booking": self._draft_payload()})
-        return data
+        if not data.get("cancelled"):
+            return await self._say_result(
+                context, "Dạ em không tìm thấy vé nào để huỷ ạ. Anh chị đọc giúp em mã vé nhé?"
+            )
+        self._selected_trip = None
+        await self._publish({"type": "booking.update", "booking": self._draft_payload()})
+        return await self._say_result(
+            context,
+            f"Dạ em huỷ vé {data.get('code')} rồi ạ. Anh chị cần em tìm chuyến khác không?",
+        )
 
     @function_tool()
     async def end_call(self, context: RunContext):
