@@ -13,6 +13,7 @@ import { cn } from '@/lib/cn'
 import { CallStage } from './call-stage'
 import { TicketCard } from './ticket-card'
 import { TicketResult } from './ticket-result'
+import { TicketBoundary } from './ticket-boundary'
 import { TicketSheet } from './ticket-sheet'
 import { VehicleSeatVisual } from './vehicle-seat-visual'
 import {
@@ -207,11 +208,16 @@ export function BusCallWorkspace({ variant = 'page', controlRef, onEnded }: BusC
       }
     >
       {view === 'ticket' ? (
-        <TicketResult
+        <TicketBoundary
           booking={workspace.booking}
-          onNewCall={startCall}
           onClose={() => (onEnded ? onEnded() : setView('call'))}
-        />
+        >
+          <TicketResult
+            booking={workspace.booking}
+            onNewCall={startCall}
+            onClose={() => (onEnded ? onEnded() : setView('call'))}
+          />
+        </TicketBoundary>
       ) : (
         <main className="grid flex-1 content-start items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(520px,1fr)_auto]">
           <CallStage
