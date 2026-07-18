@@ -410,6 +410,7 @@ function Orb({ speaking, listening, connected }: { speaking: boolean; listening:
         )}
       >
         <span className="orb-wave orb-wave-near absolute inset-0 rounded-full" />
+        <span className="orb-wave orb-wave-mid absolute inset-0 rounded-full" />
         <span className="orb-wave orb-wave-far absolute inset-0 rounded-full" />
       </div>
       <div className={cn('orb-body absolute inset-0', speaking ? 'animate-orb-speak' : 'animate-orb-breathe')}>
