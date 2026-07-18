@@ -13,10 +13,12 @@ Ngôn ngữ thị giác SaaS trung tính: nền neutral, card trắng nổi bằ
 | Primary | `action`, `action-hover`, `action-focus`, `action-soft` | CTA, mic, focus, customer turn (indigo) |
 | Semantic | `success`, `warning`, `danger`, `violet` | hoàn tất, chờ, lỗi, demo |
 | Elevation | `shadow-card`, `shadow-panel` | card nổi nhẹ, panel/hero nổi rõ |
-| Type | IBM Plex Sans + IBM Plex Mono, 12/14/17/21/34/60 px | metric, UI, body, section, display |
+| Type | `text-metric` 12, `text-ui` 14, `text-body` 17, `text-section` 21, `text-display` 34 px | metric, UI, body, section, display |
 | Radius | 9/12/16/18/28/9999 px | logo, control, panel, hero, action |
 
 Token màu và elevation dạng `oklch`, đổi qua `prefers-color-scheme`; component không hardcode surface trắng. IBM Plex nạp qua `next/font/google` với subset `vietnamese`.
+
+Thang chữ khai báo trong `@theme` của `globals.css` nên gọi bằng tên (`text-ui`, `text-section`...). Đừng viết `text-[13px]` — cỡ nằm ngoài thang là dấu hiệu thiết kế đang trôi. Cũng không dùng chữ viết hoa toàn bộ kèm giãn chữ để làm nhãn: phân cấp bằng cỡ và màu `--muted`.
 
 ## Component dùng chung
 

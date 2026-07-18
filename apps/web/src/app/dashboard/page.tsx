@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { ChevronRight, Globe, KeyRound, Phone, PhoneCall, RefreshCw } from 'lucide-react'
@@ -9,6 +8,7 @@ import { TextInput } from '@/components/ui/input'
 import { DASHBOARD_COOKIE, dashboardAccessKey, hasDashboardCookie, keyMatches } from '@/lib/dashboard-auth'
 import { listRecentCalls, type CallSummary } from '@/lib/db/dashboard-store'
 import { AutoRefresh } from '@/components/dashboard/auto-refresh'
+import { BrandMark } from '@/components/ui/brand-mark'
 import { BookingStatusBadge, CallStatusBadge } from '@/components/dashboard/status-badge'
 
 export const dynamic = 'force-dynamic'
@@ -85,7 +85,7 @@ export default async function DashboardPage({
 
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Image src="/alove-logo.png" alt="" width={44} height={44} className="size-11 shrink-0 object-contain" priority />
+          <BrandMark className="size-11 shrink-0" />
           <div>
             <h1 className="text-xl font-semibold tracking-[-0.035em] text-[var(--ink)]">Alove Giám sát</h1>
             <p className="text-sm text-[var(--muted)]">Cuộc gọi đặt vé — trực tiếp và lịch sử</p>
@@ -223,7 +223,7 @@ function EmptyState({ title, description }: { title: string; description: React.
 
 function Brand() {
   return (
-    <Image src="/alove-logo.png" alt="" width={48} height={48} className="mx-auto size-12 object-contain" priority />
+    <BrandMark className="mx-auto size-12" />
   )
 }
 

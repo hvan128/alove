@@ -9,7 +9,9 @@ export function TicketCard({ booking }: { booking: BookingDraft }) {
   const printed = booking.status === 'confirmed' && booking.bookingCode !== null
 
   return (
-    <section aria-label="Vé xe" className="h-full">
+    // Cột này bám theo khi cuộn: khung cuộc gọi dài hơn hẳn nên vé phải theo
+    // mắt người dùng thay vì trôi mất lên trên.
+    <section aria-label="Vé xe" className="lg:sticky lg:top-[76px]">
       {printed ? <PrintedTicket booking={booking} /> : <BookingForm booking={booking} />}
     </section>
   )

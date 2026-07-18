@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import type { BookingDraft, BusDemoWorkspace, CallMessage, CallMessageChannel, CallRole } from '@ordervoice/contracts'
 import { advanceBookingAgent, createInitialBooking } from '@ordervoice/core/bus-booking'
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
-import { useTtsProvider } from '@/hooks/use-tts-provider'
 import { speakVietnamese, stopVietnameseSpeech } from '@/lib/device-speech'
+import { cn } from '@/lib/cn'
 import { CallStage } from './call-stage'
 import { TicketCard } from './ticket-card'
+import { VehicleSeatVisual } from './vehicle-seat-visual'
 import { LiveKitCall, type LiveKitAgentState } from './livekit-call'
 
 // Set NEXT_PUBLIC_LIVEKIT_URL to make LiveKit the transport. Unset (public
@@ -18,14 +19,26 @@ const LIVEKIT_ENABLED = Boolean(process.env.NEXT_PUBLIC_LIVEKIT_URL)
 // nói. Rộng hơn nhịp sửa chữ của STT, hẹp hơn khoảng nghỉ giữa hai lượt thật.
 const SAME_UTTERANCE_MS = 4000
 
-export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDemoWorkspace }) {
+/** Điều khiển từ bên ngoài (CallOverlay): bắt đầu/kết thúc cuộc gọi sau khi morph xong. */
+export type BusCallControls = { start: () => void; end: () => void }
+
+type BusCallWorkspaceProps = {
+  initialWorkspace: BusDemoWorkspace
+  /** 'page' (mặc định, /console) giữ khung full-page; 'overlay' bỏ khung để nằm trong modal. */
+  variant?: 'page' | 'overlay'
+  /** Overlay gọi start() qua ref này sau khi animation mở xong — không auto-start trong mount. */
+  controlRef?: MutableRefObject<BusCallControls | null>
+  /** Báo cuộc gọi đã kết thúc (khách bấm Kết thúc hoặc agent cúp) để overlay đóng lại. */
+  onEnded?: () => void
+}
+
+export function BusCallWorkspace({ initialWorkspace, variant = 'page', controlRef, onEnded }: BusCallWorkspaceProps) {
   const [workspace, setWorkspace] = useState(initialWorkspace)
   const [customerText, setCustomerText] = useState('')
   const [elapsedSec, setElapsedSec] = useState(0)
   const [agentSpeaking, setAgentSpeaking] = useState(false)
   const [liveAgentState, setLiveAgentState] = useState<LiveKitAgentState>('idle')
   const sequence = useRef(0)
-  const tts = useTtsProvider()
 
   // LiveKit transport: the agent worker owns STT, booking and TTS. Declared
   // before the handlers below because they all read it to stay inert while the
@@ -86,7 +99,17 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
       if (current.callStatus === 'ended') return current
       return { ...current, callStatus: 'ended', endedAt: new Date().toISOString() }
     })
+    onEnded?.()
   }
+
+  // Gán mỗi render để start/end luôn thấy state mới nhất — không dùng deps.
+  useEffect(() => {
+    if (!controlRef) return
+    controlRef.current = { start: startCall, end: endCall }
+    return () => {
+      controlRef.current = null
+    }
+  })
 
   const submitCustomer = (text: string, channel: CallMessageChannel = 'preset') => {
     // With LiveKit carrying the call, the agent worker owns the booking against
@@ -174,12 +197,18 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
   }
 
   return (
-    <div className="mx-auto flex min-h-[100dvh] w-full max-w-6xl flex-col px-4 py-5 sm:px-6 lg:py-7">
-      {/* Trên màn rộng hai cột kéo bằng nhau để phiếu vé không hụt một mảng
-          trắng dưới đáy; màn hẹp thì xếp dọc theo chiều cao nội dung. */}
-      <main className="grid flex-1 content-start items-start gap-5 lg:content-stretch lg:items-stretch lg:grid-cols-[minmax(0,1fr)_380px]">
+    <div
+      className={
+        variant === 'overlay'
+          ? 'flex h-full min-h-0 w-full flex-col overflow-y-auto p-4 sm:p-5'
+          : 'mx-auto flex min-h-[100dvh] w-full max-w-[1500px] flex-col px-4 py-5 sm:px-6 lg:py-7'
+      }
+    >
+      {/* Hai cột cao theo nội dung của chính nó. Từng ép chúng bằng nhau, nhưng
+          khung cuộc gọi cao gấp rưỡi phiếu vé nên chỉ tổ độn một mảng trống
+          giữa phiếu. */}
+      <main className="grid flex-1 content-start items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(520px,1fr)_auto]">
         <CallStage
-          onBrandTap={tts.toggle}
           status={workspace.callStatus}
           elapsedSec={elapsedSec}
           messages={workspace.messages}
@@ -199,7 +228,6 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
           liveKitSlot={
             liveKitActive ? (
               <LiveKitCall
-              ttsProvider={tts.provider}
                 conversationId={workspace.conversationId}
                 onTranscript={upsertLiveTranscript}
                 onBooking={applyLiveBooking}
@@ -209,7 +237,26 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
             ) : undefined
           }
         />
-        <TicketCard booking={workspace.booking} />
+        <div
+          className={cn(
+            'grid h-full min-w-0 gap-5 transition-[grid-template-columns] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)]',
+            workspace.booking.selectedTrip && workspace.booking.status !== 'confirmed'
+              ? 'grid-cols-1 xl:grid-cols-[minmax(420px,480px)_380px]'
+              : 'grid-cols-1 xl:grid-cols-[0px_380px]',
+          )}
+        >
+          <div
+            className={cn(
+              'min-w-0 overflow-hidden transition-[opacity,transform] duration-500 ease-out',
+              workspace.booking.selectedTrip && workspace.booking.status !== 'confirmed'
+                ? 'opacity-100 translate-x-0'
+                : 'pointer-events-none -translate-x-5 opacity-0',
+            )}
+          >
+            <VehicleSeatVisual booking={workspace.booking} />
+          </div>
+          <TicketCard booking={workspace.booking} />
+        </div>
       </main>
     </div>
   )

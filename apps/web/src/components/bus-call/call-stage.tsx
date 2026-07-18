@@ -28,8 +28,6 @@ type CallStageProps = {
   onStart: () => void
   onEnd: () => void
   onStopSpeech: () => void
-  /** Chạm vào tên nhà xe: đổi giọng đọc. Không có dấu hiệu nào trên giao diện. */
-  onBrandTap?: () => void
   recognitionState: SpeechRecognitionState
   interimText: string
   onStartMic: () => void
@@ -60,7 +58,6 @@ export function CallStage({
   onStartMic,
   onStopMic,
   liveKitSlot,
-  onBrandTap,
 }: CallStageProps) {
   const connected = status === 'connected'
   const confirmed = booking.status === 'confirmed'
@@ -102,9 +99,7 @@ export function CallStage({
       <div className="relative z-10 flex items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 font-semibold">
-            {/* Công tắc đổi giọng ẩn. Cố ý không có con trỏ, tooltip hay trạng
-                thái hiển thị — chỉ người biết mới bấm được. */}
-            <span onClick={onBrandTap} className="select-none">Nhà xe Mai Anh</span>
+            Nhà xe Mai Anh
             {agentSpeaking ? <SpeakBars /> : null}
           </h1>
           <p className="text-xs text-white/50" role="status">
@@ -396,46 +391,44 @@ function typewriterEnabled(): boolean {
   return !window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-/** Orb ánh sáng: thở khi chờ, đập nhanh khi agent nói, lan sóng khi mic nghe. */
+/** Orb kính 3D: thở khi chờ, đập nhanh khi agent nói, lan sóng khi mic nghe. */
 function Orb({ speaking, listening, connected }: { speaking: boolean; listening: boolean; connected: boolean }) {
   return (
     <div
       className={cn(
         'relative size-28 sm:size-32',
         !connected && 'opacity-75',
-        speaking ? 'animate-orb-speak' : 'animate-orb-breathe',
       )}
       aria-hidden
     >
-      {/* Quầng sáng lan — ánh cyan điện */}
+      {/* Trường sóng nền dùng chung nhịp với góc sáng của quả cầu. */}
       <div
         className={cn(
-          'absolute -inset-8 rounded-full bg-[radial-gradient(circle,oklch(0.8_0.15_200_/_0.65),transparent_70%)] blur-2xl transition-opacity duration-500',
-          speaking ? 'opacity-100' : 'opacity-55',
+          'orb-wave-field absolute left-1/2 top-1/2',
+          speaking && 'orb-wave-field-fast',
+          listening && 'orb-wave-field-listening',
         )}
-      />
-      {/* Thân lỏng: neon cyan → electric blue → magenta xoay + biến dạng bo góc */}
-      <div
-        className={cn(
-          'absolute inset-0 bg-[conic-gradient(from_220deg,oklch(0.87_0.17_195),oklch(0.6_0.26_262),oklch(0.62_0.29_320),oklch(0.5_0.25_285),oklch(0.87_0.17_195))] blur-[1px] shadow-[0_0_80px_oklch(0.75_0.18_210_/_0.6)]',
-          speaking ? 'orb-liquid-fast' : 'orb-liquid',
-        )}
-      />
-      {/* Lớp giao thoa chạy ngược chiều — vệt aqua và magenta lướt qua nhau */}
-      <div
-        className={cn(
-          'absolute inset-[8%] bg-[conic-gradient(from_40deg,transparent_15%,oklch(0.9_0.14_190)_40%,transparent_58%,oklch(0.72_0.26_330)_80%,transparent)] opacity-90 mix-blend-screen blur-[2px]',
-          speaking ? 'orb-liquid-alt-fast' : 'orb-liquid-alt',
-        )}
-      />
-      {/* Lõi sáng mềm */}
-      <div
-        className={cn(
-          'absolute inset-[22%] rounded-full bg-[radial-gradient(circle_at_36%_32%,white,oklch(0.85_0.15_200)_45%,transparent_78%)] opacity-85 mix-blend-screen blur-sm',
-          speaking ? 'orb-liquid-alt-fast' : 'orb-liquid-alt',
-        )}
-      />
-      {listening ? <div className="animate-listen-ring absolute inset-0 rounded-full" /> : null}
+      >
+        <span className="orb-wave orb-wave-near absolute inset-0 rounded-full" />
+        <span className="orb-wave orb-wave-far absolute inset-0 rounded-full" />
+      </div>
+      <div className={cn('orb-body absolute inset-0', speaking ? 'animate-orb-speak' : 'animate-orb-breathe')}>
+        {/* Quầng sáng rất mềm phía sau, tách quả cầu khỏi nền tối. */}
+        <div
+          className={cn(
+            'absolute -inset-7 rounded-full bg-[radial-gradient(circle,rgba(89,187,255,0.3),rgba(96,37,211,0.16)_48%,transparent_72%)] blur-2xl transition-opacity duration-500',
+            speaking ? 'opacity-100' : 'opacity-65',
+          )}
+        />
+        <div className={cn('orb-glass absolute inset-0 overflow-hidden rounded-full', speaking && 'orb-glass-fast')}>
+          <div className={cn('orb-chroma absolute -inset-[18%]', speaking && 'orb-chroma-fast')} />
+          <div className="orb-depth absolute inset-0 rounded-full" />
+          <div className="orb-rim absolute inset-0 rounded-full" />
+          <div className="orb-specular absolute inset-0 rounded-full" />
+          <div className="orb-glint absolute rounded-full" />
+        </div>
+        {listening ? <div className="animate-listen-ring absolute inset-0 rounded-full" /> : null}
+      </div>
     </div>
   )
 }
