@@ -42,6 +42,7 @@ from livekit.agents import (
 from livekit.agents.llm import StopResponse
 from livekit.plugins import cartesia, elevenlabs, google, noise_cancellation, openai, silero, speechmatics
 from livekit.plugins.speechmatics import OperatingPoint
+from google.cloud import texttospeech
 from google.genai import types
 
 # Load agent/.env by absolute path so engine mode is picked up regardless of cwd.
@@ -333,9 +334,10 @@ def _elevenlabs_tts(language: str):
             similarity_boost=ELEVENLABS_SIMILARITY,
             speed=ELEVENLABS_SPEED,
         ),
-        # Cho ElevenLabs chuẩn hoá theo tiếng Việt trước khi đọc — giúp phát âm
-        # đúng hơn với tên riêng và chữ viết tắt còn sót lại.
-        apply_language_text_normalization=True,
+        # KHÔNG bật apply_language_text_normalization: ElevenLabs trả 400 Bad
+        # Request cho mọi lần tổng hợp, nghĩa là agent câm hoàn toàn. Đã khoanh
+        # vùng bằng cách bật tắt từng tham số. Việc chuẩn hoá số tiền và ngày
+        # tháng đã do speech_text.py lo trước khi văn bản tới đây.
     )
 
 
@@ -352,10 +354,14 @@ def _cascade_tts(language: str, provider: Optional[str] = None):
     gcreds = _google_tts_creds()
     if gcreds is not None:
         loc = "en-US" if language == "en" else "vi-VN"
+        # Plugin mặc định audio_encoding=PCM, nhưng giọng Chirp3-HD chỉ nhận
+        # LINEAR16, MP3 hoặc OGG_OPUS và trả lỗi ngay khi tổng hợp — nhánh Google
+        # sẽ câm tiếng nếu không chỉ định.
         return google.TTS(
             language=loc,
             voice_name=f"{loc}-Chirp3-HD-{GOOGLE_TTS_VOICE}",
             use_streaming=True,
+            audio_encoding=texttospeech.AudioEncoding.LINEAR16,
             **gcreds,
         )
     if CARTESIA_API_KEY and TTS_PROVIDER.startswith("cartesia/"):
