@@ -279,9 +279,24 @@ def build_agent_session(language: str, vad=None) -> AgentSession:
         realtime = google.beta.realtime.RealtimeModel(**kwargs)
         return AgentSession(llm=realtime)
 
+    # Report the backend actually selected, not the env string. The two diverge
+    # (e.g. TTS_PROVIDER stays "cartesia/..." while Google creds silently win),
+    # and a log that names the wrong provider sends every debug down a dead end.
+    stt_route = (
+        "valsea" if STT_PROVIDER == "valsea"
+        else "openai" if (STT_PROVIDER == "openai" and OPENAI_API_KEY)
+        else "speechmatics+openai-fallback" if (SPEECHMATICS_API_KEY and OPENAI_API_KEY)
+        else "speechmatics" if SPEECHMATICS_API_KEY
+        else "gateway"
+    )
+    tts_route = (
+        f"google-chirp3:{GOOGLE_TTS_VOICE}" if _google_tts_creds() is not None
+        else f"cartesia:{TTS_PROVIDER}" if CARTESIA_API_KEY
+        else "gateway"
+    )
     logger.info(
         "Engine: cascade (stt=%s llm=%s tts=%s turn_detector=%s)",
-        STT_PROVIDER, LLM_PROVIDER, TTS_PROVIDER, CASCADE_TURN_DETECTOR,
+        stt_route, "direct" if OPENAI_API_KEY else "gateway", tts_route, CASCADE_TURN_DETECTOR,
     )
     turn_handling: dict = {
         "endpointing": {"min_delay": CASCADE_MIN_ENDPOINTING_DELAY, "max_delay": CASCADE_MAX_ENDPOINTING_DELAY},
