@@ -31,7 +31,7 @@ describe('GET /api/dashboard/calls', () => {
 
   it('accepts the key via cookie', async () => {
     process.env.DASHBOARD_ACCESS_KEY = KEY
-    const res = await GET(request({ cookie: `vedi-dashboard-key=${KEY}` }))
+    const res = await GET(request({ cookie: `alove-dashboard-key=${KEY}` }))
     expect(res.status).toBe(200)
   })
 
