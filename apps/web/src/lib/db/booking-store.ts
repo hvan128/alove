@@ -686,7 +686,7 @@ export async function confirmBooking(input: {
              p.price_vnd * cardinality(p.seat_codes),
              jsonb_build_object(
                'id', concat('booking-', p.id),
-               'conversationId', ${input.callId},
+               'conversationId', ${input.callId}::text,
                'status', 'confirmed',
                'origin', p.origin_city,
                'destination', p.destination_city,
@@ -719,8 +719,8 @@ export async function confirmBooking(input: {
                  END
                ),
                'seats', to_jsonb(p.seat_codes),
-               'passengerName', ${input.passengerName},
-               'phone', ${input.phone},
+               'passengerName', ${input.passengerName}::text,
+               'phone', ${input.phone}::text,
                'totalFareVnd', p.price_vnd * cardinality(p.seat_codes),
                'bookingCode', p.code
              ),
@@ -758,7 +758,7 @@ export async function confirmBooking(input: {
                'type', 'booking.confirmed',
                'eventId', concat('booking.confirmed.v1:', c.code),
                'booking', jsonb_build_object(
-                 'conversationId', ${input.callId},
+                 'conversationId', ${input.callId}::text,
                  'tripId', c."tripId",
                  'bookingCode', c.code,
                  'passengerName', c."passengerName",
