@@ -12,5 +12,5 @@ export const metadata: Metadata = {
 
 export default function EvidencePage() {
   const results = parseEvidenceResults(evidenceArtifact)
-  return <AppShell><main><EvidenceResultsView results={results} /></main></AppShell>
+  return <AppShell context="review"><main><EvidenceResultsView results={results} /></main></AppShell>
 }

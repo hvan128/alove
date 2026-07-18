@@ -46,6 +46,76 @@ Mọi endpoint yêu cầu `Authorization: Bearer <AGENT_WEBHOOK_SECRET>`.
 | POST | `/api/booking/lookup` | Tra vé bằng cả code và phone |
 | POST | `/api/booking/cancel` | Hủy current-call hoặc code+phone, trả ghế atomic |
 
+## Public ticket verification
+
+The QR opens the page route `/verify?code=<booking-code>`; it never targets an API
+or contains a phone/secret. The page must collect the matching phone before it
+calls the read-only endpoint:
+
+```text
+POST /api/booking/verify
+Content-Type: application/json
+{ "code": "MA-260718-0001", "phone": "0909123456" }
+```
+
+The request body is capped at 2 KiB. Code+phone are matched in one database
+predicate; either factor being wrong returns the same `404` body. Responses are
+`no-store`/`no-referrer`. Successful responses contain only the route, departure,
+vehicle, pickup/dropoff, seats, passenger count, fare and booking code—never name,
+phone, conversation/internal IDs or confirmation text. Atomic Neon rate buckets
+apply coarse IP and credential-pair budgets across serverless instances; bucket
+keys are HMAC digests and fail closed if storage or
+`BOOKING_VERIFICATION_SECRET` is unavailable.
+Each successful confirmation stores an immutable verification snapshot on the
+booking row. Later route, schedule, vehicle or price edits therefore cannot
+rewrite or invalidate an already-issued ticket.
+
+Downloaded ticket JSON is a strict `BookingSnapshot` with
+`schemaVersion: "1.0"`. It is portable personal data, not a signed proof; the
+code+phone verification flow remains authoritative.
+
+## Optional booking webhook
+
+When the URL, signing secret, host allowlist and `CRON_SECRET` are valid,
+authoritative confirmation enqueues a strict `booking.confirmed` v1 event in the
+durable outbox in the same SQL statement. Delivery is `disabled` when URL,
+signing secret and allowlist are all absent, even if `CRON_SECRET` was provisioned
+independently. If any of those three delivery variables is present, all four must
+be valid; partial/weak/unsafe configuration is `misconfigured` and performs no
+request.
+
+```text
+POST <BOOKING_WEBHOOK_URL>
+Content-Type: application/json
+Idempotency-Key: booking.confirmed.v1:<booking-code>
+X-Alove-Event: booking.confirmed
+X-Alove-Timestamp: <unix-seconds>
+X-Alove-Signature: sha256=<hex HMAC>
+```
+
+The signature input is the exact UTF-8 string
+`<X-Alove-Timestamp>.<raw JSON body>` using `BOOKING_WEBHOOK_SECRET`. Receivers
+must compare in constant time, reject timestamps outside a five-minute replay
+window, and deduplicate `Idempotency-Key`. Production URLs are HTTPS port 443,
+must match `BOOKING_WEBHOOK_ALLOWED_HOSTS`, resolve only to public addresses and
+cannot redirect. The sender pins a validated public IPv4 address into the TLS
+connection while preserving the allowlisted hostname for SNI/Host, so request
+delivery performs no second DNS lookup. Delivery retries only network errors,
+408/425/429/5xx, with a
+2.5 s per-attempt timeout and at most three attempts persisted across retries.
+Webhook failure never rolls back a confirmed booking. Logs exclude URL, payload,
+name, phone, signature and secrets.
+
+Confirmation immediately attempts delivery with the same persisted, idempotent
+state machine. `GET /api/booking/webhook/drain` is the recovery path: Vercel
+Hobby invokes it once per day and sends `Authorization: Bearer <CRON_SECRET>`.
+It claims at most three due rows, including stale one-minute leases after a
+process crash. Only network/DNS, 408/425/429/5xx failures receive a future
+`next_attempt_at`; invalid payload, private destination and other 4xx results are
+terminal even if confirmation is replayed. Teams that need sub-day recovery must
+use a Pro cron or an external authenticated scheduler without changing this
+endpoint contract.
+
 ## Persisted call events
 
 ```ts
@@ -77,12 +147,35 @@ type AgentEvent = {
       tags: string[]
       annotations: string[]
     }
+  | {
+      type: 'latency.turn'
+      latency: {
+        speechId: string
+        measuredAt: string
+        slowestStageSeconds: number
+        endOfUtteranceSeconds: number
+        transcriptionSeconds: number
+        llmTtftSeconds: number
+        ttsTtfbSeconds: number
+      }
+    }
   | { type: 'call.end' }
 )
 ```
 
 Browser chỉ áp dụng event từ LiveKit participant kind `AGENT`, đúng current call,
 schema hợp lệ và sequence lớn hơn event đã nhận.
+
+`latency.turn` chỉ được phát khi đã ghép đủ EOU, LLM TTFT và TTS TTFB của cùng
+`speechId`. Mỗi số là giây hữu hạn, không âm. Vì cascade bật preemptive generation,
+các chặng có thể chồng lấn; `slowestStageSeconds` là
+`max(EOU, transcription, TTFT, TTFB)` để
+tóm tắt chặng lâu nhất, **không** phải tổng end-to-end. Browser giữ duy nhất lượt
+hoàn chỉnh mới nhất trong bộ nhớ và xóa nó khi bắt đầu call mới; metric không được
+persist vào dashboard. `measuredAt` lấy từ timestamp của EOU để
+completion đến muộn không thể ghi đè một lượt mới hơn. Giá trị EOU/transcription
+`0` của LiveKit nghĩa là không đo được và được UI hiển thị bằng dấu `—`, không phải
+`0 ms`.
 
 ### Semantic annotation
 
@@ -107,7 +200,7 @@ và phải nằm trong 60 KiB, gồm cả ordering envelope; producer bỏ event
 và browser cũng từ chối raw payload vượt trần trước khi decode. Khoảng đệm này
 giữ packet dưới giới hạn end-to-end của LiveKit.
 
-Probe live Phase 00 chỉ xác nhận response shape sau:
+Provider probe lúc `2026-07-18T15:17:31.294Z` chỉ xác nhận response shape sau:
 
 ```ts
 type ObservedValseaAnnotationResponse = {

@@ -50,6 +50,18 @@ test('CTA gọi đưa người dùng vào màn Web Call', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Web Call' })).toBeVisible()
 })
 
+test('lối vào chấm thi nằm riêng ở footer và không trỏ thẳng vào dashboard nhà xe', async ({ page }) => {
+  await page.goto('/')
+  const organizerEntry = page.getByRole('link', { name: 'Khu vực ban tổ chức & giám khảo' })
+
+  await expect(organizerEntry).toBeVisible()
+  await expect(organizerEntry).toHaveAttribute('href', '/ban-to-chuc')
+  await organizerEntry.click()
+  await expect(page).toHaveURL(/\/ban-to-chuc$/)
+  await expect(page.getByRole('heading', { name: /Một lối vào riêng cho ban tổ chức và giám khảo/u })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Mở màn vận hành/u })).toHaveAttribute('href', '/dashboard')
+})
+
 test.describe('trên điện thoại', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
 
@@ -68,7 +80,7 @@ test.describe('trên điện thoại', () => {
     await ticketViewport.hover()
     await page.mouse.wheel(0, 500)
     await expect.poll(() => ticketViewport.evaluate((node) => node.scrollTop)).toBeGreaterThan(0)
-    await expect(ticketViewport.getByRole('button', { name: 'Lưu vé về máy' })).toBeDisabled()
+    await expect(ticketViewport.getByRole('button', { name: 'Lưu vé PNG' })).toBeDisabled()
   })
 
   test('gọi từ thanh sticky mở màn Web Call', async ({ page }) => {

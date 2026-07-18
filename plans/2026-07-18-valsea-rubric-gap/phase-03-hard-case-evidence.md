@@ -1,6 +1,6 @@
 ---
 title: Phase 03 — Synthetic hard-case evidence
-status: in-progress
+status: completed
 priority: P1
 effort: medium
 plan: 2026-07-18-valsea-rubric-gap
@@ -34,12 +34,12 @@ fallback or proxy production provider credentials.
 
 ## Checklist
 
-- [ ] Generate three synthetic fixtures and provenance manifest.
-- [ ] Implement/test WER, diff, English-token and tonal-diacritic metrics.
-- [ ] Implement evaluation script with secret/PII redaction and fail-closed keys.
-- [ ] Run both engines or record a truthful external blocker—never mock results.
-- [ ] Build `/evidence` from committed, validated result JSON.
-- [ ] Add unit and Playwright coverage.
+- [x] Generate three synthetic fixtures and provenance manifest.
+- [x] Implement/test WER, diff, English-token and tonal-diacritic metrics.
+- [x] Implement evaluation script with secret/PII redaction and fail-closed keys.
+- [x] Run both engines or record a truthful external blocker—never mock results.
+- [x] Build `/evidence` from committed, validated result JSON.
+- [x] Add unit and Playwright coverage.
 
 ## Acceptance
 

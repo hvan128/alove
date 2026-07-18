@@ -54,6 +54,7 @@ from booking_helpers import (
     encode_realtime_event,
 )
 from call_lifecycle import terminate_livekit_call
+from latency_metrics import TurnLatencyAggregator
 from provider_config import (
     non_valsea_warning,
     resolve_engine_and_stt,
@@ -546,6 +547,7 @@ class BusBookingAgent(Agent):
         super().__init__(instructions=bus_agent_instructions(today_vn))
         self._conversation_id = conversation_id
         self._room = room
+        self._latency_aggregator = TurnLatencyAggregator()
         self._ended = False
         # Chỉ bật khi confirm_booking thật sự ra vé, dùng để chọn câu kết.
         self._booked = False
@@ -678,7 +680,18 @@ class BusBookingAgent(Agent):
             except Exception:
                 pass
         try:
-            await context.session.say(normalize_for_speech(text), allow_interruptions=True)
+            result_handle = context.session.say(
+                normalize_for_speech(text),
+                allow_interruptions=True,
+            )
+            parent_speech_id = getattr(handle, "id", None)
+            child_speech_id = getattr(result_handle, "id", None)
+            if isinstance(parent_speech_id, str) and isinstance(child_speech_id, str):
+                self._latency_aggregator.link_speech(
+                    child_speech_id=child_speech_id,
+                    parent_speech_id=parent_speech_id,
+                )
+            await result_handle
         except Exception as exc:  # noqa: BLE001 — nói hỏng thì để mô hình tự xoay
             logger.warning("say kết quả thất bại: %s", exc)
             return
@@ -1027,12 +1040,13 @@ async def entrypoint(ctx: JobContext):
     session.on("agent_state_changed", _on_agent_state)
 
     usage_collector = metrics.UsageCollector()
+    latency_aggregator = agent._latency_aggregator
 
-    # Độ trễ mỗi lượt là tổng của ba chặng, không phải riêng chặng nào. Ghi từng
-    # chặng ra log để biết chỗ nào thật sự tốn thời gian thay vì đoán:
+    # Preemptive generation makes these stages overlap, so never add them into a
+    # fake end-to-end total. Publish all stages and label only the slowest one:
     #   eou  = từ lúc khách ngừng nói tới lúc chốt lượt (gồm cả thời gian chờ im lặng)
-    #   ttft = từ lúc chốt lượt tới chữ đầu tiên của mô hình
-    #   ttfb = từ lúc có chữ tới mẫu âm thanh đầu tiên
+    #   ttft = từ lúc bắt đầu request LLM tới token đầu tiên
+    #   ttfb = từ lúc bắt đầu request TTS tới mẫu âm thanh đầu tiên
     def _on_metrics(ev) -> None:
         try:
             usage_collector.collect(ev.metrics)
@@ -1053,6 +1067,9 @@ async def entrypoint(ctx: JobContext):
                 logger.info("[latency] ttft=%.0fms speech=%s", (getattr(m, "ttft", 0) or 0) * 1000, speech)
             elif kind == "tts_metrics" and not getattr(m, "cancelled", False):
                 logger.info("[latency] ttfb=%.0fms speech=%s", (getattr(m, "ttfb", 0) or 0) * 1000, speech)
+            turn_latency = latency_aggregator.observe(m)
+            if turn_latency is not None:
+                schedule_background(agent._publish(turn_latency.to_event_payload()))
         except Exception as exc:
             logger.debug("latency log failed: %s", exc)
 

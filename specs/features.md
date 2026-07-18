@@ -28,8 +28,8 @@ trong chính call ID. Cancel và release seats là một thao tác atomic.
 ## F-06: Persisted call audit
 
 Call lifecycle, transcript final và booking snapshot được ghi idempotent từ agent,
-với bounded retry. Không lưu partial transcript hoặc raw audio; external durable
-queue chưa nằm trong phạm vi hiện tại.
+với bounded retry. Không lưu partial transcript hoặc raw audio. Call-audit delivery
+chưa có durable queue; booking webhook dùng outbox Neon riêng.
 
 ## F-07: Operations dashboard
 
@@ -45,3 +45,21 @@ không được báo healthy khi booking không thể hoạt động.
 
 Call overlay trap/restore focus, hỗ trợ reduced motion, mobile ticket sheet và
 trạng thái lỗi mic/kết nối đọc được bằng assistive technology.
+
+## F-10: Semantic evidence
+
+Sau final customer transcript, agent có thể gọi VALSEA annotation và phát
+`semantic.annotation` qua LiveKit. Event là advisory evidence: không thay transcript,
+entity, intent hoặc booking, và lỗi provider không chặn cuộc gọi.
+
+## F-11: Machine-readable ticket output
+
+Ticket confirmed cung cấp QR tới `/verify?code=…`, JSON contract versioned và
+optional HMAC webhook qua durable outbox. Verify yêu cầu code+phone, rate limit
+phân tán và chỉ trả immutable minimal snapshot, không trả name/phone/internal ID.
+
+## F-12: Ephemeral turn latency
+
+UI hiển thị EOU, transcription, LLM TTFT, TTS TTFB của lượt hoàn chỉnh mới nhất.
+Vì preemptive stages có thể overlap, summary là chặng lâu nhất (`max`), không cộng
+thành end-to-end. Metric được reset khi mở call mới và không persist vào dashboard.

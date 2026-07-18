@@ -14,6 +14,7 @@ test('console hiện màn gọi với phiếu vé, không lỗi hydration', asyn
   await expect(page.getByRole('heading', { name: 'Nhà xe Mai Anh' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Bắt đầu Web Call' })).toBeEnabled()
   await expect(page.getByText('Đang thu thập')).toBeVisible()
+  await expect(page.getByLabel('Độ trễ lượt gần nhất')).toHaveCount(0)
   expect(hydrationErrors).toEqual([])
 })
 
@@ -29,6 +30,7 @@ test('không fallback về demo khi LiveKit chưa cấu hình', async ({ page })
   await expect(page.getByRole('button', { name: 'Thử lại' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Yêu cầu mẫu' })).toHaveCount(0)
   await expect(page.getByRole('textbox', { name: 'Lời khách hàng' })).toHaveCount(0)
+  await expect(page.getByLabel('Độ trễ lượt gần nhất')).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Kết thúc' }).click()
   await expect(page.getByText('Cuộc gọi đã kết thúc')).toBeVisible()

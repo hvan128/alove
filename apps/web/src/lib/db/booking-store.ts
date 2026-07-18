@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto'
 import { and, eq, gte, lte, sql } from 'drizzle-orm'
 
+import { bookingSnapshotSchema, type BookingSnapshot } from '@/lib/call-contract'
+
 import { requireDb } from './client'
-import { bookings, routes, seats, trips } from './schema'
+import { bookingWebhookOutbox, bookings, routes, seats, trips } from './schema'
 
 /**
  * Real inventory operations. The LLM decides *what the caller meant*; everything
@@ -429,6 +431,38 @@ export async function findBookings(input: {
 }
 
 /**
+ * Build the same confirmed BookingSnapshot contract used by the call UI from an
+ * authoritative booking row. The public verification route validates this full
+ * snapshot, then returns a PII-minimised projection rather than the raw object.
+ */
+export async function findBookingSnapshotForVerification(input: {
+  code: string
+  phone: string
+}): Promise<BookingSnapshot | null> {
+  const db = requireDb()
+  const [row] = await db
+    .select({
+      status: bookings.status,
+      verificationSnapshot: bookings.verificationSnapshot,
+      verificationSnapshotRequired: bookings.verificationSnapshotRequired,
+    })
+    .from(bookings)
+    .where(and(eq(bookings.code, input.code), eq(bookings.phone, input.phone)))
+    .orderBy(sql`${bookings.id} desc`)
+    .limit(1)
+
+  if (!row || row.status === 'cancelled') return null
+  if (row.verificationSnapshot === null) {
+    // Legacy rows without a trustworthy archived confirmation intentionally
+    // behave like an unknown ticket. A null on a required row is corruption and
+    // must still fail closed as an infrastructure error.
+    if (!row.verificationSnapshotRequired) return null
+    throw new Error('Required booking verification snapshot is missing')
+  }
+  return bookingSnapshotSchema.parse(row.verificationSnapshot)
+}
+
+/**
  * Cancel this call's booking and put its seats back on sale. Without this the
  * agent could only apologise when a caller changed their mind after confirming —
  * and the seats stayed locked to a ticket nobody wanted.
@@ -547,7 +581,15 @@ export async function confirmBooking(input: {
   passengerName: string
   phone: string
   confirmationText: string
-}): Promise<{ code: string; seatCodes: string[]; totalVnd: number; departureLabel: string; pickupPoint: string } | null> {
+  enqueueWebhook?: boolean
+}): Promise<{
+  code: string
+  seatCodes: string[]
+  totalVnd: number
+  departureLabel: string
+  pickupPoint: string
+  webhookEventId?: string
+} | null> {
   if (!isExplicitBookingConfirmation(input.confirmationText)) return null
 
   const db = requireDb()
@@ -563,6 +605,9 @@ export async function confirmBooking(input: {
       SELECT b.code,
              b.seat_codes AS "seatCodes",
              b.total_fare_vnd AS "totalVnd",
+             b.trip_id AS "tripId",
+             b.passenger_name AS "passengerName",
+             b.phone,
              t.departure_at AS "departureAt",
              t.pickup_point AS "pickupPoint"
       FROM ${bookings} AS b
@@ -571,8 +616,11 @@ export async function confirmBooking(input: {
       WHERE b.idempotency_key = ${idempotencyKey} AND b.status <> 'cancelled'
       LIMIT 1
     ), target_trip AS (
-      SELECT t.id, t.price_vnd, t.departure_at, t.pickup_point
+      SELECT t.id, t.price_vnd, t.departure_at, t.arrival_at,
+             t.vehicle_type, t.pickup_point, t.dropoff_point,
+             r.origin_city, r.destination_city
       FROM ${trips} AS t
+      INNER JOIN ${routes} AS r ON r.id = t.route_id
       CROSS JOIN call_lock
       WHERE t.id = ${input.tripId} AND t.active = 'yes'
     ), held AS (
@@ -594,7 +642,12 @@ export async function confirmBooking(input: {
              t.id AS trip_id,
              t.price_vnd,
              t.departure_at,
+             t.arrival_at,
+             t.vehicle_type,
              t.pickup_point,
+             t.dropoff_point,
+             t.origin_city,
+             t.destination_city,
              h.seat_codes
       FROM target_trip t
       CROSS JOIN held_summary h
@@ -620,7 +673,7 @@ export async function confirmBooking(input: {
     ), inserted AS (
       INSERT INTO ${bookings} (
         id, code, trip_id, call_id, passenger_name, phone, confirmation_text,
-        seat_codes, total_fare_vnd, idempotency_key
+        seat_codes, total_fare_vnd, verification_snapshot, idempotency_key
       )
       SELECT p.id,
              p.code,
@@ -631,26 +684,106 @@ export async function confirmBooking(input: {
              ${input.confirmationText},
              to_jsonb(p.seat_codes),
              p.price_vnd * cardinality(p.seat_codes),
+             jsonb_build_object(
+               'id', concat('booking-', p.id),
+               'conversationId', ${input.callId},
+               'status', 'confirmed',
+               'origin', p.origin_city,
+               'destination', p.destination_city,
+               'travelDateLabel', to_char(
+                 p.departure_at AT TIME ZONE 'Asia/Ho_Chi_Minh',
+                 'DD/MM/YYYY'
+               ),
+               'passengerCount', cardinality(p.seat_codes),
+               'selectedTrip', jsonb_build_object(
+                 'id', p.trip_id,
+                 'origin', p.origin_city,
+                 'destination', p.destination_city,
+                 'departureTime', to_char(
+                   p.departure_at AT TIME ZONE 'Asia/Ho_Chi_Minh',
+                   'HH24:MI'
+                 ),
+                 'arrivalTime', CASE WHEN p.arrival_at IS NULL THEN NULL ELSE to_char(
+                   p.arrival_at AT TIME ZONE 'Asia/Ho_Chi_Minh',
+                   'HH24:MI'
+                 ) END,
+                 'vehicleType', p.vehicle_type,
+                 'priceVnd', p.price_vnd,
+                 'pickupPoint', p.pickup_point,
+                 'dropoffPoint', p.dropoff_point,
+                 'seatNoun', CASE
+                   WHEN lower(p.vehicle_type) LIKE '%phòng%'
+                     OR lower(p.vehicle_type) LIKE '%cabin%' THEN 'phòng'
+                   WHEN lower(p.vehicle_type) LIKE '%giường%' THEN 'giường'
+                   ELSE 'ghế'
+                 END
+               ),
+               'seats', to_jsonb(p.seat_codes),
+               'passengerName', ${input.passengerName},
+               'phone', ${input.phone},
+               'totalFareVnd', p.price_vnd * cardinality(p.seat_codes),
+               'bookingCode', p.code
+             ),
              ${idempotencyKey}
       FROM prepared p
       CROSS JOIN (SELECT count(*)::int AS count FROM booked) booked_count
       WHERE booked_count.count = cardinality(p.seat_codes)
       RETURNING code,
                 seat_codes AS "seatCodes",
-                total_fare_vnd AS "totalVnd"
+                total_fare_vnd AS "totalVnd",
+                trip_id AS "tripId",
+                passenger_name AS "passengerName",
+                phone
     ), inserted_result AS (
       SELECT i.code,
              i."seatCodes",
              i."totalVnd",
+             i."tripId",
+             i."passengerName",
+             i.phone,
              t.departure_at AS "departureAt",
              t.pickup_point AS "pickupPoint"
       FROM inserted i
       CROSS JOIN target_trip t
+    ), confirmed_result AS (
+      SELECT * FROM existing
+      UNION ALL
+      SELECT * FROM inserted_result
+      LIMIT 1
+    ), queued_webhook AS (
+      INSERT INTO ${bookingWebhookOutbox} (event_id, payload)
+      SELECT concat('booking.confirmed.v1:', c.code),
+             jsonb_build_object(
+               'schemaVersion', '1.0',
+               'type', 'booking.confirmed',
+               'eventId', concat('booking.confirmed.v1:', c.code),
+               'booking', jsonb_build_object(
+                 'conversationId', ${input.callId},
+                 'tripId', c."tripId",
+                 'bookingCode', c.code,
+                 'passengerName', c."passengerName",
+                 'phone', c.phone,
+                 'seats', c."seatCodes",
+                 'totalFareVnd', c."totalVnd",
+                 'departureLabel', to_char(
+                   c."departureAt" AT TIME ZONE 'Asia/Ho_Chi_Minh',
+                   'DD/MM HH24:MI'
+                 ),
+                 'pickupPoint', c."pickupPoint"
+               )
+             )
+      FROM confirmed_result c
+      WHERE ${input.enqueueWebhook ?? false}
+      ON CONFLICT (event_id) DO NOTHING
+      RETURNING event_id
     )
-    SELECT * FROM existing
-    UNION ALL
-    SELECT * FROM inserted_result
-    LIMIT 1
+    SELECT c.*,
+           CASE WHEN ${input.enqueueWebhook ?? false}
+             THEN concat('booking.confirmed.v1:', c.code)
+             ELSE NULL
+           END AS "webhookEventId",
+           (SELECT count(*) FROM queued_webhook) AS "queuedWebhookCount"
+    FROM confirmed_result c
   `)
 
   const [row] = result.rows as unknown as Array<{
@@ -659,6 +792,7 @@ export async function confirmBooking(input: {
     totalVnd: number | string
     departureAt: Date | string
     pickupPoint: string
+    webhookEventId: string | null
   }>
   if (!row) return null
   return {
@@ -667,5 +801,6 @@ export async function confirmBooking(input: {
     totalVnd: Number(row.totalVnd),
     departureLabel: departureLabel(new Date(row.departureAt)),
     pickupPoint: row.pickupPoint,
+    ...(row.webhookEventId ? { webhookEventId: row.webhookEventId } : {}),
   }
 }

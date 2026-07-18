@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
+import Link from 'next/link'
 import {
   ArrowDownRight,
   ArrowRight,
@@ -303,7 +304,15 @@ export default async function HomePage() {
           <div className="inline-flex items-center gap-2 font-semibold text-[var(--ink)]">
             <BrandMark className="size-7" /> Alove <span className="font-normal text-[var(--muted)]">cho Nhà xe Mai Anh</span>
           </div>
-          <p className="inline-flex items-center gap-2">Lịch, giá và mã vé từ hệ thống vận hành <ArrowRight size={14} aria-hidden /></p>
+          <div className="flex flex-col items-start gap-3 sm:items-end">
+            <p className="inline-flex items-center gap-2">Lịch, giá và mã vé từ hệ thống vận hành <ArrowRight size={14} aria-hidden /></p>
+            <Link
+              href="/ban-to-chuc"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-4 font-medium text-[var(--ink)] transition hover:border-slate-300 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action-focus)]"
+            >
+              <ShieldCheck size={15} aria-hidden /> Khu vực ban tổ chức &amp; giám khảo
+            </Link>
+          </div>
         </div>
       </footer>
 

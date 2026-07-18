@@ -96,3 +96,17 @@ và bước reconcile cuối sẽ hoàn tất catalog canonical.
   `HH:MM`, duration là số phút dương.
 - CSV có giá trị chứa dấu phẩy phải đặt trong dấu nháy kép.
 - Seed vào database staging trước, kiểm tra landing/search/hold rồi mới chạy production.
+
+## Vé đã xác nhận và thay đổi catalog
+
+Mỗi booking confirmed giữ một `verification_snapshot` bất biến gồm đúng dữ liệu
+được phát hành trên vé. Seed hoặc chỉnh route/trip/vehicle/price sau đó không được
+viết lại snapshot này. Trang verify và JSON tải xuống đọc contract của vé đã phát
+hành, không dựng lại lịch sử từ catalog hiện tại.
+
+Migration expand để cột nullable nhằm giữ các booking legacy không có archived
+confirmed snapshot trung thực. `verification_snapshot_required=false` chỉ dành
+cho các hàng legacy đó; mọi booking mới giữ giá trị `true` và bị database check
+chặn nếu snapshot null. Trước khi promote, operator phải chạy required-row check
+theo `docs/deployment.md`; chỉ phục hồi từ confirmed booking snapshot đã lưu,
+không suy diễn từ giá hoặc lịch hiện tại.

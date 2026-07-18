@@ -1,0 +1,1 @@
+ALTER TABLE "bookings" ADD CONSTRAINT "bookings_verification_snapshot_required_check" CHECK (not "bookings"."verification_snapshot_required" or "bookings"."verification_snapshot" is not null);

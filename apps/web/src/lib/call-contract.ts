@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 export const vietnamesePhoneSchema = z.string().regex(/^(0(3|5|7|8|9)\d{8}|02\d{8,9})$/u)
+export const BOOKING_SNAPSHOT_SCHEMA_VERSION = '1.0' as const
 
 export const bookingStatusSchema = z.enum([
   'collecting',
@@ -23,6 +24,9 @@ export const tripSnapshotSchema = z.object({
 })
 
 export const bookingSnapshotSchema = z.object({
+  // Optional on the realtime wire for backward compatibility. Every downloaded
+  // machine-readable snapshot is stamped by createBookingSnapshotExport().
+  schemaVersion: z.literal(BOOKING_SNAPSHOT_SCHEMA_VERSION).optional(),
   id: z.string().min(1),
   conversationId: z.string().min(1),
   status: bookingStatusSchema,
@@ -80,6 +84,13 @@ export const callMessageSchema = z.object({
   final: z.boolean(),
 })
 
+export const bookingSnapshotExportSchema = bookingSnapshotSchema
+  .strict()
+  .refine(
+    (snapshot) => snapshot.schemaVersion === BOOKING_SNAPSHOT_SCHEMA_VERSION,
+    { path: ['schemaVersion'], message: 'Exported booking snapshot requires schema version 1.0.' },
+  )
+
 export const SEMANTIC_ANNOTATION_TEXT_MAX_CHARS = 4_096
 export const SEMANTIC_ANNOTATION_DISPLAY_MAX_CHARS = 80
 export const SEMANTIC_ANNOTATION_ITEMS_MAX = 16
@@ -108,6 +119,41 @@ export const semanticAnnotationSchema = z.object({
     .max(SEMANTIC_ANNOTATION_ITEMS_MAX),
 })
 
+const latencySecondsSchema = z.number().finite().nonnegative().max(300)
+
+export const turnLatencySchema = z.object({
+  speechId: z.string().min(1).max(128),
+  measuredAt: z.string().datetime(),
+  // With preemptive generation these stages can overlap. This summary is the
+  // slowest measured stage, not an end-to-end sum.
+  slowestStageSeconds: latencySecondsSchema,
+  endOfUtteranceSeconds: latencySecondsSchema,
+  transcriptionSeconds: latencySecondsSchema,
+  llmTtftSeconds: latencySecondsSchema,
+  ttsTtfbSeconds: latencySecondsSchema,
+}).superRefine((latency, context) => {
+  const expected = Math.max(
+    latency.endOfUtteranceSeconds,
+    latency.transcriptionSeconds,
+    latency.llmTtftSeconds,
+    latency.ttsTtfbSeconds,
+  )
+  if (latency.slowestStageSeconds !== expected) {
+    context.addIssue({
+      code: 'custom',
+      path: ['slowestStageSeconds'],
+      message: 'Slowest stage must match the measured EOU/transcription/TTFT/TTFB values.',
+    })
+  }
+  if (latency.transcriptionSeconds > latency.endOfUtteranceSeconds) {
+    context.addIssue({
+      code: 'custom',
+      path: ['transcriptionSeconds'],
+      message: 'Transcription delay cannot exceed the end-of-utterance delay.',
+    })
+  }
+})
+
 export const callWorkspaceSchema = z.object({
   conversationId: z.string().min(1),
   callStatus: callStatusSchema,
@@ -115,6 +161,7 @@ export const callWorkspaceSchema = z.object({
   endedAt: z.string().datetime().nullable(),
   messages: z.array(callMessageSchema),
   semanticAnnotations: z.array(semanticAnnotationSchema),
+  latestTurnLatency: turnLatencySchema.nullable(),
   booking: bookingSnapshotSchema,
 })
 
@@ -134,6 +181,10 @@ export const agentEventSchema = z.discriminatedUnion('type', [
     type: z.literal('semantic.annotation'),
     ...semanticAnnotationSchema.shape,
   }),
+  eventEnvelopeSchema.extend({
+    type: z.literal('latency.turn'),
+    latency: turnLatencySchema,
+  }),
   eventEnvelopeSchema.extend({ type: z.literal('call.end') }),
 ])
 
@@ -145,8 +196,20 @@ export type CallRole = z.infer<typeof callRoleSchema>
 export type CallMessageChannel = z.infer<typeof callMessageChannelSchema>
 export type CallMessage = z.infer<typeof callMessageSchema>
 export type SemanticAnnotation = z.infer<typeof semanticAnnotationSchema>
+export type TurnLatency = z.infer<typeof turnLatencySchema>
 export type CallWorkspace = z.infer<typeof callWorkspaceSchema>
 export type AgentEvent = z.infer<typeof agentEventSchema>
+
+export function createBookingSnapshotExport(snapshot: BookingSnapshot): BookingSnapshot {
+  return bookingSnapshotExportSchema.parse({
+    ...snapshot,
+    schemaVersion: BOOKING_SNAPSHOT_SCHEMA_VERSION,
+  })
+}
+
+export function serializeBookingSnapshot(snapshot: BookingSnapshot): string {
+  return `${JSON.stringify(createBookingSnapshotExport(snapshot), null, 2)}\n`
+}
 
 export function createEmptyBooking(conversationId: string): BookingSnapshot {
   return {
@@ -175,6 +238,7 @@ export function createInitialCallWorkspace(): CallWorkspace {
     endedAt: null,
     messages: [],
     semanticAnnotations: [],
+    latestTurnLatency: null,
     booking: createEmptyBooking(conversationId),
   }
 }

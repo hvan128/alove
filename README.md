@@ -7,6 +7,8 @@ giá, ghế và mã vé.
 
 Production duy nhất: <https://vedi-one.vercel.app/>
 
+Public repository: <https://github.com/hvan128/alove>
+
 ## Kiến trúc hiện hành
 
 ```text
@@ -33,8 +35,7 @@ Next.js booking API có bearer auth
 - `apps/web/drizzle`: migration duy nhất của hệ thống.
 - `data/mai-anh-seed`: dữ liệu vận hành để seed Neon.
 
-Không còn Fastify gateway, OrderVoice sales console, deterministic browser demo,
-`/engine`, Web Speech fallback hay `/api/booking/advance`.
+Các gateway cũ, browser fallback và luồng demo không authoritative đã được loại bỏ.
 
 ## Nguyên tắc dữ liệu và bảo mật
 
@@ -47,6 +48,10 @@ Không còn Fastify gateway, OrderVoice sales console, deterministic browser dem
   hold hết hạn không được bán hoặc xác nhận nhầm.
 - Tra cứu hay hủy vé của cuộc gọi trước cần cả mã vé và số điện thoại. Vé vừa tạo
   trong cuộc gọi hiện tại có thể hủy bằng call session đó.
+- QR chỉ chứa `/verify?code=…`; trang verify yêu cầu số điện thoại khớp trước khi
+  trả snapshot tối thiểu, bất biến của vé đã xác nhận.
+- JSON tải xuống dùng contract versioned. Webhook `booking.confirmed` là tùy chọn,
+  ký HMAC và đi qua durable outbox; lỗi giao webhook không hủy booking.
 - Dashboard là dữ liệu audit; nó không được dùng làm input quyết định booking.
 
 ## Chạy local
@@ -74,8 +79,17 @@ uv sync
 uv run python agent.py dev
 ```
 
-Web local: <http://localhost:3000>. `/` là trang khách, `/console` là màn gọi
-độc lập, `/dashboard` là màn vận hành có access key.
+Web local: <http://localhost:3000>. Các ngữ cảnh được tách riêng:
+
+- `/` và `/console`: hành trình của hành khách.
+- `/ban-to-chuc`: lối vào chấm thi, dẫn tới từng góc nhìn theo thứ tự rõ ràng.
+- `/evidence`: bằng chứng kỹ thuật dành cho bước đánh giá.
+- `/verify?code=…`: cổng xác minh vé công khai, luôn yêu cầu số điện thoại khớp.
+- `/dashboard`: màn vận hành nhà xe có access key, không phải dashboard của hành khách
+  hay ban tổ chức.
+
+Trên production, ban tổ chức bắt đầu tại
+<https://vedi-one.vercel.app/ban-to-chuc/>.
 
 ## Biến môi trường
 
@@ -89,6 +103,11 @@ Web local: <http://localhost:3000>. `/` là trang khách, `/console` là màn g�
 | `LIVEKIT_API_SECRET` | Có | Ký participant token và call-session capability |
 | `LIVEKIT_AGENT_NAME` | Có | Tên dispatch, mặc định `alove` |
 | `AGENT_WEBHOOK_SECRET` | Có | Secret ngẫu nhiên tối thiểu 32 byte bảo vệ booking/audit API |
+| `BOOKING_VERIFICATION_SECRET` | Có | HMAC key riêng cho rate-limit phân tán của `/verify`; tối thiểu 32 byte |
+| `BOOKING_WEBHOOK_URL` | Không | HTTPS endpoint nhà xe nhận `booking.confirmed` |
+| `BOOKING_WEBHOOK_SECRET` | Khi có URL | HMAC key riêng để ký webhook; tối thiểu 32 byte |
+| `BOOKING_WEBHOOK_ALLOWED_HOSTS` | Khi có URL | Allowlist hostname chính xác, phân tách bằng dấu phẩy |
+| `CRON_SECRET` | Có trên Vercel | Bảo vệ cron phục hồi outbox hằng ngày; tối thiểu 32 byte và tách khỏi secret khác |
 | `DASHBOARD_ACCESS_KEY` | Có nếu dùng dashboard | Khóa pilot tối thiểu 32 ký tự |
 
 ### Python agent
@@ -96,6 +115,11 @@ Web local: <http://localhost:3000>. `/` là trang khách, `/console` là màn g�
 Xem [`agent/.env.example`](agent/.env.example). Tối thiểu cần LiveKit credentials,
 `NEXTJS_API_URL`, `AGENT_WEBHOOK_SECRET` và credentials cho STT/LLM/TTS đã chọn.
 Web production phải được gọi qua `https://vedi-one.vercel.app/`.
+
+Với cascade, `STT_PROVIDER` trống hoặc không khai báo sẽ dùng `valsea`; giá trị
+không được hỗ trợ làm worker dừng khởi động. `speechmatics` và `openai` chỉ là lựa
+chọn A/B chủ động. `VALSEA_WS_URL` và `VALSEA_MODEL` là override tùy chọn; runtime
+mặc định chỉ cần `VALSEA_API_KEY` cho VALSEA.
 
 ### Probe VALSEA độc lập
 
@@ -119,6 +143,14 @@ VALSEA_PROBE_FIXTURE_PROVENANCE=synthetic-no-pii \
 HTTP và WebSocket đều gửi credential bằng `Authorization` header. Report được
 lọc credential, balance, email, số điện thoại và tên file local; không commit
 fixture hoặc output chưa được kiểm tra.
+
+### Bằng chứng hard-case
+
+`pnpm evidence:evaluate` gửi cùng ba WAV synthetic/no-PII (thanh điệu,
+code-switch và noisy telephone 8 kHz) tới VALSEA và Whisper với baseline
+`language=vi`, rồi cập nhật WER/diff/tone/English-retention cho `/evidence`.
+Lệnh gọi provider thật và tiêu tốn credits. Bộ synthetic này không chứng minh
+khả năng nhận giọng vùng miền; chỉ fixture thật có consent mới đóng được gap đó.
 
 ## Quality gates
 
@@ -147,3 +179,4 @@ cd agent && uv run python -m unittest discover -s tests
 - [Dữ liệu nhà xe](docs/operator-data-format.md)
 - [LiveKit SIP runbook](docs/pstn-sip-runbook.md)
 - [Quyết định STT/TTS](adrs/0009-valsea-stt-google-chirp3-tts.md)
+- [Checklist rubric và mức bằng chứng](docs/rubric-checklist.md)

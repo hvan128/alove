@@ -1,6 +1,7 @@
+import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { Banknote, PhoneCall, RefreshCw, Target, TicketCheck } from 'lucide-react'
+import { Banknote, LogOut, PhoneCall, RefreshCw, Target, TicketCheck } from 'lucide-react'
 
 import { AutoRefresh } from '@/components/dashboard/auto-refresh'
 import { CallTable } from '@/components/dashboard/call-table'
@@ -35,6 +36,12 @@ import {
 } from '@/lib/db/dashboard-store'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  title: 'Vận hành Nhà xe Mai Anh | Alove',
+  description: 'Màn hình nội bộ để theo dõi cuộc gọi, booking và mã vé Alove.',
+  robots: { index: false, follow: false },
+}
 
 const VN_TIME_ZONE = 'Asia/Ho_Chi_Minh'
 
@@ -73,6 +80,13 @@ async function login(formData: FormData) {
   redirect('/dashboard?error=1')
 }
 
+async function logout() {
+  'use server'
+  const store = await cookies()
+  store.delete(DASHBOARD_COOKIE)
+  redirect('/dashboard')
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -82,7 +96,9 @@ export default async function DashboardPage({
     return (
       <AuthShell>
         <BrandMark className="mx-auto size-12" />
-        <h1 className="mt-5 text-section font-semibold tracking-[-0.03em] text-[var(--ink)]">Dashboard chưa được bật</h1>
+        <h1 className="mt-5 text-section font-semibold tracking-[-0.03em] text-[var(--ink)]">
+          Màn hình vận hành chưa được bật
+        </h1>
         <p className="mt-2 text-ui leading-6 text-[var(--muted)]">
           Đặt biến môi trường <code className="font-mono text-[var(--ink)]">DASHBOARD_ACCESS_KEY</code> (tối thiểu 32 ký
           tự) để mở dashboard giám sát cuộc gọi.
@@ -96,8 +112,10 @@ export default async function DashboardPage({
     return (
       <AuthShell>
         <BrandMark className="mx-auto size-12" />
-        <h1 className="mt-5 text-section font-semibold tracking-[-0.03em] text-[var(--ink)]">Đăng nhập dashboard</h1>
-        <p className="mt-1 text-ui text-[var(--muted)]">Nhập khóa truy cập để xem cuộc gọi Alove.</p>
+        <h1 className="mt-5 text-section font-semibold tracking-[-0.03em] text-[var(--ink)]">
+          Đăng nhập màn hình vận hành
+        </h1>
+        <p className="mt-1 text-ui text-[var(--muted)]">Nhập khóa truy cập để xem cuộc gọi và booking Alove.</p>
         <DashboardLoginForm action={login} {...(error ? { error: 'Khóa không đúng.' } : {})} />
       </AuthShell>
     )
@@ -132,8 +150,8 @@ export default async function DashboardPage({
 
   return (
     <div className="min-h-dvh bg-[var(--canvas)]">
-      {/* Cuộc gọi kéo dài hàng phút — làm mới 5 giây một lần không thêm thông tin
-          mà nhân năm số lần quét Neon cho mỗi tab đang mở. */}
+      {/* Cuộc gọi kéo dài hàng phút — làm mới mỗi 15 giây giữ số liệu đủ gần thời
+          gian thực mà không nhân số lần quét Neon cho mỗi tab đang mở. */}
       <AutoRefresh seconds={15} />
 
       <header className="sticky top-0 z-20 border-b border-[var(--hairline)] bg-[color-mix(in_srgb,var(--canvas)_82%,transparent)] backdrop-blur-xl">
@@ -165,6 +183,14 @@ export default async function DashboardPage({
               <span className="hidden sm:inline">Cập nhật lúc</span>{' '}
               <span className="tabular-nums">{formatVnTime(now)}</span>
             </span>
+            <form action={logout}>
+              <button
+                type="submit"
+                className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-2.5 text-metric font-medium text-[var(--muted)] transition hover:bg-[var(--pearl)] hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action-focus)]"
+              >
+                <LogOut size={12} aria-hidden /> Đăng xuất
+              </button>
+            </form>
           </div>
         </div>
       </header>
