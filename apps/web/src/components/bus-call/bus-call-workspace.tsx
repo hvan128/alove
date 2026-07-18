@@ -108,7 +108,23 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
     if (!text.trim()) return
     setWorkspace((current) => {
       const id = `lk-${segmentId}`
-      const index = current.messages.findIndex((message) => message.id === id)
+      let index = current.messages.findIndex((message) => message.id === id)
+      // Streaming STT (VALSEA especially) emits a growing transcript — "Tôi",
+      // "Tôi đi", "Tôi đi từ Sài Gòn" — and not every provider reuses a segment
+      // id across those updates. Collapse by prefix so one utterance stays one
+      // bubble no matter how the ids behave.
+      if (index === -1) {
+        const last = current.messages.length - 1
+        const previous = current.messages[last]
+        if (
+          previous
+          && previous.role === role
+          && previous.channel === 'voice'
+          && (text.startsWith(previous.text) || previous.text.startsWith(text))
+        ) {
+          index = last
+        }
+      }
       const message: CallMessage = {
         id,
         conversationId: current.conversationId,

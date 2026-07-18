@@ -147,6 +147,24 @@ def detect_sip_caller(room) -> tuple[str, Optional[str]]:
     return "web", None
 
 
+# One shared client per worker process. A fresh httpx.AsyncClient per call
+# re-does DNS + TCP + TLS every turn — measured ~350ms Singapore->Singapore, all
+# of it inside the caller's wait for a reply. Keep-alive drops that to the round
+# trip alone.
+_http_client: Optional[httpx.AsyncClient] = None
+
+
+def api_client() -> httpx.AsyncClient:
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.AsyncClient(
+            timeout=10.0,
+            headers={"Authorization": f"Bearer {AGENT_WEBHOOK_SECRET}"},
+            limits=httpx.Limits(max_keepalive_connections=4, keepalive_expiry=300.0),
+        )
+    return _http_client
+
+
 async def post_call_event(
     conversation_id: str, event_type: str, channel: str = "web", caller_number: Optional[str] = None
 ) -> None:
@@ -155,12 +173,7 @@ async def post_call_event(
     if caller_number:
         body["callerNumber"] = caller_number
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            await client.post(
-                f"{NEXTJS_API_URL}/api/call/events",
-                json=body,
-                headers={"Authorization": f"Bearer {AGENT_WEBHOOK_SECRET}"},
-            )
+        await api_client().post(f"{NEXTJS_API_URL}/api/call/events", json=body)
     except Exception as exc:  # noqa: BLE001
         logger.warning("post_call_event(%s) failed: %s", event_type, exc)
 
@@ -318,13 +331,11 @@ class BusBookingAgent(Agent):
         if not self._conversation_id:
             return BACKEND_ERROR_REPLY
         url = f"{NEXTJS_API_URL}/api/booking/advance"
-        headers = {"Authorization": f"Bearer {AGENT_WEBHOOK_SECRET}"}
         body = {"conversationId": self._conversation_id, "draft": self._draft, "text": customer_message}
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.post(url, json=body, headers=headers)
-                resp.raise_for_status()
-                data = resp.json()
+            resp = await api_client().post(url, json=body)
+            resp.raise_for_status()
+            data = resp.json()
         except Exception as exc:  # noqa: BLE001 — booking backend down → safe fallback
             logger.error("advance_booking failed: %s", exc)
             return BACKEND_ERROR_REPLY

@@ -116,6 +116,9 @@ class VALSEASpeechStream(stt.SpeechStream):
         self._api_key = api_key
         self._language = language
         self._sr = sample_rate
+        # Set when VALSEA answers session.ready; audio sent before that is refused
+        # with NOT_READY, so send_task buffers until this fires.
+        self._ready = asyncio.Event()
 
     async def _run(self) -> None:
         async with aiohttp.ClientSession() as http:
@@ -140,6 +143,11 @@ class VALSEASpeechStream(stt.SpeechStream):
                 )
 
                 async def send_task() -> None:
+                    # VALSEA rejects audio with NOT_READY until it has answered
+                    # session.ready. Buffer the caller's opening words instead of
+                    # dropping them — without this the first ~1-3s of every
+                    # utterance is lost and the agent answers a truncated sentence.
+                    pending: list[bytes] = []
                     # The base stream resamples mic audio to self._sr and yields
                     # rtc.AudioFrame; a FlushSentinel marks end-of-utterance.
                     async for data in self._input_ch:
@@ -148,8 +156,19 @@ class VALSEASpeechStream(stt.SpeechStream):
                         if isinstance(data, self._FlushSentinel):
                             continue
                         frame: rtc.AudioFrame = data
-                        if not ws.closed:
-                            await ws.send_bytes(bytes(frame.data))
+                        if ws.closed:
+                            continue
+                        audio = bytes(frame.data)
+                        if not self._ready.is_set():
+                            # ~10s of 16k mono audio; far more than the handshake needs.
+                            if len(pending) < 320:
+                                pending.append(audio)
+                            continue
+                        if pending:
+                            for buffered in pending:
+                                await ws.send_bytes(buffered)
+                            pending.clear()
+                        await ws.send_bytes(audio)
                     if not ws.closed:
                         await ws.send_str(json.dumps({"type": "session.stop"}))
 
@@ -174,6 +193,9 @@ class VALSEASpeechStream(stt.SpeechStream):
 
     def _emit(self, raw: dict) -> None:
         event_type = raw.get("type")
+        if event_type == "session.ready":
+            self._ready.set()
+            return
         if event_type == "error":
             logger.warning("VALSEA error: %s %s", raw.get("code"), raw.get("message"))
             return
