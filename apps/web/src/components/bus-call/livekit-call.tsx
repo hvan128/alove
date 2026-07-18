@@ -11,7 +11,7 @@ import {
   useTranscriptions,
 } from '@livekit/components-react'
 import { ConnectionState } from 'livekit-client'
-import { Loader2, Mic, MicOff, PhoneOff } from 'lucide-react'
+import { Loader2, Mic, MicOff, PhoneOff, RotateCcw } from 'lucide-react'
 import { type BookingDraft, bookingDraftSchema } from '@ordervoice/contracts'
 
 import { useRingback } from '@/hooks/use-ringback'
@@ -25,6 +25,10 @@ export type LiveKitAgentState = 'idle' | 'listening' | 'thinking' | 'speaking'
 const REDISPATCH_AFTER_MS = 12_000
 const REDISPATCH_MAX_TRIES = 3
 
+// Hết chừng này mà phòng vẫn không có ai thì thôi không đổ chuông nữa: người gọi
+// cần một lối ra, không phải tiếng tút vô tận. Bằng đúng số lần thử dispatch.
+const GIVE_UP_AFTER_MS = REDISPATCH_AFTER_MS * (REDISPATCH_MAX_TRIES + 1)
+
 type LiveKitCallProps = {
   conversationId: string
   /** Upsert a transcript segment into the workspace message list (keyed by id). */
@@ -33,6 +37,8 @@ type LiveKitCallProps = {
   onBooking: (booking: BookingDraft) => void
   /** Mirror the worker's listening/thinking/speaking state into the stage orb. */
   onAgentState?: (state: LiveKitAgentState) => void
+  /** Gọi lại từ đầu sau khi chờ mãi không có tổng đài viên nào vào phòng. */
+  onRetry?: () => void
   onEnded: () => void
 }
 
@@ -109,6 +115,7 @@ export function LiveKitCall(props: LiveKitCallProps) {
         onTranscript={props.onTranscript}
         onBooking={props.onBooking}
         {...(props.onAgentState ? { onAgentState: props.onAgentState } : {})}
+        {...(props.onRetry ? { onRetry: props.onRetry } : {})}
         onEnded={props.onEnded}
       />
     </LiveKitRoom>
@@ -120,13 +127,15 @@ function RoomBridge({
   onTranscript,
   onBooking,
   onAgentState,
+  onRetry,
   onEnded,
-}: Pick<LiveKitCallProps, 'conversationId' | 'onTranscript' | 'onBooking' | 'onAgentState' | 'onEnded'>) {
+}: Pick<LiveKitCallProps, 'conversationId' | 'onTranscript' | 'onBooking' | 'onAgentState' | 'onRetry' | 'onEnded'>) {
   const connectionState = useConnectionState()
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant()
   const remoteParticipants = useRemoteParticipants()
   const transcriptions = useTranscriptions()
   const [agentState, setAgentState] = useState<LiveKitAgentState>('idle')
+  const [gaveUp, setGaveUp] = useState(false)
   const redispatchTries = useRef(0)
 
   // Chuông chờ chạy tới lúc tổng đài viên cất tiếng, không phải lúc vào phòng:
@@ -135,7 +144,20 @@ function RoomBridge({
   const agentHasSpoken = transcriptions.some(
     (seg) => seg.participantInfo?.identity !== localParticipant.identity && seg.text.trim().length > 0,
   )
-  useRingback(!agentHasSpoken && agentState !== 'speaking')
+  useRingback(!gaveUp && !agentHasSpoken && agentState !== 'speaking')
+
+  // Chờ mãi không ai vào phòng thì phải nói thật với người gọi. Không có mốc này
+  // thì chuông cứ đổ vô tận và người gọi ngồi nghe tút giữa buổi demo.
+  useEffect(() => {
+    if (connectionState !== ConnectionState.Connected || remoteParticipants.length > 0) return
+    const timer = window.setTimeout(() => setGaveUp(true), GIVE_UP_AFTER_MS)
+    return () => {
+      window.clearTimeout(timer)
+      // Agent vào phòng (hoặc mất kết nối rồi nối lại) thì bắt đầu đếm lại từ
+      // đầu, không mang theo lần bỏ cuộc trước.
+      setGaveUp(false)
+    }
+  }, [connectionState, remoteParticipants.length])
 
   // Self-heal a silent line: the token's agent dispatch is one-shot, so if it
   // fired while no worker was ready nobody ever joins and the caller just hears
@@ -217,6 +239,34 @@ function RoomBridge({
         reliable: true,
       })
       .catch(() => {})
+  }
+
+  if (gaveUp && !agentJoined) {
+    return (
+      <div className="flex flex-col items-center gap-3 text-center" role="alert">
+        <p className="text-sm text-white/80">
+          Tổng đài đang bận, chưa có ai bắt máy. Anh chị thử gọi lại giúp em ạ.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {onRetry ? (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[var(--action)] px-4 text-sm font-medium text-[var(--on-action)] transition hover:bg-[var(--action-hover)]"
+            >
+              <RotateCcw className="size-4" aria-hidden /> Gọi lại
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onEnded}
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 text-sm font-medium text-white/90 transition hover:bg-white/15"
+          >
+            <PhoneOff className="size-4" aria-hidden /> Đóng
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (

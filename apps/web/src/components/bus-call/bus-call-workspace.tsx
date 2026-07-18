@@ -9,6 +9,7 @@ import { cn } from '@/lib/cn'
 import { CallStage } from './call-stage'
 import { TicketCard } from './ticket-card'
 import { TicketResult } from './ticket-result'
+import { TicketSheet } from './ticket-sheet'
 import { VehicleSeatVisual } from './vehicle-seat-visual'
 import { LiveKitCall, type LiveKitAgentState } from './livekit-call'
 
@@ -256,14 +257,18 @@ export function BusCallWorkspace({ initialWorkspace, variant = 'page', controlRe
                 onTranscript={upsertLiveTranscript}
                 onBooking={applyLiveBooking}
                 onAgentState={setLiveAgentState}
+                onRetry={startCall}
                 onEnded={endCall}
               />
             ) : undefined
           }
         />
+        {/* Màn hẹp: phiếu thu lại thành thanh peek chạm-để-mở, nhường chỗ cho
+            caption và nút bấm. Từ lg trở lên mới trải hai cột như cũ. */}
+        <TicketSheet booking={workspace.booking} />
         <div
           className={cn(
-            'grid h-full min-w-0 gap-5 transition-[grid-template-columns] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)]',
+            'hidden h-full min-w-0 gap-5 transition-[grid-template-columns] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] lg:grid',
             workspace.booking.selectedTrip && workspace.booking.status !== 'confirmed'
               ? 'grid-cols-1 xl:grid-cols-[minmax(420px,480px)_380px]'
               : 'grid-cols-1 xl:grid-cols-[0px_380px]',

@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, LazyMotion, domAnimation, m, useReducedMotion } from 'framer-motion'
 import { PhoneCall } from 'lucide-react'
 import { createInitialBusDemoWorkspace } from '@/lib/bus-demo'
@@ -33,6 +34,7 @@ export function CallOverlay({ layoutKey, label = 'Gọi để đặt xe', classN
   const [open, setOpen] = useState(false)
   const controls = useRef<BusCallControls | null>(null)
   const started = useRef(false)
+  const panelRef = useRef<HTMLDivElement | null>(null)
   const reduceMotion = useReducedMotion()
   // reduced-motion: bỏ layoutId (không morph), thay bằng fade nhanh.
   const morphProps = reduceMotion ? {} : { layoutId: `call-cta-${layoutKey}`, transition: MORPH_SPRING }
@@ -48,14 +50,42 @@ export function CallOverlay({ layoutKey, label = 'Gọi để đặt xe', classN
     setOpen(false)
   }, [])
 
-  // Khoá scroll trang + ESC đóng + mốc chặn auto-start khi overlay mở.
+  // Khoá scroll trang + ESC đóng + giữ tiêu điểm bàn phím trong panel + mốc
+  // chặn auto-start khi overlay mở.
   useEffect(() => {
     if (!open) return
     started.current = false
     const previousOverflow = document.body.style.overflow
+    const previouslyFocused = document.activeElement as HTMLElement | null
     document.body.style.overflow = 'hidden'
+    panelRef.current?.focus()
+
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') close()
+      if (event.key === 'Escape') {
+        // Bảng hội thoại đầy đủ là dialog con nằm trong panel: ESC phải đóng nó
+        // trước, không thì một phím lỡ tay cúp luôn cuộc gọi đang chạy.
+        if (panelRef.current?.querySelector('[role="dialog"]')) return
+        close()
+        return
+      }
+      if (event.key !== 'Tab') return
+      const panel = panelRef.current
+      if (!panel) return
+      const focusable = panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (!first || !last) return
+      // Vòng tiêu điểm khép kín: Tab ra khỏi panel sẽ rơi vào trang mờ phía sau,
+      // người dùng bàn phím mất dấu con trỏ giữa cuộc gọi.
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
     window.addEventListener('keydown', onKey)
     // reduced-motion không có morph để chờ — bắt đầu gọi ngay, khỏi bắt khách đợi 800ms.
@@ -64,6 +94,7 @@ export function CallOverlay({ layoutKey, label = 'Gọi để đặt xe', classN
       document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', onKey)
       window.clearTimeout(fallback)
+      previouslyFocused?.focus?.()
     }
   }, [open, close, startOnce, reduceMotion])
 
@@ -88,6 +119,14 @@ export function CallOverlay({ layoutKey, label = 'Gọi để đặt xe', classN
         </m.button>
       )}
 
+      {/* Panel treo thẳng vào body: thanh gọi sticky trên mobile có backdrop-blur,
+          mà một ancestor có filter thì biến position:fixed thành neo vào chính nó
+          — overlay từng bị nhốt trong dải cao 70px ở đáy màn thay vì phủ kín. */}
+      {/* Server render không có document; lúc hydrate portal chưa có con nào
+          (overlay chỉ mở sau cú bấm) nên không lệch markup. */}
+      {typeof document === 'undefined'
+        ? null
+        : createPortal(
       <AnimatePresence>
         {open ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-6">
@@ -99,9 +138,11 @@ export function CallOverlay({ layoutKey, label = 'Gọi để đặt xe', classN
               exit={{ opacity: 0 }}
             />
             <m.div
+              ref={panelRef}
               role="dialog"
               aria-modal="true"
               aria-label="Cuộc gọi đặt vé nhà xe Mai Anh"
+              tabIndex={-1}
               style={{ borderRadius: 24 }}
               onLayoutAnimationComplete={startOnce}
               className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-[var(--canvas)] shadow-[var(--shadow-panel)] sm:h-[min(760px,92dvh)] sm:max-w-6xl"
@@ -131,7 +172,9 @@ export function CallOverlay({ layoutKey, label = 'Gọi để đặt xe', classN
             </m.div>
           </div>
         ) : null}
-      </AnimatePresence>
+      </AnimatePresence>,
+            document.body,
+          )}
     </LazyMotion>
   )
 }
