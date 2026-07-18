@@ -11,6 +11,13 @@ import httpx
 
 
 DEFAULT_API_BASE_URL = "https://api.valsea.ai"
+MAX_ANNOTATION_TEXT_CHARS = 4_096
+MAX_HTTP_RESPONSE_BYTES = 64 * 1_024
+MAX_JSON_NESTING = 8
+MAX_JSON_ITEM_NODES = 64
+MAX_JSON_RESPONSE_NODES = 512
+MAX_ANNOTATION_ITEMS = 16
+MAX_DISPLAY_CHARS = 80
 
 
 class ValseaAnnotationResponseError(ValueError):
@@ -20,6 +27,10 @@ class ValseaAnnotationResponseError(ValueError):
 def _required_string(value: object, path: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValseaAnnotationResponseError(f"{path} must be a non-empty string")
+    if len(value) > MAX_ANNOTATION_TEXT_CHARS:
+        raise ValseaAnnotationResponseError(
+            f"{path} must not exceed {MAX_ANNOTATION_TEXT_CHARS} characters"
+        )
     return value
 
 
@@ -28,6 +39,10 @@ def _optional_string(value: object, path: str) -> Optional[str]:
         return None
     if not isinstance(value, str):
         raise ValseaAnnotationResponseError(f"{path} must be a string when present")
+    if len(value) > MAX_ANNOTATION_TEXT_CHARS:
+        raise ValseaAnnotationResponseError(
+            f"{path} must not exceed {MAX_ANNOTATION_TEXT_CHARS} characters"
+        )
     return value
 
 
@@ -37,19 +52,49 @@ def _optional_array(payload: Mapping[str, object], field: str) -> list[object]:
         return []
     if not isinstance(value, list):
         raise ValseaAnnotationResponseError(f"{field} must be an array when present")
+    if len(value) > MAX_ANNOTATION_ITEMS:
+        raise ValseaAnnotationResponseError(
+            f"{field} must not contain more than {MAX_ANNOTATION_ITEMS} items"
+        )
     return value
 
 
-def _is_json_value(value: object) -> bool:
-    if value is None or isinstance(value, (str, bool, int)):
-        return True
-    if isinstance(value, float):
-        return math.isfinite(value)
-    if isinstance(value, list):
-        return all(_is_json_value(item) for item in value)
-    if isinstance(value, dict):
-        return all(isinstance(key, str) and _is_json_value(item) for key, item in value.items())
-    return False
+def _validate_json_value(value: object, *, path: str, max_nodes: int) -> None:
+    """Validate bounded finite JSON iteratively so hostile nesting cannot recurse."""
+
+    stack: list[tuple[object, int]] = [(value, 0)]
+    node_count = 0
+    while stack:
+        current, depth = stack.pop()
+        node_count += 1
+        if node_count > max_nodes:
+            raise ValseaAnnotationResponseError(
+                f"{path} must not exceed {max_nodes} JSON nodes"
+            )
+        if depth > MAX_JSON_NESTING:
+            raise ValseaAnnotationResponseError(
+                f"{path} must not exceed JSON nesting depth {MAX_JSON_NESTING}"
+            )
+
+        if current is None or isinstance(current, (str, bool, int)):
+            continue
+        if isinstance(current, float):
+            if not math.isfinite(current):
+                raise ValseaAnnotationResponseError(
+                    f"{path} must be a finite JSON value"
+                )
+            continue
+        if isinstance(current, list):
+            stack.extend((item, depth + 1) for item in reversed(current))
+            continue
+        if isinstance(current, dict):
+            if not all(isinstance(key, str) for key in current):
+                raise ValseaAnnotationResponseError(
+                    f"{path} must have string JSON object keys"
+                )
+            stack.extend((item, depth + 1) for item in reversed(tuple(current.values())))
+            continue
+        raise ValseaAnnotationResponseError(f"{path} must be a finite JSON value")
 
 
 def _display_json_value(value: object, preferred_keys: tuple[str, ...]) -> str:
@@ -68,7 +113,11 @@ def _display_json_value(value: object, preferred_keys: tuple[str, ...]) -> str:
             )
     else:
         display = json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
-    return display if len(display) <= 240 else f"{display[:239]}…"
+    return (
+        display
+        if len(display) <= MAX_DISPLAY_CHARS
+        else f"{display[: MAX_DISPLAY_CHARS - 1]}…"
+    )
 
 
 @dataclass(frozen=True)
@@ -86,9 +135,14 @@ class AnnotationValue:
         path: str,
         preferred_keys: tuple[str, ...],
     ) -> AnnotationValue:
-        if not _is_json_value(value):
-            raise ValseaAnnotationResponseError(f"{path} must be a finite JSON value")
-        return cls(value=value, display=_display_json_value(value, preferred_keys))
+        _validate_json_value(value, path=path, max_nodes=MAX_JSON_ITEM_NODES)
+        try:
+            display = _display_json_value(value, preferred_keys)
+        except (RecursionError, ValueError) as exc:
+            raise ValseaAnnotationResponseError(
+                f"{path} must be a finite JSON value"
+            ) from exc
+        return cls(value=value, display=display)
 
 
 @dataclass(frozen=True)
@@ -104,6 +158,11 @@ class ValseaAnnotationResponse:
     def from_json(cls, payload: object) -> ValseaAnnotationResponse:
         if not isinstance(payload, dict):
             raise ValseaAnnotationResponseError("annotation response must be a JSON object")
+        _validate_json_value(
+            payload,
+            path="annotation response",
+            max_nodes=MAX_JSON_RESPONSE_NODES,
+        )
         return cls(
             text=_required_string(payload.get("text"), "text"),
             raw_text=_optional_string(payload.get("raw_text"), "raw_text"),
@@ -163,7 +222,14 @@ class ValseaAPIClient:
     async def annotate(self, text: str) -> ValseaAnnotationResponse:
         if not isinstance(text, str) or not text.strip():
             raise ValueError("annotation text must not be empty")
-        response = await self._http_client.post(
+        if len(text) > MAX_ANNOTATION_TEXT_CHARS:
+            raise ValueError(
+                f"annotation text must not exceed {MAX_ANNOTATION_TEXT_CHARS} characters"
+            )
+
+        body = bytearray()
+        async with self._http_client.stream(
+            "POST",
             self._endpoint,
             headers={"Authorization": f"Bearer {self._api_key}"},
             json={
@@ -175,11 +241,19 @@ class ValseaAPIClient:
                 "enable_tags": True,
             },
             timeout=self._timeout_seconds,
-        )
-        response.raise_for_status()
+        ) as response:
+            response.raise_for_status()
+            async for chunk in response.aiter_bytes():
+                if len(body) + len(chunk) > MAX_HTTP_RESPONSE_BYTES:
+                    raise ValseaAnnotationResponseError(
+                        "annotation response exceeds "
+                        f"{MAX_HTTP_RESPONSE_BYTES} bytes"
+                    )
+                body.extend(chunk)
+
         try:
-            payload = response.json()
-        except ValueError as exc:
+            payload = json.loads(body)
+        except (RecursionError, UnicodeDecodeError, ValueError) as exc:
             raise ValseaAnnotationResponseError(
                 "annotation response must contain valid JSON"
             ) from exc

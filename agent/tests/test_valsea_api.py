@@ -6,12 +6,30 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import httpx
+import valsea_api
 
 from valsea_api import (
+    MAX_ANNOTATION_ITEMS,
+    MAX_ANNOTATION_TEXT_CHARS,
+    MAX_DISPLAY_CHARS,
+    MAX_HTTP_RESPONSE_BYTES,
+    MAX_JSON_ITEM_NODES,
+    MAX_JSON_NESTING,
+    MAX_JSON_RESPONSE_NODES,
+    AnnotationValue,
     ValseaAPIClient,
     ValseaAnnotationResponse,
     ValseaAnnotationResponseError,
 )
+
+
+class _ChunkedStream(httpx.AsyncByteStream):
+    def __init__(self, *chunks: bytes) -> None:
+        self._chunks = chunks
+
+    async def __aiter__(self):
+        for chunk in self._chunks:
+            yield chunk
 
 
 class ValseaAnnotationResponseTest(unittest.TestCase):
@@ -79,6 +97,92 @@ class ValseaAnnotationResponseTest(unittest.TestCase):
         )
         self.assertEqual(response.accent_corrections[0].value, 7)
 
+    def test_top_level_text_fields_enforce_character_limit(self) -> None:
+        boundary = "x" * MAX_ANNOTATION_TEXT_CHARS
+        response = ValseaAnnotationResponse.from_json(
+            {
+                "text": boundary,
+                "raw_text": boundary,
+                "annotated_text": boundary,
+            }
+        )
+        self.assertEqual(response.text, boundary)
+
+        for field in ("text", "raw_text", "annotated_text"):
+            with self.subTest(field=field):
+                payload = {"text": "ok", field: f"{boundary}x"}
+                with self.assertRaises(ValseaAnnotationResponseError):
+                    ValseaAnnotationResponse.from_json(payload)
+
+    def test_provider_arrays_enforce_item_limit(self) -> None:
+        fields = ("accent_corrections", "semantic_tags", "annotations")
+        boundary_payload = {
+            "text": "ok",
+            **{field: ["value"] * MAX_ANNOTATION_ITEMS for field in fields},
+        }
+        response = ValseaAnnotationResponse.from_json(boundary_payload)
+        self.assertEqual(len(response.accent_corrections), MAX_ANNOTATION_ITEMS)
+        self.assertEqual(len(response.semantic_tags), MAX_ANNOTATION_ITEMS)
+        self.assertEqual(len(response.annotations), MAX_ANNOTATION_ITEMS)
+
+        for field in fields:
+            with self.subTest(field=field):
+                with self.assertRaises(ValseaAnnotationResponseError):
+                    ValseaAnnotationResponse.from_json(
+                        {"text": "ok", field: ["value"] * (MAX_ANNOTATION_ITEMS + 1)}
+                    )
+
+    def test_display_values_are_normalized_to_event_safe_length(self) -> None:
+        item = AnnotationValue.from_json(
+            "x" * (MAX_DISPLAY_CHARS + 1),
+            path="semantic_tags[0]",
+            preferred_keys=("tag",),
+        )
+
+        self.assertEqual(len(item.display), MAX_DISPLAY_CHARS)
+        self.assertTrue(item.display.endswith("…"))
+        self.assertEqual(item.value, "x" * (MAX_DISPLAY_CHARS + 1))
+
+    def test_excessive_json_depth_and_node_budgets_are_rejected_iteratively(self) -> None:
+        at_depth_limit: object = "leaf"
+        for _ in range(MAX_JSON_NESTING - 1):
+            at_depth_limit = [at_depth_limit]
+        ValseaAnnotationResponse.from_json(
+            {"text": "ok", "extra": at_depth_limit}
+        )
+
+        item_at_node_limit = [0] * (MAX_JSON_ITEM_NODES - 1)
+        AnnotationValue.from_json(
+            item_at_node_limit,
+            path="annotations[0]",
+            preferred_keys=("phrase",),
+        )
+
+        response_at_node_limit = {
+            "text": "ok",
+            "extra": [0] * (MAX_JSON_RESPONSE_NODES - 3),
+        }
+        ValseaAnnotationResponse.from_json(response_at_node_limit)
+
+        too_deep: object = at_depth_limit
+        for _ in range(1_000):
+            too_deep = [too_deep]
+
+        with self.assertRaises(ValseaAnnotationResponseError):
+            ValseaAnnotationResponse.from_json({"text": "ok", "extra": too_deep})
+
+        with self.assertRaises(ValseaAnnotationResponseError):
+            AnnotationValue.from_json(
+                [0] * MAX_JSON_ITEM_NODES,
+                path="annotations[0]",
+                preferred_keys=("phrase",),
+            )
+
+        with self.assertRaises(ValseaAnnotationResponseError):
+            ValseaAnnotationResponse.from_json(
+                {"text": "ok", "extra": [0] * MAX_JSON_RESPONSE_NODES}
+            )
+
     def test_malformed_provider_fields_fail_validation(self) -> None:
         invalid_payloads = [
             [],
@@ -122,6 +226,67 @@ class ValseaAPIClientTest(unittest.IsolatedAsyncioTestCase):
             response = await client.annotate(source)
 
         self.assertEqual(response.text, "Cho tôi hai vé đi Vinh.")
+
+    async def test_request_text_enforces_character_limit_before_http(self) -> None:
+        request_count = 0
+
+        def handler(_request: httpx.Request) -> httpx.Response:
+            nonlocal request_count
+            request_count += 1
+            return httpx.Response(200, json={"text": "ok"})
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
+            client = ValseaAPIClient(api_key="key", http_client=http_client)
+            await client.annotate("x" * MAX_ANNOTATION_TEXT_CHARS)
+            with self.assertRaises(ValueError):
+                await client.annotate("x" * (MAX_ANNOTATION_TEXT_CHARS + 1))
+
+        self.assertEqual(request_count, 1)
+
+    async def test_streamed_http_response_is_capped_before_json_parse(self) -> None:
+        prefix = b'{"text":"ok","padding":"'
+        suffix = b'"}'
+        boundary_body = (
+            prefix
+            + (b"x" * (MAX_HTTP_RESPONSE_BYTES - len(prefix) - len(suffix)))
+            + suffix
+        )
+
+        boundary_transport = httpx.MockTransport(
+            lambda _request: httpx.Response(200, content=boundary_body)
+        )
+        async with httpx.AsyncClient(transport=boundary_transport) as http_client:
+            client = ValseaAPIClient(api_key="key", http_client=http_client)
+            response = await client.annotate("đặt vé")
+        self.assertEqual(response.text, "ok")
+
+        def handler(_request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                stream=_ChunkedStream(
+                    b'{"text":"ok","extra":"',
+                    b"x" * MAX_HTTP_RESPONSE_BYTES,
+                    b'"}',
+                ),
+            )
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
+            client = ValseaAPIClient(api_key="key", http_client=http_client)
+            with patch.object(valsea_api.json, "loads") as json_loads:
+                with self.assertRaises(ValseaAnnotationResponseError):
+                    await client.annotate("đặt vé")
+
+        json_loads.assert_not_called()
+
+    async def test_json_decoder_recursion_error_is_reported_as_schema_error(self) -> None:
+        transport = httpx.MockTransport(
+            lambda _request: httpx.Response(200, content=b'{"text":"ok"}')
+        )
+        async with httpx.AsyncClient(transport=transport) as http_client:
+            client = ValseaAPIClient(api_key="key", http_client=http_client)
+            with patch.object(valsea_api.json, "loads", side_effect=RecursionError):
+                with self.assertRaises(ValseaAnnotationResponseError):
+                    await client.annotate("đặt vé")
 
     async def test_http_and_schema_failures_are_not_hidden_by_client(self) -> None:
         for provider_response, expected_error in [
