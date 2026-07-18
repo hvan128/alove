@@ -58,13 +58,14 @@ export function CallOverlay({ layoutKey, label = 'Gọi để đặt xe', classN
       if (event.key === 'Escape') close()
     }
     window.addEventListener('keydown', onKey)
-    const fallback = window.setTimeout(startOnce, START_FALLBACK_MS)
+    // reduced-motion không có morph để chờ — bắt đầu gọi ngay, khỏi bắt khách đợi 800ms.
+    const fallback = window.setTimeout(startOnce, reduceMotion ? 0 : START_FALLBACK_MS)
     return () => {
       document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', onKey)
       window.clearTimeout(fallback)
     }
-  }, [open, close, startOnce])
+  }, [open, close, startOnce, reduceMotion])
 
   return (
     <LazyMotion features={domAnimation} strict>

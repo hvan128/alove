@@ -163,7 +163,7 @@ export function CallStage({
         {conversation.length === 0 && !interimText ? (
           <div className="flex flex-col items-center text-center">
             {connected ? (
-              <p className="text-lg font-medium text-white/90">Hãy nói, nhập nội dung hoặc chọn câu mẫu</p>
+              <p className="text-lg font-medium text-white/90">Hãy nói tự nhiên — tổng đài viên đang nghe</p>
             ) : (
               <Button onClick={onStart} className="px-6">
                 <PhoneCall size={17} aria-hidden /> Bắt đầu Web Call
