@@ -293,7 +293,7 @@ const evidenceFixtureSchema = z.object({
         state.transcript,
         fixture.expectedEnglishTokens,
       )
-      if (JSON.stringify(state.metrics) !== JSON.stringify(recomputed)) {
+      if (!evidenceMetricsMatch(state.metrics, recomputed)) {
         context.addIssue({
           code: 'custom',
           message: 'Succeeded engine metrics and diff must match deterministic recomputation.',
@@ -431,6 +431,43 @@ function englishAllowlistIssues(
     available.set(token, remaining - 1)
   }
   return issues
+}
+
+function evidenceMetricsMatch(actual: EvidenceMetrics, expected: EvidenceMetrics): boolean {
+  const actualWer = actual.wordErrorRate
+  const expectedWer = expected.wordErrorRate
+  if (
+    !ratesMatch(actualWer.value, expectedWer.value)
+    || actualWer.edits !== expectedWer.edits
+    || actualWer.referenceWords !== expectedWer.referenceWords
+    || actualWer.diff.length !== expectedWer.diff.length
+  ) return false
+
+  for (const [index, actualOperation] of actualWer.diff.entries()) {
+    const expectedOperation = expectedWer.diff[index]
+    if (
+      expectedOperation === undefined
+      || actualOperation.type !== expectedOperation.type
+      || actualOperation.reference !== expectedOperation.reference
+      || actualOperation.hypothesis !== expectedOperation.hypothesis
+    ) return false
+  }
+
+  for (const metricName of ['englishTokenRetention', 'vietnameseToneRetention'] as const) {
+    const actualRetention = actual[metricName]
+    const expectedRetention = expected[metricName]
+    if (
+      actualRetention.retained !== expectedRetention.retained
+      || actualRetention.total !== expectedRetention.total
+      || !ratesMatch(actualRetention.value, expectedRetention.value)
+    ) return false
+  }
+  return true
+}
+
+function ratesMatch(actual: number | null, expected: number | null): boolean {
+  if (actual === null || expected === null) return actual === expected
+  return Math.abs(actual - expected) <= 1e-12
 }
 
 export function parseFixtureManifest(value: unknown): FixtureManifest {

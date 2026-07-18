@@ -275,6 +275,12 @@ describe('hard-case evidence result schema', () => {
   it('accepts deterministic succeeded metrics and rejects metric or diff tampering', () => {
     expect(() => parseEvidenceResults(validCompleteResults())).not.toThrow()
 
+    const roundingDifference = validCompleteResults()
+    const roundingFixture = (roundingDifference.fixtures as MutableEvidenceFixture[])[0]!
+    const roundingResult = roundingFixture.engines.valsea.result as MutableSucceededResult
+    roundingResult.metrics.wordErrorRate.value += Number.EPSILON
+    expect(() => parseEvidenceResults(roundingDifference)).not.toThrow()
+
     const metricTamper = validCompleteResults()
     const metricFixture = (metricTamper.fixtures as MutableEvidenceFixture[])[0]!
     const metricResult = metricFixture.engines.valsea.result as MutableSucceededResult
