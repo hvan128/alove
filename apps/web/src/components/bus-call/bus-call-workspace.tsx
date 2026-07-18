@@ -23,6 +23,11 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
   const [lastSpoken, setLastSpoken] = useState('')
   const sequence = useRef(0)
 
+  // LiveKit transport (auto mode only): the agent worker owns STT, booking and
+  // TTS. Declared before the handlers below because they all read it to stay
+  // inert while the worker holds the call.
+  const liveKitActive = LIVEKIT_ENABLED && workspace.mode === 'auto' && workspace.callStatus === 'connected'
+
   useEffect(() => {
     if (workspace.callStatus !== 'connected' || !workspace.startedAt) return
     const startedAt = new Date(workspace.startedAt).getTime()
@@ -88,6 +93,11 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
   }
 
   const submitCustomer = (text: string, channel: CallMessageChannel = 'preset') => {
+    // With LiveKit carrying the call, the agent worker owns the booking against
+    // real inventory. Running the in-browser demo engine as well produced two
+    // agents on one line: its device-voice replies leaked out of the speakers,
+    // the mic picked them up, and the worker answered its own echo.
+    if (liveKitActive) return
     if (workspace.callStatus !== 'connected' || workspace.booking.status === 'confirmed') return
     const customer = createMessage('customer', text, channel)
     const turn = advanceBookingAgent(workspace.booking, customer)
@@ -100,6 +110,7 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
   }
 
   const sendStaffReply = () => {
+    if (liveKitActive) return
     const text = staffReply.trim()
     if (!text) return
     if (workspace.callStatus !== 'connected') return
@@ -109,6 +120,7 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
   }
 
   const confirmByStaff = () => {
+    if (liveKitActive) return
     if (workspace.callStatus !== 'connected' || workspace.booking.status === 'confirmed') return
     const booking = confirmBooking(workspace.booking, 'staff')
     const reply = `Em đã xác nhận vé. Mã vé ${booking.bookingCode}, ghế ${booking.seats.join(', ')}.`
@@ -124,9 +136,12 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
     },
   })
 
-  // LiveKit transport (auto mode only): the agent worker owns STT/booking/TTS and
-  // streams transcript + authoritative booking back over the room's data channel.
-  const liveKitActive = LIVEKIT_ENABLED && workspace.mode === 'auto' && workspace.callStatus === 'connected'
+  // A browser mic left running from before the call would keep transcribing —
+  // including the agent's own voice coming out of the speakers — and feed it
+  // straight back into the demo engine. Shut it down once LiveKit takes over.
+  useEffect(() => {
+    if (liveKitActive) recognition.stop()
+  }, [liveKitActive, recognition])
 
   const upsertLiveTranscript = (segmentId: string, role: 'customer' | 'agent', text: string) => {
     if (!text.trim()) return
@@ -172,6 +187,10 @@ export function BusCallWorkspace({ initialWorkspace }: { initialWorkspace: BusDe
   }
 
   function speakReply(text: string) {
+    // The agent's voice already arrives through the LiveKit room; speaking again
+    // with the device voice is what put a second, different-sounding agent on the
+    // call and fed the microphone.
+    if (liveKitActive) return
     setLastSpoken(text)
     const result = speakVietnamese(text)
     setSpeechStatus(result === 'speaking' ? 'Đang phát giọng tiếng Việt của thiết bị.' : 'Thiết bị không hỗ trợ giọng đọc. Nội dung text vẫn đầy đủ.')

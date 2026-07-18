@@ -345,6 +345,7 @@ class BusBookingAgent(Agent):
         # Last offers/hold, mirrored to the browser so the ticket card matches
         # what the caller is being told.
         self._selected_trip: Optional[dict] = None
+        self._offers: dict[str, dict] = {}
 
     async def _publish(self, payload: dict) -> None:
         if self._room is None:
@@ -355,6 +356,49 @@ class BusBookingAgent(Agent):
             )
         except Exception as exc:  # noqa: BLE001 — data-channel best-effort
             logger.debug("publish_data failed: %s", exc)
+
+    def _draft_payload(self, **over) -> dict:
+        """A complete BookingDraft for the browser's ticket card.
+
+        The card reads every field (and calls .join on the arrays), so a partial
+        object would blow up the UI — always send the whole shape, using nulls and
+        empty lists for what is not known yet."""
+        trip = self._selected_trip or {}
+        offer = trip.get("offer") or {}
+        base = {
+            "id": f"booking-{self._conversation_id}",
+            "conversationId": self._conversation_id,
+            "status": "collecting",
+            "origin": offer.get("originCity"),
+            "destination": offer.get("destinationCity"),
+            "travelDateLabel": offer.get("departureLabel"),
+            "timeWindow": None,
+            "passengerCount": trip.get("seatsHeld"),
+            "selectedTrip": (
+                {
+                    "id": offer.get("tripId") or trip.get("tripId") or "",
+                    "origin": offer.get("originCity") or "",
+                    "destination": offer.get("destinationCity") or "",
+                    "departureTime": (offer.get("departureLabel") or "")[-5:] or "00:00",
+                    "arrivalTime": "00:00",
+                    "vehicleType": offer.get("vehicleType") or "",
+                    "priceVnd": trip.get("priceVnd") or offer.get("priceVnd") or 0,
+                    "pickupPoint": offer.get("pickupPoint") or "",
+                    "dropoffPoint": offer.get("dropoffPoint") or "",
+                    "availableSeats": trip.get("seatCodes") or [],
+                }
+                if offer or trip.get("tripId")
+                else None
+            ),
+            "seats": trip.get("seatCodes") or [],
+            "passengerName": None,
+            "phone": None,
+            "totalFareVnd": trip.get("totalVnd"),
+            "bookingCode": None,
+            "evidenceMessageIds": [],
+        }
+        base.update(over)
+        return base
 
     async def _call_api(self, path: str, body: dict) -> Optional[dict]:
         try:
@@ -390,6 +434,7 @@ class BusBookingAgent(Agent):
         )
         if data is None:
             return {"error": "backend_unavailable"}
+        self._offers = {t["tripId"]: t for t in data.get("trips", [])}
         return data
 
     @function_tool()
@@ -408,8 +453,11 @@ class BusBookingAgent(Agent):
         )
         if data is None:
             return {"error": "backend_unavailable"}
-        self._selected_trip = {"tripId": trip_id, **data}
-        await self._publish({"type": "booking.hold", "hold": self._selected_trip})
+        self._selected_trip = {"tripId": trip_id, "offer": self._offers.get(trip_id, {}), **data}
+        if data.get("held"):
+            await self._publish(
+                {"type": "booking.update", "booking": self._draft_payload(status="trip_proposed")}
+            )
         return data
 
     @function_tool()
@@ -436,7 +484,18 @@ class BusBookingAgent(Agent):
         if data is None:
             return {"error": "backend_unavailable"}
         if data.get("confirmed"):
-            await self._publish({"type": "booking.confirmed", "ticket": data})
+            await self._publish({
+                "type": "booking.update",
+                "booking": self._draft_payload(
+                    status="confirmed",
+                    passengerName=passenger_name,
+                    phone=phone,
+                    seats=data.get("seatCodes") or [],
+                    totalFareVnd=data.get("totalVnd"),
+                    bookingCode=data.get("code"),
+                    passengerCount=len(data.get("seatCodes") or []),
+                ),
+            })
         return data
 
     @function_tool()
