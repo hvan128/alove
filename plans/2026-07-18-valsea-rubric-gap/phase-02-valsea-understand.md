@@ -1,6 +1,6 @@
 ---
 title: Phase 02 — Advisory VALSEA annotations
-status: in-progress
+status: completed
 priority: P1
 effort: medium
 plan: 2026-07-18-valsea-rubric-gap
@@ -35,13 +35,13 @@ semantic.annotation never mutates BookingSnapshot
 
 ## Checklist
 
-- [ ] Validate annotation response with optional corrections/tags/annotations.
-- [ ] Call annotation asynchronously only for final customer text.
-- [ ] Publish `semantic.annotation` through ordered `alove-events` envelope.
-- [ ] Add Zod event variant and contract tests.
-- [ ] Render corrected text/tags with an honest empty state.
-- [ ] Ensure annotation failure cannot break the call or booking flow.
-- [ ] Compare call behavior with annotation success/failure in tests.
+- [x] Validate annotation response with optional corrections/tags/annotations.
+- [x] Call annotation asynchronously only for final customer text.
+- [x] Publish `semantic.annotation` through ordered `alove-events` envelope.
+- [x] Add Zod event variant and contract tests.
+- [x] Render corrected text/tags with an honest empty state.
+- [x] Ensure annotation failure cannot break the call or booking flow.
+- [x] Compare call behavior with annotation success/failure in tests.
 
 ## Acceptance
 

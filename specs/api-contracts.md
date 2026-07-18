@@ -89,11 +89,23 @@ schema hợp lệ và sequence lớn hơn event đã nhận.
 `semantic.annotation` là event có thứ tự trong cùng envelope `callId` / `eventId` /
 `sequence` như các realtime agent event khác. `timestamp` là thời điểm Alove
 tạo event sau khi nhận response annotation, không phải timestamp do VALSEA trả về;
-giá trị là chuỗi ISO 8601. `sourceTranscript` là final customer transcript đã
-gửi tới `POST /v1/annotations` và được giữ nguyên. `correctedText` được
-map từ provider field `text`; adapter bỏ field này nếu giá trị rỗng hoặc giống
-hệt `sourceTranscript`. `tags` và `annotations` luôn có mặt trong event, nhưng
-mỗi mảng có thể rỗng.
+giá trị là chuỗi ISO 8601 UTC kết thúc bằng `Z`. `sourceTranscript` là final
+customer transcript đã gửi tới `POST /v1/annotations` và được giữ nguyên.
+`correctedText` được map từ provider field `text`; response có `text` rỗng bị
+coi là không hợp lệ, còn adapter chỉ bỏ `correctedText` khi giá trị hợp lệ đó
+giống hệt `sourceTranscript`. `tags` và `annotations` luôn có mặt trong event,
+nhưng mỗi mảng có thể rỗng.
+
+Để event luôn nằm trong budget của LiveKit data channel, source/corrected text
+tối đa 4.096 Unicode code point; mỗi mảng tối đa 16 item và mỗi chuỗi hiển thị
+tối đa 80 code point. Python producer và Zod consumer đếm cùng đơn vị này.
+Adapter stream response với trần 64 KiB trước khi parse, đồng thời giới hạn JSON
+ở depth 8, 64 node mỗi item và 512 node toàn response. Vượt bất kỳ budget nào
+được xử lý như response không hợp lệ và không ảnh hưởng call/booking flow.
+Event hoàn chỉnh được serialize thành compact UTF-8 JSON (`ensure_ascii=false`)
+và phải nằm trong 60 KiB, gồm cả ordering envelope; producer bỏ event vượt trần
+và browser cũng từ chối raw payload vượt trần trước khi decode. Khoảng đệm này
+giữ packet dưới giới hạn end-to-end của LiveKit.
 
 Probe live Phase 00 chỉ xác nhận response shape sau:
 
