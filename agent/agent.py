@@ -31,6 +31,8 @@ from livekit.agents import (
     Agent,
     AgentServer,
     AgentSession,
+    AudioConfig,
+    BackgroundAudioPlayer,
     JobContext,
     JobProcess,
     RunContext,
@@ -142,35 +144,21 @@ ROOM_PREFIX = "booking-"
 #
 # Bắn ngay lúc lượt khách chốt, KHÔNG chờ mô hình nghĩ xong, nên nó phủ trọn
 # khoảng chờ chứ không phải chỉ phần đuôi.
-THINKING_CLIPS = [
-    ("da.wav", "Dạ."),
-    ("um.wav", "Ừm."),
-    ("da-vang.wav", "Dạ vâng."),
-    ("vang.wav", "Vâng ạ."),
-]
+THINKING_CLIPS = ["da.wav", "um.wav", "da-vang.wav", "vang.wav"]
 THINKING_SOUND_ON = os.getenv("THINKING_SOUND", "on").lower() == "on"
 SOUND_SAMPLE_RATE = 24000
 
 
-def _load_wav(path: Path) -> Optional[bytes]:
-    """PCM thô của tệp WAV 16-bit mono, bỏ header 44 byte."""
-    try:
-        raw = path.read_bytes()
-    except OSError as exc:
-        logger.warning("không đọc được câu đệm %s: %s", path, exc)
-        return None
-    return raw[44:] if len(raw) > 44 else None
-
-
 def load_thinking_clips() -> list:
+    """Đường dẫn các clip câu đệm còn tồn tại."""
     base = Path(__file__).resolve().parent / "sounds"
     clips = []
-    for name, text in THINKING_CLIPS:
-        pcm = _load_wav(base / name)
-        if pcm:
-            clips.append((text, pcm))
+    for name in THINKING_CLIPS:
+        path = base / name
+        if path.exists():
+            clips.append(str(path))
         else:
-            logger.warning("thiếu câu đệm %s", name)
+            logger.warning("thiếu câu đệm %s", path)
     return clips
 
 def bus_agent_instructions(today_vn: str) -> str:
@@ -566,6 +554,7 @@ class BusBookingAgent(Agent):
         self._offers: dict[str, dict] = {}
         self._thinking_clips = load_thinking_clips() if THINKING_SOUND_ON else []
         self._last_filler: Optional[str] = None
+        self._filler_player = None
         # Epoch-millisecond buckets keep ordering monotonic across a worker
         # redispatch/restart; the final three digits order same-process events.
         self._event_sequence = (time.time_ns() // 1_000_000) * 1_000
@@ -583,33 +572,21 @@ class BusBookingAgent(Agent):
     async def on_user_turn_completed(self, turn_ctx, new_message) -> None:
         """Phát câu đệm ngay khi lượt khách chốt, trước cả khi mô hình kịp nghĩ.
 
-        Đặt ở đây chứ không bám trạng thái "đang nghĩ" của phiên: trạng thái đó
+        Phát bằng player chứ không phải session.say: say kèm text sẽ đẩy câu đệm
+        lên transcript như một lượt nói thật, làm bản ghi hội thoại rối vì toàn
+        những tiếng ừm với dạ không mang nội dung gì.
+
+        Bắn ở đây chứ không bám trạng thái "đang nghĩ" của phiên: trạng thái đó
         vào lần thứ hai sau khi agent vừa nói câu báo đang tra cứu, nên câu đệm
         chen vào giữa hai câu của chính agent, nghe rất giả."""
-        if not self._thinking_clips:
+        player = self._filler_player
+        if player is None or not self._thinking_clips:
             return
-        choices = [c for c in self._thinking_clips if c[0] != self._last_filler] or self._thinking_clips
-        text, pcm = random.choice(choices)
-        self._last_filler = text
-
-        async def frames():
-            step = SOUND_SAMPLE_RATE * 2 // 10  # khung 100ms
-            for start in range(0, len(pcm), step):
-                chunk = pcm[start:start + step]
-                if len(chunk) < 2:
-                    continue
-                yield rtc.AudioFrame(
-                    data=chunk,
-                    sample_rate=SOUND_SAMPLE_RATE,
-                    num_channels=1,
-                    samples_per_channel=len(chunk) // 2,
-                )
-
+        choices = [c for c in self._thinking_clips if c != self._last_filler] or self._thinking_clips
+        path = random.choice(choices)
+        self._last_filler = path
         try:
-            # add_to_chat_ctx=False: câu đệm không phải nội dung hội thoại, đưa vào
-            # ngữ cảnh chỉ làm mô hình tưởng mình đã trả lời rồi.
-            self.session.say(text, audio=frames(), allow_interruptions=True,
-                             add_to_chat_ctx=False)
+            player.play(AudioConfig(path, volume=1.0, fade_out=0.15))
         except Exception as exc:  # noqa: BLE001 — câu đệm hỏng không được làm chết lượt
             logger.warning("không phát được câu đệm: %s", exc)
 
@@ -1097,6 +1074,20 @@ async def entrypoint(ctx: JobContext):
             audio_input=room_io.AudioInputOptions(noise_cancellation=cancellation),
         ),
     )
+
+    # Player cho câu đệm. KHÔNG truyền agent_session: làm vậy LiveKit sẽ tự phát
+    # theo trạng thái "đang nghĩ", tức là phát cả ở vòng gọi mô hình thứ hai và
+    # chen vào giữa hai câu của chính agent. Ở đây chỉ phát khi được gọi tay từ
+    # on_user_turn_completed.
+    if THINKING_SOUND_ON and agent._thinking_clips:
+        filler_player = BackgroundAudioPlayer()
+        try:
+            await filler_player.start(room=ctx.room)
+            agent._filler_player = filler_player
+            ctx.add_shutdown_callback(filler_player.aclose)
+            logger.info("Câu đệm: %d clip", len(agent._thinking_clips))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("không bật được câu đệm: %s", exc)
 
     # AI speaks first — greet AFTER the session is live so the greeting isn't dropped.
     await session.generate_reply(
