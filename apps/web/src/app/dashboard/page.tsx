@@ -1,17 +1,55 @@
-import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { ChevronRight, Globe, KeyRound, Phone, PhoneCall, RefreshCw } from 'lucide-react'
+import { Banknote, KeyRound, PhoneCall, RefreshCw, Target, TicketCheck } from 'lucide-react'
 
-import { Panel } from '@/components/ui/panel'
+import { AutoRefresh } from '@/components/dashboard/auto-refresh'
+import { CallTable } from '@/components/dashboard/call-table'
+import {
+  ChannelSection,
+  EmptyBlock,
+  ExpiringHoldsSection,
+  FunnelSection,
+  SectionCard,
+  StorageNotConfigured,
+  TopRoutesSection,
+  TrendSection,
+  UpcomingTripsSection,
+} from '@/components/dashboard/dashboard-sections'
+import { KpiCard } from '@/components/dashboard/kpi-card'
+import { BrandMark } from '@/components/ui/brand-mark'
 import { TextInput } from '@/components/ui/input'
 import { DASHBOARD_COOKIE, dashboardAccessKey, hasDashboardCookie, keyMatches } from '@/lib/dashboard-auth'
-import { listRecentCalls, type CallSummary } from '@/lib/db/dashboard-store'
-import { AutoRefresh } from '@/components/dashboard/auto-refresh'
-import { BrandMark } from '@/components/ui/brand-mark'
-import { BookingStatusBadge, CallStatusBadge } from '@/components/dashboard/status-badge'
+import { formatCompactVnd, formatPercent, formatVnd } from '@/lib/dashboard-format'
+import {
+  getDashboardMetrics,
+  listExpiringHolds,
+  listRecentCalls,
+  listUpcomingTrips,
+  windowBounds,
+} from '@/lib/db/dashboard-store'
 
 export const dynamic = 'force-dynamic'
+
+const VN_TIME_ZONE = 'Asia/Ho_Chi_Minh'
+
+function formatVnTime(value: Date): string {
+  return value.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    timeZone: VN_TIME_ZONE,
+  })
+}
+
+function formatVnStamp(value: Date): string {
+  return value.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: VN_TIME_ZONE,
+  })
+}
 
 async function login(formData: FormData) {
   'use server'
@@ -37,9 +75,9 @@ export default async function DashboardPage({
   if (!dashboardAccessKey()) {
     return (
       <AuthShell>
-        <Brand />
-        <h1 className="mt-5 text-lg font-semibold tracking-[-0.025em] text-[var(--ink)]">Dashboard chưa được bật</h1>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+        <BrandMark className="mx-auto size-12" />
+        <h1 className="mt-5 text-section font-semibold tracking-[-0.03em] text-[var(--ink)]">Dashboard chưa được bật</h1>
+        <p className="mt-2 text-ui leading-6 text-[var(--muted)]">
           Đặt biến môi trường <code className="font-mono text-[var(--ink)]">DASHBOARD_ACCESS_KEY</code> (tối thiểu 8 ký
           tự) để mở dashboard giám sát cuộc gọi.
         </p>
@@ -51,9 +89,9 @@ export default async function DashboardPage({
     const { error } = await searchParams
     return (
       <AuthShell>
-        <Brand />
-        <h1 className="mt-5 text-lg font-semibold tracking-[-0.025em] text-[var(--ink)]">Đăng nhập dashboard</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">Nhập khóa truy cập để xem cuộc gọi Alove.</p>
+        <BrandMark className="mx-auto size-12" />
+        <h1 className="mt-5 text-section font-semibold tracking-[-0.03em] text-[var(--ink)]">Đăng nhập dashboard</h1>
+        <p className="mt-1 text-ui text-[var(--muted)]">Nhập khóa truy cập để xem cuộc gọi Alove.</p>
         <form action={login} className="mt-5 flex flex-col gap-3 text-left">
           <TextInput
             label="Khóa truy cập"
@@ -66,7 +104,7 @@ export default async function DashboardPage({
           />
           <button
             type="submit"
-            className="mt-1 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--action)] px-4 text-sm font-medium text-[var(--on-action)] transition hover:bg-[var(--action-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action-focus)] active:scale-[0.98]"
+            className="mt-1 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--action)] px-4 text-ui font-medium text-[var(--on-action)] transition hover:bg-[var(--action-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action-focus)] active:scale-[0.98]"
           >
             <KeyRound size={16} aria-hidden /> Vào dashboard
           </button>
@@ -75,162 +113,175 @@ export default async function DashboardPage({
     )
   }
 
-  const callList = await listRecentCalls()
-  const activeCount = callList?.filter((row) => row.status === 'active').length ?? 0
-  const confirmedCount = callList?.filter((row) => row.latestBooking?.status === 'confirmed').length ?? 0
+  // Các truy vấn độc lập nhau — chạy song song để trang không đợi nhiều vòng.
+  const [callList, metrics, upcoming, holds] = await Promise.all([
+    listRecentCalls(),
+    getDashboardMetrics(),
+    listUpcomingTrips(),
+    listExpiringHolds(),
+  ])
+
+  // Mốc render dùng chung cho dòng khung thời gian và cho đồng hồ đếm ghế giữ.
+  const now = new Date()
+  const bounds = windowBounds(now)
+
+  // metrics null nghĩa là chưa có DATABASE_URL. Cả bốn loader cùng phụ thuộc
+  // getDb() nên chỉ cần một trạng thái "chưa cấu hình", không lặp lại ở dưới.
+  if (metrics === null) {
+    return (
+      <div className="min-h-dvh bg-[var(--canvas)]">
+        <main className="mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6">
+          <StorageNotConfigured />
+        </main>
+      </div>
+    )
+  }
+
+  const activeCalls = metrics.activeCalls
+  const conversionSpark = metrics.hourly.map((point) => (point.calls > 0 ? point.confirmed / point.calls : 0))
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col gap-5 px-4 py-6 sm:px-6">
-      <AutoRefresh seconds={5} />
+    <div className="min-h-dvh bg-[var(--canvas)]">
+      {/* Cuộc gọi kéo dài hàng phút — làm mới 5 giây một lần không thêm thông tin
+          mà nhân năm số lần quét Neon cho mỗi tab đang mở. */}
+      <AutoRefresh seconds={15} />
 
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <BrandMark className="size-11 shrink-0" />
-          <div>
-            <h1 className="text-xl font-semibold tracking-[-0.035em] text-[var(--ink)]">Alove Giám sát</h1>
-            <p className="text-sm text-[var(--muted)]">Cuộc gọi đặt vé — trực tiếp và lịch sử</p>
+      <header className="sticky top-0 z-20 border-b border-[var(--hairline)] bg-[color-mix(in_srgb,var(--canvas)_82%,transparent)] backdrop-blur-xl">
+        <div className="mx-auto flex min-h-14 w-full max-w-[1280px] flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <BrandMark className="size-7 shrink-0" />
+            <h1 className="truncate text-ui font-semibold tracking-[-0.015em] text-[var(--ink)]">Giám sát cuộc gọi</h1>
+            <span className="hidden text-metric text-[var(--muted)] sm:inline">Alove · đặt vé xe khách</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-2.5 py-1 text-metric font-medium text-[var(--ink)]">
+              {activeCalls > 0 ? (
+                <>
+                  <span className="size-1.5 animate-pulse rounded-full bg-[var(--success)]" aria-hidden />
+                  <span className="tabular-nums">{activeCalls}</span> cuộc đang diễn ra
+                </>
+              ) : (
+                <>
+                  <span className="size-1.5 rounded-full bg-[var(--muted)]" aria-hidden />
+                  Không có cuộc đang diễn ra
+                </>
+              )}
+            </span>
+            {/* Mốc cập nhật thật thay cho lời hứa "mỗi 5 giây": nếu refresh hỏng
+                thì con số này đứng im và người trực nhìn ra ngay. */}
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-2.5 py-1 text-metric text-[var(--muted)]">
+              <RefreshCw size={12} aria-hidden />
+              <span className="hidden sm:inline">Cập nhật lúc</span>{' '}
+              <span className="tabular-nums">{formatVnTime(now)}</span>
+            </span>
           </div>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--muted)]">
-          <RefreshCw size={13} aria-hidden /> Tự cập nhật mỗi 5 giây
-        </span>
       </header>
 
-      {callList !== null ? (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <StatTile
-            label="Đang diễn ra"
-            value={activeCount}
-            hint="cuộc gọi đang kết nối"
-            live={activeCount > 0}
+      <main className="mx-auto flex w-full max-w-[1280px] flex-col gap-4 px-4 py-5 sm:px-6 sm:py-6">
+        {/* Cửa sổ 24 giờ là mốc trượt tính từ lúc render, không phải "từ 0h" —
+            ghi mốc tuyệt đối ra để không ai phải đoán. */}
+        <p className="text-metric text-[var(--muted)]">
+          Số liệu 24 giờ:{' '}
+          <span className="tabular-nums text-[var(--ink)]">{formatVnStamp(new Date(bounds.curFrom))}</span>
+          {' → '}
+          <span className="tabular-nums text-[var(--ink)]">{formatVnStamp(new Date(bounds.curTo))}</span> (giờ Việt Nam)
+        </p>
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <KpiCard
+            label="Cuộc gọi 24 giờ"
+            value={String(metrics.calls.current)}
+            icon={PhoneCall}
+            delta={metrics.calls}
+            deltaSuffix="so với 24 giờ liền trước"
+            spark={metrics.hourly.map((point) => point.calls)}
+            sparkTone="action"
+            sparkLabel="Theo giờ"
+            sparkAriaLabel="Số cuộc gọi theo từng giờ"
           />
-          <StatTile label="Đã giữ vé" value={confirmedCount} hint="booking xác nhận thành công" />
-          <StatTile label="Cuộc gọi gần đây" value={callList.length} hint="tối đa 50 cuộc mới nhất" />
+          <KpiCard
+            label="Đã giữ vé"
+            value={String(metrics.confirmed.current)}
+            icon={TicketCheck}
+            delta={metrics.confirmed}
+            deltaSuffix="so với 24 giờ liền trước"
+            spark={metrics.hourly.map((point) => point.confirmed)}
+            sparkTone="success"
+            sparkLabel="Theo giờ"
+            sparkAriaLabel="Số vé giữ được theo từng giờ"
+          />
+          {/* "Tiền vé đã chốt" chứ không phải "Doanh thu": bookings vẫn đứng ở
+              pending_payment và payments chưa ghi dòng nào — chưa thu đồng nào. */}
+          <KpiCard
+            label="Tiền vé đã chốt"
+            value={formatCompactVnd(metrics.revenueVnd.current)}
+            valueLabel={formatVnd(metrics.revenueVnd.current)}
+            icon={Banknote}
+            delta={metrics.revenueVnd}
+            deltaSuffix="so với 24 giờ liền trước"
+            spark={metrics.daily.map((point) => point.confirmed)}
+            sparkTone="action"
+            sparkLabel="Số vé / ngày"
+            sparkAriaLabel="Số vé giữ được theo từng ngày"
+          />
+          <KpiCard
+            label="Tỉ lệ chốt"
+            value={formatPercent(metrics.conversionRate.current)}
+            icon={Target}
+            delta={metrics.conversionRate}
+            deltaSuffix="so với 24 giờ liền trước"
+            spark={conversionSpark}
+            sparkTone="action"
+            sparkLabel="Theo giờ"
+            sparkAriaLabel="Tỉ lệ cuộc gọi chốt được vé theo từng giờ"
+          />
         </div>
-      ) : null}
 
-      <Panel title="Cuộc gọi" eyebrow="Danh sách">
-        {callList === null ? (
-          <EmptyState
-            title="Chưa cấu hình lưu trữ"
-            description={
-              <>
-                Đặt biến môi trường <code className="font-mono text-[var(--ink)]">DATABASE_URL</code> (Neon Postgres) để
-                ghi và hiển thị lịch sử cuộc gọi.
-              </>
-            }
-          />
-        ) : callList.length === 0 ? (
-          <EmptyState
-            title="Chưa có cuộc gọi nào"
-            description="Khi khách gọi vào số PSTN hoặc mở web call, cuộc gọi sẽ hiện ở đây trong vài giây."
-          />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--divider)] text-left text-xs uppercase tracking-[0.06em] text-[var(--muted)]">
-                  <th className="py-2.5 pr-4 font-medium">Cuộc gọi</th>
-                  <th className="py-2.5 pr-4 font-medium">Kênh</th>
-                  <th className="py-2.5 pr-4 font-medium">Bắt đầu</th>
-                  <th className="py-2.5 pr-4 font-medium">Trạng thái</th>
-                  <th className="py-2.5 pr-4 font-medium">Booking</th>
-                  <th className="py-2.5 pr-4 font-medium">Mã vé</th>
-                  <th className="py-2.5" aria-hidden />
-                </tr>
-              </thead>
-              <tbody>
-                {callList.map((row) => (
-                  <CallRow key={row.id} row={row} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Panel>
-    </main>
-  )
-}
+        <div className="grid gap-3 lg:grid-cols-3">
+          <UpcomingTripsSection className="lg:col-span-2" trips={upcoming ?? []} />
+          <ExpiringHoldsSection holds={holds ?? []} now={now} />
+        </div>
 
-function CallRow({ row }: { row: CallSummary }) {
-  const startedAt = new Date(row.startedAt)
-  return (
-    <tr className="group relative border-b border-[var(--divider)] transition-colors last:border-0 hover:bg-[var(--pearl)]">
-      <td className="whitespace-nowrap py-3 pr-4">
-        {/* Stretched link: phủ cả hàng để click đâu cũng mở chi tiết. */}
-        <Link
-          href={`/dashboard/calls/${encodeURIComponent(row.id)}`}
-          className="font-mono font-medium text-[var(--ink)] underline-offset-2 group-hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action-focus)] after:absolute after:inset-0 after:content-['']"
+        <div className="grid gap-3 lg:grid-cols-3">
+          <TrendSection
+            className="lg:col-span-2"
+            points={metrics.hourly}
+            avgDurationSec={metrics.avgDurationSec.current}
+          />
+          <ChannelSection channels={metrics.channels} />
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-3">
+          <FunnelSection className="lg:col-span-2" steps={metrics.funnel} />
+          <TopRoutesSection routes={metrics.topRoutes} />
+        </div>
+
+        <SectionCard
+          title="Cuộc gọi gần đây"
+          hint={callList && callList.length > 0 ? `${callList.length} cuộc mới nhất` : 'Tối đa 50 cuộc mới nhất'}
+          bodyClassName="p-0"
         >
-          {row.id}
-        </Link>
-      </td>
-      <td className="whitespace-nowrap py-3 pr-4">
-        <span className="inline-flex items-center gap-1.5 text-[var(--ink)]">
-          {row.channel === 'phone' ? (
-            <Phone size={14} className="text-[var(--muted)]" aria-hidden />
+          {callList === null || callList.length === 0 ? (
+            <EmptyBlock
+              icon={PhoneCall}
+              title="Chưa có cuộc gọi nào"
+              description="Khi khách gọi vào số PSTN hoặc mở web call, cuộc gọi sẽ hiện ở đây trong vài giây."
+            />
           ) : (
-            <Globe size={14} className="text-[var(--muted)]" aria-hidden />
+            <CallTable rows={callList} />
           )}
-          {row.channel === 'phone' ? 'Điện thoại' : 'Web'}
-        </span>
-        {row.callerNumber ? <p className="mt-0.5 font-mono text-xs text-[var(--muted)]">{row.callerNumber}</p> : null}
-      </td>
-      <td className="whitespace-nowrap py-3 pr-4">
-        <p className="tabular-nums text-[var(--ink)]">{startedAt.toLocaleTimeString('vi-VN')}</p>
-        <p className="mt-0.5 text-xs tabular-nums text-[var(--muted)]">{startedAt.toLocaleDateString('vi-VN')}</p>
-      </td>
-      <td className="py-3 pr-4">
-        <CallStatusBadge status={row.status} />
-      </td>
-      <td className="py-3 pr-4">
-        {row.latestBooking ? <BookingStatusBadge status={row.latestBooking.status} /> : <span className="text-[var(--muted)]">—</span>}
-      </td>
-      <td className="py-3 pr-4 font-mono">
-        {row.latestBooking?.bookingCode ?? <span className="text-[var(--muted)]">—</span>}
-      </td>
-      <td className="py-3 text-right">
-        <ChevronRight size={16} className="inline text-[var(--muted)] transition-transform group-hover:translate-x-0.5" aria-hidden />
-      </td>
-    </tr>
-  )
-}
-
-function StatTile({ label, value, hint, live }: { label: string; value: number; hint: string; live?: boolean }) {
-  return (
-    <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] p-4 shadow-[var(--shadow-card)] sm:p-5">
-      <p className="flex items-center gap-1.5 text-xs font-medium text-[var(--muted)]">
-        {live ? <span className="size-1.5 animate-pulse rounded-full bg-[var(--success)]" aria-hidden /> : null}
-        {label}
-      </p>
-      <p className="mt-1.5 text-3xl font-semibold tracking-[-0.02em] text-[var(--ink)]">{value}</p>
-      <p className="mt-1 text-xs text-[var(--muted)]">{hint}</p>
+        </SectionCard>
+      </main>
     </div>
-  )
-}
-
-function EmptyState({ title, description }: { title: string; description: React.ReactNode }) {
-  return (
-    <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
-      <span className="mb-4 flex size-11 items-center justify-center rounded-full bg-[var(--action-soft)] text-[var(--action)]">
-        <PhoneCall size={20} aria-hidden />
-      </span>
-      <p className="font-medium text-[var(--ink)]">{title}</p>
-      <p className="mt-1 max-w-sm text-sm leading-6 text-[var(--muted)]">{description}</p>
-    </div>
-  )
-}
-
-function Brand() {
-  return (
-    <BrandMark className="mx-auto size-12" />
   )
 }
 
 function AuthShell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] p-6 text-center shadow-[var(--shadow-panel)] sm:p-8">
+    <main className="flex min-h-dvh items-center justify-center bg-[var(--canvas)] px-4 py-10">
+      <div className="w-full max-w-sm rounded-[18px] border border-[var(--hairline)] bg-[var(--surface)] p-6 text-center shadow-[var(--shadow-panel)] sm:p-8">
         {children}
       </div>
     </main>

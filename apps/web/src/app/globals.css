@@ -48,6 +48,24 @@
   --warning: oklch(0.55 0.13 72);
   --danger: oklch(0.55 0.22 27);
   --violet: oklch(0.55 0.24 292);
+  /* Bậc lõm trong panel: light đã có pearl/surface-tint để hạ nền, nhưng dark
+     thì surface-tint lại sáng HƠN surface nên không có bậc đi xuống. Token này
+     cho hàng xen kẽ và giếng biểu đồ tụt vào ở cả hai theme. */
+  --surface-sunken: oklch(0.958 0 0);
+  /* Màu chuỗi dữ liệu. chart-1 bám --action để biểu đồ nối liền mạch với hệ
+     màu; bốn chuỗi còn lại chọn theo trục xanh–vàng (chàm → lam ngọc → hồng
+     tím → hổ phách → xám) nên KHÔNG có cặp đỏ/xanh lá cạnh nhau, an toàn cho
+     mù màu đỏ-lục. Mỗi chuỗi lệch độ sáng ≥0.03 so với chuỗi kề để còn phân
+     biệt được cả khi in đen trắng; mọi chuỗi giữ tương phản ≥3:1 với
+     --surface. */
+  --chart-1: oklch(0.53 0.2 264);
+  --chart-2: oklch(0.63 0.105 178);
+  --chart-3: oklch(0.58 0.2 345);
+  --chart-4: oklch(0.66 0.145 68);
+  --chart-5: oklch(0.62 0.028 258);
+  /* Lưới mờ hơn cả hairline: nó là thước đo, không phải đường viền. */
+  --chart-grid: oklch(0.95 0 0);
+  --chart-track: oklch(0.925 0 0);
   --elevation-card:
     0 1px 2px oklch(0.16 0 0 / 0.06),
     0 10px 28px -16px oklch(0.16 0 0 / 0.22);
@@ -78,6 +96,17 @@
     --warning: oklch(0.79 0.16 80);
     --danger: oklch(0.7 0.19 22);
     --violet: oklch(0.7 0.18 293);
+    --surface-sunken: oklch(0.17 0 0);
+    /* Cùng thứ tự sắc độ như light nhưng kéo sáng lên trên nền tối: giữ nguyên
+       tương quan hue để cùng một chuỗi không đổi "danh tính" khi đổi theme. */
+    --chart-1: oklch(0.64 0.18 264);
+    --chart-2: oklch(0.8 0.11 178);
+    --chart-3: oklch(0.72 0.17 345);
+    --chart-4: oklch(0.85 0.13 78);
+    --chart-5: oklch(0.58 0.022 258);
+    /* Dùng alpha giống --hairline/--divider để lưới chồng đúng trên mọi bậc surface. */
+    --chart-grid: oklch(1 0 0 / 8%);
+    --chart-track: oklch(1 0 0 / 12%);
     --elevation-card:
       0 1px 2px oklch(0 0 0 / 0.42),
       0 12px 30px -16px oklch(0 0 0 / 0.72),
