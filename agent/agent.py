@@ -841,11 +841,33 @@ async def entrypoint(ctx: JobContext):
 
     usage_collector = metrics.UsageCollector()
 
+    # Độ trễ mỗi lượt là tổng của ba chặng, không phải riêng chặng nào. Ghi từng
+    # chặng ra log để biết chỗ nào thật sự tốn thời gian thay vì đoán:
+    #   eou  = từ lúc khách ngừng nói tới lúc chốt lượt (gồm cả thời gian chờ im lặng)
+    #   ttft = từ lúc chốt lượt tới chữ đầu tiên của mô hình
+    #   ttfb = từ lúc có chữ tới mẫu âm thanh đầu tiên
     def _on_metrics(ev) -> None:
         try:
             usage_collector.collect(ev.metrics)
         except Exception as exc:
             logger.debug("metrics collect failed: %s", exc)
+        try:
+            m = ev.metrics
+            kind = getattr(m, "type", None)
+            speech = getattr(m, "speech_id", None) or "?"
+            if kind == "eou_metrics":
+                logger.info(
+                    "[latency] eou=%.0fms transcript=%.0fms speech=%s",
+                    (getattr(m, "end_of_utterance_delay", 0) or 0) * 1000,
+                    (getattr(m, "transcription_delay", 0) or 0) * 1000,
+                    speech,
+                )
+            elif kind == "llm_metrics" and not getattr(m, "cancelled", False):
+                logger.info("[latency] ttft=%.0fms speech=%s", (getattr(m, "ttft", 0) or 0) * 1000, speech)
+            elif kind == "tts_metrics" and not getattr(m, "cancelled", False):
+                logger.info("[latency] ttfb=%.0fms speech=%s", (getattr(m, "ttfb", 0) or 0) * 1000, speech)
+        except Exception as exc:
+            logger.debug("latency log failed: %s", exc)
 
     session.on("metrics_collected", _on_metrics)
 
