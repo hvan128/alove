@@ -74,7 +74,15 @@ GOOGLE_TTS_VOICE = os.getenv("GOOGLE_TTS_VOICE", "Kore")
 # flash_v2_5 là model độ trễ thấp nhất còn hỗ trợ tiếng Việt.
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
 ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "s6W2NupNY6TykGJoDtWy")
-ELEVENLABS_MODEL = os.getenv("ELEVENLABS_MODEL", "eleven_flash_v2_5")
+# flash là bậc nhanh nhất nhưng phát âm tiếng Việt sai rõ; turbo chỉ chậm hơn
+# khoảng 80ms mà đọc chuẩn hơn hẳn. multilingual_v2 chuẩn nhất nhưng tốn thêm
+# 0,8 giây nên chỉ dùng khi chấp nhận đánh đổi độ trễ.
+ELEVENLABS_MODEL = os.getenv("ELEVENLABS_MODEL", "eleven_turbo_v2_5")
+# 1.0 là tốc độ gốc; ElevenLabs nhận 0.7 tới 1.2. Giọng mặc định nghe hơi chậm
+# so với nhịp nói của tổng đài viên thật.
+ELEVENLABS_SPEED = float(os.getenv("ELEVENLABS_SPEED", "1.12"))
+ELEVENLABS_STABILITY = float(os.getenv("ELEVENLABS_STABILITY", "0.45"))
+ELEVENLABS_SIMILARITY = float(os.getenv("ELEVENLABS_SIMILARITY", "0.75"))
 TTS_DEFAULT = os.getenv("TTS_DEFAULT", "elevenlabs").lower()
 
 # Gemini Live (speech-to-speech) config, only used when AGENT_ENGINE=gemini-sts.
@@ -202,6 +210,30 @@ CLOSING_BOOKED = "Dạ cảm ơn anh chị đã đặt vé nhà xe Mai Anh. Chú
 CLOSING_NO_BOOKING = "Dạ vâng, cảm ơn anh chị đã gọi nhà xe Mai Anh. Khi nào cần anh chị cứ gọi lại nhé ạ."
 
 
+
+# Nhãn chuyến từ backend là chuỗi vi-VN gộp giờ và ngày ("20:00 20-07"). Thứ tự
+# hai phần phụ thuộc bản ICU của máy chạy Next.js, nên phải bóc theo mẫu chứ
+# không cắt theo vị trí — cắt theo vị trí là cách "Ngày đi" từng hiện ra giờ
+# chạy còn "Giờ khởi hành" hiện ra ngày.
+DEPARTURE_CLOCK_RE = re.compile(r"\b(\d{1,2}):(\d{2})\b")
+
+
+def _departure_clock(label: Optional[str]) -> str:
+    """Giờ chạy dạng HH:MM, khớp busTripSchema bên contracts."""
+    found = DEPARTURE_CLOCK_RE.search(label or "")
+    if not found:
+        return "00:00"
+    return f"{int(found.group(1)):02d}:{found.group(2)}"
+
+
+def _departure_date(label: Optional[str]) -> Optional[str]:
+    """Phần ngày của nhãn, tức nhãn đã bỏ giờ chạy đi."""
+    if not label:
+        return None
+    date_part = DEPARTURE_CLOCK_RE.sub("", label).strip(" ,·-")
+    return date_part or None
+
+
 def conversation_id_from_room(room_name: str) -> Optional[str]:
     if room_name.startswith(ROOM_PREFIX):
         return room_name[len(ROOM_PREFIX):]
@@ -296,6 +328,14 @@ def _elevenlabs_tts(language: str):
         model=ELEVENLABS_MODEL,
         api_key=ELEVENLABS_API_KEY,
         language=("en" if language == "en" else "vi"),
+        voice_settings=elevenlabs.VoiceSettings(
+            stability=ELEVENLABS_STABILITY,
+            similarity_boost=ELEVENLABS_SIMILARITY,
+            speed=ELEVENLABS_SPEED,
+        ),
+        # Cho ElevenLabs chuẩn hoá theo tiếng Việt trước khi đọc — giúp phát âm
+        # đúng hơn với tên riêng và chữ viết tắt còn sót lại.
+        apply_language_text_normalization=True,
     )
 
 
@@ -500,7 +540,7 @@ class BusBookingAgent(Agent):
             "status": "collecting",
             "origin": offer.get("originCity"),
             "destination": offer.get("destinationCity"),
-            "travelDateLabel": offer.get("departureLabel"),
+            "travelDateLabel": _departure_date(offer.get("departureLabel")),
             "timeWindow": None,
             "passengerCount": trip.get("seatsHeld"),
             "selectedTrip": (
@@ -508,7 +548,7 @@ class BusBookingAgent(Agent):
                     "id": offer.get("tripId") or trip.get("tripId") or "",
                     "origin": offer.get("originCity") or "",
                     "destination": offer.get("destinationCity") or "",
-                    "departureTime": (offer.get("departureLabel") or "")[-5:] or "00:00",
+                    "departureTime": _departure_clock(offer.get("departureLabel")),
                     "arrivalTime": "00:00",
                     "vehicleType": offer.get("vehicleType") or "",
                     "priceVnd": trip.get("priceVnd") or offer.get("priceVnd") or 0,
@@ -571,7 +611,15 @@ class BusBookingAgent(Agent):
         )
         if data is None:
             return {"error": "backend_unavailable"}
-        self._offers = {t["tripId"]: t for t in data.get("trips", [])}
+        # Gộp thêm otherDates: model được phép mời khách các chuyến trong danh
+        # sách đó, nên chúng cũng phải nằm trong kho offer. Gộp chứ không thay
+        # thế, vì lần tìm sau (ngày khác, tuyến khác) không được xoá chuyến mà
+        # khách đang cân nhắc — mất offer là mất luôn tuyến, ngày và loại xe
+        # trên vé.
+        for offer in (data.get("trips") or []) + (data.get("otherDates") or []):
+            trip_id = offer.get("tripId")
+            if trip_id:
+                self._offers[trip_id] = offer
         return data
 
     @function_tool()
