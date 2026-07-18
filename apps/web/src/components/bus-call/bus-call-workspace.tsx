@@ -8,6 +8,7 @@ import { speakVietnamese, stopVietnameseSpeech } from '@/lib/device-speech'
 import { cn } from '@/lib/cn'
 import { CallStage } from './call-stage'
 import { TicketCard } from './ticket-card'
+import { TicketResult } from './ticket-result'
 import { VehicleSeatVisual } from './vehicle-seat-visual'
 import { LiveKitCall, type LiveKitAgentState } from './livekit-call'
 
@@ -38,6 +39,12 @@ export function BusCallWorkspace({ initialWorkspace, variant = 'page', controlRe
   const [elapsedSec, setElapsedSec] = useState(0)
   const [agentSpeaking, setAgentSpeaking] = useState(false)
   const [liveAgentState, setLiveAgentState] = useState<LiveKitAgentState>('idle')
+  // 'ticket' = màn "Vé của bạn" sau khi cuộc gọi kết thúc với booking đã chốt.
+  const [view, setView] = useState<'call' | 'ticket'>('call')
+  // endCall cần trạng thái booking MỚI NHẤT ngay trong event handler; state
+  // closure có thể cũ khi booking.update và call.end về sát nhau, còn updater
+  // của setState thì không chạy đồng bộ — nên soi bằng ref.
+  const bookingStatusRef = useRef(initialWorkspace.booking.status)
   const sequence = useRef(0)
 
   // LiveKit transport: the agent worker owns STT, booking and TTS. Declared
@@ -77,9 +84,11 @@ export function BusCallWorkspace({ initialWorkspace, variant = 'page', controlRe
     // (not at render) so server and client markup still match.
     const conversationId = `alove-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
     sequence.current = 0
+    bookingStatusRef.current = 'collecting'
     setAgentSpeaking(false)
     setLiveAgentState('idle')
     setCustomerText('')
+    setView('call')
     setWorkspace({
       ...workspace,
       conversationId,
@@ -99,7 +108,13 @@ export function BusCallWorkspace({ initialWorkspace, variant = 'page', controlRe
       if (current.callStatus === 'ended') return current
       return { ...current, callStatus: 'ended', endedAt: new Date().toISOString() }
     })
-    onEnded?.()
+    if (bookingStatusRef.current === 'confirmed') {
+      // Vé đã chốt: chuyển sang màn "Vé của bạn" thay vì đóng — overlay chỉ
+      // đóng khi khách bấm Đóng trên màn vé.
+      setView('ticket')
+    } else {
+      onEnded?.()
+    }
   }
 
   // Gán mỗi render để start/end luôn thấy state mới nhất — không dùng deps.
@@ -122,6 +137,7 @@ export function BusCallWorkspace({ initialWorkspace, variant = 'page', controlRe
     const turn = advanceBookingAgent(workspace.booking, customer)
     const messages = [...workspace.messages, customer, createMessage('agent', turn.reply, 'text')]
     speakReply(turn.reply)
+    bookingStatusRef.current = turn.draft.status
     setWorkspace({ ...workspace, messages, booking: turn.draft })
   }
 
@@ -179,6 +195,7 @@ export function BusCallWorkspace({ initialWorkspace, variant = 'page', controlRe
   }
 
   const applyLiveBooking = (booking: BookingDraft) => {
+    bookingStatusRef.current = booking.status
     setWorkspace((current) => ({ ...current, booking }))
   }
 
@@ -204,10 +221,17 @@ export function BusCallWorkspace({ initialWorkspace, variant = 'page', controlRe
           : 'mx-auto flex min-h-[100dvh] w-full max-w-[1500px] flex-col px-4 py-5 sm:px-6 lg:py-7'
       }
     >
-      {/* Hai cột cao theo nội dung của chính nó. Từng ép chúng bằng nhau, nhưng
-          khung cuộc gọi cao gấp rưỡi phiếu vé nên chỉ tổ độn một mảng trống
-          giữa phiếu. */}
-      <main className="grid flex-1 content-start items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(520px,1fr)_auto]">
+      {view === 'ticket' ? (
+        <TicketResult
+          booking={workspace.booking}
+          onNewCall={startCall}
+          onClose={() => (onEnded ? onEnded() : setView('call'))}
+        />
+      ) : (
+        /* Hai cột cao theo nội dung của chính nó. Từng ép chúng bằng nhau, nhưng
+           khung cuộc gọi cao gấp rưỡi phiếu vé nên chỉ tổ độn một mảng trống
+           giữa phiếu. */
+        <main className="grid flex-1 content-start items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(520px,1fr)_auto]">
         <CallStage
           status={workspace.callStatus}
           elapsedSec={elapsedSec}
@@ -257,7 +281,8 @@ export function BusCallWorkspace({ initialWorkspace, variant = 'page', controlRe
           </div>
           <TicketCard booking={workspace.booking} />
         </div>
-      </main>
+        </main>
+      )}
     </div>
   )
 }

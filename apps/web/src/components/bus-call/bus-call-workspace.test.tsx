@@ -86,6 +86,57 @@ describe('minimal voice-first web call console', () => {
     expect(screen.queryByRole('button', { name: 'Yêu cầu mẫu' })).toBeNull()
   })
 
+  it('shows the ticket screen after ending a confirmed call instead of closing', async () => {
+    const onEnded = vi.fn()
+    const user = userEvent.setup()
+    render(<BusCallWorkspace initialWorkspace={createInitialBusDemoWorkspace()} onEnded={onEnded} />)
+    await startCall(user)
+    sendPreset('Yêu cầu mẫu')
+    sendPreset('Chọn chuyến 22:00')
+    sendPreset('Thông tin hành khách')
+    sendPreset('Xác nhận đặt vé')
+
+    await user.click(screen.getByRole('button', { name: 'Kết thúc' }))
+
+    // Vé đã chốt: không đóng overlay mà chuyển sang màn "Vé của bạn".
+    expect(onEnded).not.toHaveBeenCalled()
+    const result = screen.getByRole('region', { name: 'Vé của bạn' })
+    expect(within(result).getByRole('heading', { name: 'Vé của bạn' })).toBeVisible()
+    expect(within(result).getAllByText(/^VD-240718-\d{4}$/u).length).toBeGreaterThan(0)
+
+    await user.click(within(result).getByRole('button', { name: 'Đóng' }))
+    expect(onEnded).toHaveBeenCalledOnce()
+  })
+
+  it('closes straight away when the call ends without a confirmed booking', async () => {
+    const onEnded = vi.fn()
+    const user = userEvent.setup()
+    render(<BusCallWorkspace initialWorkspace={createInitialBusDemoWorkspace()} onEnded={onEnded} />)
+    await startCall(user)
+    sendPreset('Yêu cầu mẫu')
+    await user.click(screen.getByRole('button', { name: 'Kết thúc' }))
+
+    expect(onEnded).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('region', { name: 'Vé của bạn' })).toBeNull()
+  })
+
+  it('starts a fresh call from the ticket screen', async () => {
+    const user = userEvent.setup()
+    renderWorkspace()
+    await startCall(user)
+    sendPreset('Yêu cầu mẫu')
+    sendPreset('Chọn chuyến 22:00')
+    sendPreset('Thông tin hành khách')
+    sendPreset('Xác nhận đặt vé')
+    await user.click(screen.getByRole('button', { name: 'Kết thúc' }))
+
+    await user.click(screen.getByRole('button', { name: 'Đặt chuyến khác' }))
+
+    expect(screen.queryByRole('region', { name: 'Vé của bạn' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Kết thúc' })).toBeVisible()
+    expect(ticket().queryByText(/^VD-240718-\d{4}$/u)).toBeNull()
+  })
+
   it('restarts a fresh call after ending', async () => {
     const user = userEvent.setup()
     renderWorkspace()
