@@ -1,6 +1,7 @@
 .env
-.env.*
+.pytest_cache/
+.ruff_cache/
 .venv/
 __pycache__/
 *.pyc
-README.md
+test_*.py

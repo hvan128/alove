@@ -1,59 +1,43 @@
-# Alove bus agent worker (LiveKit)
+# VéĐi voice worker
 
-Voice agent for the Alove bus-ticket demo operated by nhà xe Mai Anh. Ported from the project-4 interview
-agent, domain-swapped to bus booking. Booking stays **deterministic and
-server-authoritative**: the worker never invents prices, trips, seats, passenger
-info or ticket codes — every customer turn is relayed to the Next.js
-`/api/booking/advance` endpoint (which runs `@ordervoice/core`), and the worker
-just speaks the exact reply and mirrors the authoritative booking snapshot to the
-browser over the room data channel.
+The worker is separate from Vercel because it keeps long-lived LiveKit and VALSEA WebSocket sessions. It subscribes only to `caller-<SESSION_CODE>` and publishes the same versioned `vedi.events` messages used by `/staff` and `/call`.
 
-## Files
+Behavior:
 
-- `agent.py` — worker entrypoint, engine selection, `advance_booking` / `end_call` tools.
-- `valsea_stt.py` — VALSEA realtime ASR wrapped as a livekit-agents STT plugin.
-- `turn_rules.py` — deterministic Vietnamese end-of-turn detection (no model, ~0ms).
+- VALSEA RTT is the only production STT path.
+- Human mode transcribes but raises `StopResponse`, so no spontaneous reply is generated.
+- `staff.speak` is synthesized with VALSEA TTS in either mode.
+- Auto mode uses OpenAI for the reply text and VALSEA for Vietnamese speech.
+- English display mode translates finalized caller turns with OpenAI Responses, uses `store=false`, and falls back to the source text on timeout or provider error.
+- Final booking confirmation remains a staff action in the web app.
 
-## Engine presets (A/B testable)
-
-Set in `agent/.env` (copy from `.env.example`):
-
-| Preset | env | Needs |
-|---|---|---|
-| VALSEA-first | `AGENT_ENGINE=cascade STT_PROVIDER=valsea` | `VALSEA_API_KEY`, `OPENAI_API_KEY` (LLM), a TTS (Google/Cartesia) |
-| cascade | `AGENT_ENGINE=cascade STT_PROVIDER=speechmatics` | `SPEECHMATICS_API_KEY`, `OPENAI_API_KEY`, a TTS |
-| gemini-sts | `AGENT_ENGINE=gemini-sts` | `GEMINI_API_KEY` |
-
-## Run locally
+## Local setup
 
 ```bash
-cd agent
-uv sync                      # or: pip install -e .
-cp .env.example .env         # fill LiveKit + provider + AGENT_WEBHOOK_SECRET
-python agent.py console      # local audio, no room (dev name auto-suffixed -dev)
-# or, joined to a real LiveKit room served by the web app:
-python agent.py dev
+cp .env.example .env
+uv sync --all-extras
+uv run pytest
+uv run ruff check .
+uv run python agent.py dev
 ```
 
-The web app must run with matching env: `NEXT_PUBLIC_LIVEKIT_URL`, `LIVEKIT_URL`,
-`LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_AGENT_NAME=alove`, and the SAME
-`AGENT_WEBHOOK_SECRET`. Open `/console`, pick **Agent tự động**, **Bắt đầu Web Call**.
+Development workers register as `vedi-booking-agent-dev`. Set the web app's `LIVEKIT_AGENT_NAME` to that name while testing locally. Production uses `vedi-booking-agent`.
 
-## Deploy
+## Container
 
 ```bash
-docker build -t alove-bus-agent .
-# Run on any host that keeps a long-lived outbound WebSocket to LiveKit
-# (Railway, Fly.io, Cloud Run w/ min-instances, a VM/container).
+docker build -t vedi-booking-agent .
+docker run --env-file .env vedi-booking-agent
 ```
 
-Production runs `python agent.py start`. Keep the bare `LIVEKIT_AGENT_NAME`
-(`alove`) in prod; local `dev`/`console` auto-isolate under `alove-dev`.
+## LiveKit Cloud
 
-## Not verified in this workspace
+Install and authenticate the LiveKit CLI, then run from this directory:
 
-No LiveKit / provider credentials are present here, so the live audio path has not
-been run. `valsea_stt.py` maps the VALSEA WS protocol correctly (same as the Node
-`packages/providers/src/valsea.ts`) but its livekit-agents STT/SpeechStream glue
-should be verified against the installed `livekit-agents` version before a pilot.
-VALSEA has no TTS in this repo — VALSEA mode uses Google/Cartesia for TTS.
+```bash
+lk cloud auth
+lk agent create
+lk agent deploy
+```
+
+The CLI creates a project-linked `livekit.toml`. Keep the three LiveKit credentials synchronized with the Vercel project, then enable caller dispatch with `VOICE_AGENT_ENABLED=true` on Vercel.

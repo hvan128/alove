@@ -1,2 +1,5 @@
 export * from './audio'
+export * from './bus-booking'
+export * from './catalog'
+export * from './inventory'
 export * from './order'

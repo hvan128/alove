@@ -1,0 +1,7 @@
+# `lk agent create` writes the real linked values to livekit.toml.
+# Do not commit that generated file if it contains project-specific identifiers.
+[project]
+subdomain = "your-livekit-subdomain"
+
+[agent]
+id = "your-cloud-agent-id"

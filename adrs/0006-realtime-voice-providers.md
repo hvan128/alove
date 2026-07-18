@@ -1,17 +1,26 @@
-# ADR 0006: VALSEA-first transcription and adapter-based telephony
+# ADR 0006: SpeechToInvoice VALSEA-first pilot with adapter isolation
 
-**Status:** Accepted
+## Status
+
+Accepted — 2026-07-18
+
+## Context
+
+The challenge calls for Vietnamese ASR, but the public Web Call must work with no third-party credentials. Provider behavior, cost, availability and consent obligations vary, and neither a browser nor an Agent may hold service secrets.
 
 ## Decision
 
-VALSEA is the default production ASR adapter. It receives realtime PCM16/16 kHz/mono via its documented WebSocket API. OpenAI may run only as a server-side development fallback. Twilio Media Streams is the initial direct-telephone adapter. Zalo is a synchronized file replay flow, not an assumed live voice API. TTS is a human-clicked provider adapter with device speech as no-key demo fallback.
+Choose VALSEA as the first ASR candidate for the credentialed pilot. Access ASR, LiveKit, LLM, TTS, telephony and inventory only through provider adapters running in server/worker environments. Keep all provider secrets server-only. Retain browser/device recognition and device speech as optional public-demo fallbacks.
 
-## Rationale
-
-The challenge explicitly requires a real VALSEA ASR call. Twilio documents raw bidirectional media needed for the audio boundary. Public Zalo documentation does not establish a general raw live-call audio stream. A provider adapter interface makes replacement (including Stringee after commercial confirmation) safe.
+The Agent worker normalizes provider events and may request structured booking actions. Booking core validates those actions, current field evidence and explicit confirmation.
 
 ## Consequences
 
-- Actual provider success needs credentials, phone number/verification and publicly reachable WSS where relevant.
-- The repository has exact protocol code and fixture tests without implying unauthenticated live calls succeeded.
-- The UI states provider readiness honestly and points to `docs/integration-feasibility.md`.
+- The public demo has text/preset as guaranteed input; STT/TTS are progressive enhancements.
+- Provider timeouts, malformed responses, quota limits and disconnects preserve the mutable draft and expose a safe fallback or staff takeover.
+- Raw audio is not retained by default; pilot recording requires prior consent, retention, access and deletion controls.
+- `NEXT_PUBLIC_*` values never contain provider secrets.
+
+## Migration impact
+
+Keep current VALSEA, OpenAI, Twilio and replay code only behind adapters. Validate protocol fixtures first, then add a credentialed smoke test and operational evidence before any adapter is described as live.
