@@ -51,6 +51,7 @@ from booking_helpers import (
     build_booking_snapshot,
     build_confirmation_request,
     build_realtime_event,
+    encode_realtime_event,
 )
 from call_lifecycle import terminate_livekit_call
 from provider_config import (
@@ -628,11 +629,16 @@ class BusBookingAgent(Agent):
             payload=payload,
         )
         try:
-            await self._room.local_participant.publish_data(
-                json.dumps(event).encode(), topic=EVENTS_TOPIC, reliable=True
-            )
-        except Exception as exc:  # noqa: BLE001 — data-channel best-effort
-            logger.debug("publish_data failed: %s", exc)
+            encoded_event = encode_realtime_event(event)
+        except Exception:  # noqa: BLE001 — data-channel encoding is best-effort
+            logger.debug("realtime event dropped: invalid JSON or byte limit")
+        else:
+            try:
+                await self._room.local_participant.publish_data(
+                    encoded_event, topic=EVENTS_TOPIC, reliable=True
+                )
+            except Exception as exc:  # noqa: BLE001 — data-channel best-effort
+                logger.debug("publish_data failed: %s", exc)
         if payload.get("type") == "booking.update" and isinstance(payload.get("booking"), dict):
             schedule_background(
                 post_call_event(

@@ -3,7 +3,7 @@ import os
 import unittest
 from datetime import datetime
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import valsea_api
@@ -397,6 +397,43 @@ class SemanticAnnotationIntegrationTest(unittest.IsolatedAsyncioTestCase):
                     await worker.annotate_final_customer_transcript(
                         fake_agent, "Tôi muốn đặt vé."
                     )
+
+
+class RealtimePublishIntegrationTest(unittest.IsolatedAsyncioTestCase):
+    async def test_booking_audit_is_scheduled_when_event_encoding_is_oversized(self) -> None:
+        secret_marker = "SECRET-MUST-NOT-LOG"
+        booking = {"private": secret_marker, "padding": "\x00" * 11_000}
+        publish_data = AsyncMock()
+        fake_agent = SimpleNamespace(
+            _room=SimpleNamespace(
+                local_participant=SimpleNamespace(publish_data=publish_data)
+            ),
+            _conversation_id="call-transport",
+            _next_event_sequence=lambda: 9,
+        )
+        audit_task = object()
+        post_event = Mock(return_value=audit_task)
+
+        with (
+            patch.object(worker, "post_call_event", post_event),
+            patch.object(worker, "schedule_background") as schedule,
+            self.assertLogs(worker.logger, level="DEBUG") as logs,
+        ):
+            await worker.BusBookingAgent._publish(
+                fake_agent,
+                {"type": "booking.update", "booking": booking},
+            )
+
+        publish_data.assert_not_awaited()
+        post_event.assert_called_once_with(
+            "call-transport",
+            "booking.updated",
+            event_id=post_event.call_args.kwargs["event_id"],
+            sequence=9,
+            booking=booking,
+        )
+        schedule.assert_called_once_with(audit_task)
+        self.assertNotIn(secret_marker, "\n".join(logs.output))
 
 
 if __name__ == "__main__":
