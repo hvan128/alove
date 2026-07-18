@@ -1,3 +1,4 @@
+import type { OperationsAuditEvent, SessionOwnership } from '@ordervoice/contracts'
 import {
   busBookings,
   busCalls,
@@ -8,6 +9,8 @@ import {
   inventoryEvents,
   tripSeats,
 } from '@ordervoice/db'
+import { createOwnershipRepository, type OwnershipRepository } from './ownership-repository'
+import { unassignedOwnership } from './session-ownership'
 
 export type OperationsDashboardSnapshot = {
   mode: 'memory' | 'neon'
@@ -30,6 +33,10 @@ export type OperationsDashboardSnapshot = {
   activeCalls: Array<{
     sessionCode: string
     ownerId: string | null
+    ownerRole: SessionOwnership['ownerRole']
+    /** Who currently holds reply authority; audited, unlike the transport toggle. */
+    delegation: SessionOwnership['delegation']
+    takeoverReason: string | null
     authority: 'human' | 'auto'
     bookingState: string
     startedAt: string
@@ -49,7 +56,11 @@ export type OperationsDashboardSnapshot = {
     severity: 'info' | 'warning' | 'danger'
     message: string
   }>
+  auditTrail: OperationsAuditEvent[]
 }
+
+/** Free-text filter applied to the lists only; metrics stay on the full population. */
+export type DashboardOptions = { query?: string }
 
 export type OperationsReportData = {
   mode: 'memory' | 'neon'
@@ -67,11 +78,11 @@ export type OperationsReportData = {
 
 export type OperationsRepository = {
   mode: 'memory' | 'neon'
-  getDashboard(at: string): Promise<OperationsDashboardSnapshot>
+  getDashboard(at: string, options?: DashboardOptions): Promise<OperationsDashboardSnapshot>
   getReport(range: { from: string; to: string }): Promise<OperationsReportData>
 }
 
-export type OperationsMemoryState = Omit<OperationsDashboardSnapshot, 'mode' | 'freshAt' | 'metrics'> & {
+export type OperationsMemoryState = Omit<OperationsDashboardSnapshot, 'mode' | 'freshAt' | 'metrics' | 'auditTrail'> & {
   callsToday: number
   confirmedBookings: number
   assistedCalls: number
@@ -89,9 +100,9 @@ export function seededOperations(): OperationsMemoryState {
       { sessionCode: 'CALL28', routeLabel: 'Chưa xác định tuyến', waitSeconds: 41, passengerCount: null },
     ],
     activeCalls: [
-      { sessionCode: 'LIVE18', ownerId: 'Linh', authority: 'human', bookingState: 'review', startedAt: '2026-07-18T09:55:00.000Z' },
-      { sessionCode: 'AUTO12', ownerId: null, authority: 'auto', bookingState: 'collecting', startedAt: '2026-07-18T09:57:00.000Z' },
-      { sessionCode: 'LIVE03', ownerId: 'Minh', authority: 'human', bookingState: 'confirmed', startedAt: '2026-07-18T09:58:30.000Z' },
+      { sessionCode: 'LIVE18', ownerId: null, ownerRole: null, delegation: 'staff', takeoverReason: null, authority: 'human', bookingState: 'review', startedAt: '2026-07-18T09:55:00.000Z' },
+      { sessionCode: 'AUTO12', ownerId: null, ownerRole: null, delegation: 'staff', takeoverReason: null, authority: 'auto', bookingState: 'collecting', startedAt: '2026-07-18T09:57:00.000Z' },
+      { sessionCode: 'LIVE03', ownerId: null, ownerRole: null, delegation: 'staff', takeoverReason: null, authority: 'human', bookingState: 'confirmed', startedAt: '2026-07-18T09:58:30.000Z' },
     ],
     departures: [
       { tripId: 'trip-1', routeLabel: 'Sài Gòn → Đà Lạt', departureAt: '2026-07-18T12:30:00.000Z', vehicleLabel: 'Limousine 34 phòng', available: 5, held: 3, booked: 26, capacity: 34 },
@@ -110,17 +121,24 @@ const sharedMemory = seededOperations()
 export function createOperationsRepository(
   environment: Record<string, string | undefined> = process.env,
   memory: OperationsMemoryState = sharedMemory,
+  ownership: OwnershipRepository = createOwnershipRepository(environment),
 ): OperationsRepository {
   return environment.DATABASE_URL?.trim()
-    ? createNeonOperationsRepository()
-    : createMemoryOperationsRepository(memory)
+    ? createNeonOperationsRepository(ownership)
+    : createMemoryOperationsRepository(memory, ownership)
 }
 
-function createMemoryOperationsRepository(memory: OperationsMemoryState): OperationsRepository {
+function createMemoryOperationsRepository(
+  memory: OperationsMemoryState,
+  ownership: OwnershipRepository,
+): OperationsRepository {
   return {
     mode: 'memory',
-    async getDashboard(at) {
-      return projectMemory(memory, at)
+    async getDashboard(at, options) {
+      // Ownership lives in its own repository, so the fixture supplies the call
+      // list and the ownership store supplies who actually holds each one.
+      const owners = await ownership.getMany(memory.activeCalls.map((call) => call.sessionCode))
+      return projectMemory(memory, at, owners, await ownership.listAudit(), options)
     },
     async getReport(range) {
       validateReportRange(range)
@@ -148,10 +166,29 @@ function createMemoryOperationsRepository(memory: OperationsMemoryState): Operat
   }
 }
 
-function projectMemory(memory: OperationsMemoryState, at: string): OperationsDashboardSnapshot {
+function projectMemory(
+  memory: OperationsMemoryState,
+  at: string,
+  owners: Map<string, SessionOwnership>,
+  auditTrail: OperationsAuditEvent[],
+  options: DashboardOptions | undefined,
+): OperationsDashboardSnapshot {
+  const activeCalls = memory.activeCalls.map((call) => {
+    const owner = owners.get(call.sessionCode) ?? unassignedOwnership(call.sessionCode)
+    return {
+      ...structuredClone(call),
+      ownerId: owner.ownerId,
+      ownerRole: owner.ownerRole,
+      delegation: owner.delegation,
+      takeoverReason: owner.takeoverReason,
+    }
+  })
+
   return {
     mode: 'memory',
     freshAt: at,
+    // Metrics describe the shift, not the current filter, so they are computed
+    // before any search is applied.
     metrics: {
       queuedCalls: memory.queue.length,
       longestWaitSeconds: Math.max(0, ...memory.queue.map((call) => call.waitSeconds)),
@@ -161,18 +198,29 @@ function projectMemory(memory: OperationsMemoryState, at: string): OperationsDas
       conversionRate: percentage(memory.confirmedBookings, memory.callsToday),
       agentAssistRate: percentage(memory.assistedCalls, memory.callsToday),
     },
-    queue: structuredClone(memory.queue),
-    activeCalls: structuredClone(memory.activeCalls),
+    queue: matchAll(structuredClone(memory.queue), options?.query, (call) => [call.sessionCode, call.routeLabel]),
+    activeCalls: matchAll(activeCalls, options?.query, (call) => [
+      call.sessionCode,
+      call.bookingState,
+      call.ownerId,
+    ]),
     departures: structuredClone(memory.departures),
     alerts: structuredClone(memory.alerts),
+    auditTrail,
   }
 }
 
-function createNeonOperationsRepository(): OperationsRepository {
+function matchAll<T>(items: T[], query: string | undefined, fields: (item: T) => Array<string | null>): T[] {
+  const needle = query?.trim().toLowerCase()
+  if (!needle) return items
+  return items.filter((item) => fields(item).some((field) => field?.toLowerCase().includes(needle)))
+}
+
+function createNeonOperationsRepository(ownership: OwnershipRepository): OperationsRepository {
   const database = getDb()
   return {
     mode: 'neon',
-    async getDashboard(at) {
+    async getDashboard(at, options) {
       const now = new Date(at)
       const startOfDay = new Date(now)
       startOfDay.setUTCHours(0, 0, 0, 0)
@@ -189,7 +237,11 @@ function createNeonOperationsRepository(): OperationsRepository {
 
       const bookingsByCall = new Map(bookingRows.map((booking) => [booking.callId, booking]))
       const callsToday = callRows.filter((call) => call.createdAt >= startOfDay && call.createdAt <= now)
+      // Conversion compares today's confirmations with today's calls. Counting
+      // every confirmation ever against today's calls could exceed 100%.
+      const callsTodayIds = new Set(callsToday.map((call) => call.id))
       const confirmed = bookingRows.filter((booking) => booking.status === 'confirmed')
+      const confirmedToday = confirmed.filter((booking) => callsTodayIds.has(booking.callId))
       const waiting = callRows.filter((call) => call.status === 'waiting')
       const active = callRows.filter((call) => !['waiting', 'ended'].includes(call.status))
 
@@ -246,7 +298,12 @@ function createNeonOperationsRepository(): OperationsRepository {
           severity: departure.available === 0 ? 'danger' : 'warning',
           message: `${departure.routeLabel} chỉ còn ${departure.available} ghế.`,
         }))
-      for (const event of eventRows.slice(-5)) {
+      // Sorted explicitly: the driver returns rows in an unspecified order, so
+      // "the five most recent events" was previously whatever came back last.
+      const recentEvents = [...eventRows]
+        .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
+        .slice(0, 5)
+      for (const event of recentEvents) {
         if (event.eventType !== 'hold.expired') continue
         alerts.push({ id: event.id, severity: 'info', message: `Giữ ghế ${event.holdId ?? ''} đã hết hạn.`.trim() })
       }
@@ -260,19 +317,24 @@ function createNeonOperationsRepository(): OperationsRepository {
           activeCalls: active.length,
           callsToday: callsToday.length,
           confirmedBookings: confirmed.length,
-          conversionRate: percentage(confirmed.length, callsToday.length),
+          conversionRate: percentage(confirmedToday.length, callsToday.length),
           agentAssistRate: percentage(callsToday.filter((call) => call.mode === 'auto').length, callsToday.length),
         },
-        queue,
-        activeCalls: active.map((call) => ({
+        queue: matchAll(queue, options?.query, (call) => [call.sessionCode, call.routeLabel]),
+        // Ownership columns live on the same bus_calls row, so no extra query.
+        activeCalls: matchAll(active.map((call) => ({
           sessionCode: call.id,
-          ownerId: null,
-          authority: call.mode === 'auto' ? 'auto' : 'human',
+          ownerId: call.ownerId,
+          ownerRole: call.ownerRole as SessionOwnership['ownerRole'],
+          delegation: call.delegation === 'agent' ? 'agent' as const : 'staff' as const,
+          takeoverReason: call.takeoverReason,
+          authority: call.mode === 'auto' ? 'auto' as const : 'human' as const,
           bookingState: bookingsByCall.get(call.id)?.status ?? 'collecting',
           startedAt: (call.startedAt ?? call.createdAt).toISOString(),
-        })),
+        })), options?.query, (call) => [call.sessionCode, call.bookingState, call.ownerId]),
         departures,
         alerts,
+        auditTrail: await ownership.listAudit(),
       }
     },
     async getReport(range) {
@@ -332,7 +394,12 @@ function createNeonOperationsRepository(): OperationsRepository {
 }
 
 function percentage(numerator: number, denominator: number): number {
-  return denominator === 0 ? 0 : Math.round((numerator / denominator) * 100)
+  if (denominator === 0) return 0
+  // Clamped because a rate above 100% on an operations dashboard reads as a
+  // broken product rather than as the data problem it actually is. The real
+  // fix is keeping numerator and denominator on the same window, which the
+  // queries below now do.
+  return Math.min(100, Math.round((numerator / denominator) * 100))
 }
 
 function routeLabel(origin: string | null | undefined, destination: string | null | undefined): string {

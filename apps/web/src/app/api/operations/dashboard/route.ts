@@ -19,11 +19,15 @@ const defaultDependencies: DashboardDependencies = {
 
 export async function getOperationsDashboard(
   dependencies: DashboardDependencies = defaultDependencies,
+  query?: string,
 ): Promise<Response> {
   try {
     const actor = dependencies.getActor()
     requireOperatorRole(actor, ['admin', 'dispatcher', 'customer-care', 'read-only'])
-    const snapshot = await dependencies.getRepository().getDashboard(dependencies.now())
+    const snapshot = await dependencies.getRepository().getDashboard(
+      dependencies.now(),
+      query ? { query } : undefined,
+    )
     return Response.json(snapshot, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     const code = error instanceof Error ? error.message : 'OPERATIONS_DASHBOARD_FAILED'
@@ -32,6 +36,6 @@ export async function getOperationsDashboard(
   }
 }
 
-export function GET(): Promise<Response> {
-  return getOperationsDashboard()
+export function GET(request: Request): Promise<Response> {
+  return getOperationsDashboard(defaultDependencies, new URL(request.url).searchParams.get('q') ?? undefined)
 }
