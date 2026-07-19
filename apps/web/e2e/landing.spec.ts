@@ -26,6 +26,13 @@ test('checklist mở từ header và hiển thị đầy đủ artifact', async 
   const checklist = page.frameLocator('iframe[title="Checklist tiêu chí và bằng chứng VALSEA"]')
   await expect(checklist.getByRole('heading', { name: 'Checklist tiêu chí ↔ bằng chứng' })).toBeVisible()
   await expect(checklist.locator('tbody tr')).toHaveCount(36)
+  const evidenceEntry = checklist.getByRole('link', { name: /Mở màn bằng chứng/u })
+  await expect(evidenceEntry).toBeVisible()
+  await expect(evidenceEntry).toHaveAttribute('href', '/evidence')
+  await expect(evidenceEntry).toHaveAttribute('target', '_top')
+  await evidenceEntry.click()
+  await expect(page).toHaveURL(/\/evidence$/)
+  await expect(page.getByRole('heading', { name: 'Bằng chứng nhận dạng giọng nói' })).toBeVisible()
 })
 
 test('product tour cho phép xem trực tiếp từng bước đặt vé', async ({ page }) => {
