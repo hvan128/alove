@@ -125,6 +125,17 @@ per day.
 pnpm deploy:web
 ```
 
+`apps/web`'s `vercel-build` script runs `drizzle-kit migrate` before `next
+build`, so every production build applies whatever pending migrations exist
+in `apps/web/drizzle` using Vercel's own decrypted `DATABASE_URL` — no local
+copy of the connection string is needed to ship a simple additive migration.
+This does not replace the careful manual sequencing above for a migration
+that needs a compatibility trigger or a data-integrity check before
+promotion (like `0005`–`0007`): write that safety into the migration SQL
+itself and follow the required-row check before promoting, same as before.
+`drizzle-kit migrate` only re-applies what is not yet recorded, so re-running
+a build is always safe.
+
 Production secrets are managed in Vercel. Expected variable names are listed in
 the repository README; secret values must never be committed.
 
