@@ -188,6 +188,56 @@ Web local: <http://localhost:3000>. Các ngữ cảnh được tách riêng:
 Trên production, ban tổ chức bắt đầu tại
 <https://vedi-one.vercel.app/ban-to-chuc/>.
 
+## Bản đồ route
+
+Không có `middleware.ts`; mọi kiểm soát truy cập nằm trong chính route. Ba cơ chế
+xác thực tách biệt nhau và đều fail closed khi secret thiếu hoặc quá ngắn:
+
+- `requireAgent` — bearer `AGENT_WEBHOOK_SECRET`, chỉ Python agent dùng.
+- `checkDashboardRequest` — header `x-dashboard-key` hoặc cookie phiên
+  `alove-dashboard-session` (HMAC, hạn 12 giờ). Page chỉ nhận cookie; API nhận cả hai.
+- `CRON_SECRET` — bearer riêng cho cron, so sánh timing-safe.
+
+### API
+
+| Route | Method | Xác thực | Mục đích |
+|---|---|---|---|
+| `/api/booking/search` | POST | agent | Tìm chuyến theo tuyến/ngày/số khách; khi không có kết quả thì phân biệt "tuyến không chạy" với "chạy nhưng khác ngày" và gợi ý phương án |
+| `/api/booking/hold` | POST | agent | Giữ ghế tạm cho một chuyến theo `conversationId`; hết ghế trả `{held:false}` với HTTP 200 |
+| `/api/booking/confirm` | POST | agent | Chốt vé từ ghế đang giữ, yêu cầu câu xác nhận rõ ràng của khách, rồi cố gửi webhook. Webhook lỗi vẫn trả 200 — booking đã là sự thật |
+| `/api/booking/cancel` | POST | agent | Huỷ vé theo `conversationId`, hoặc theo cặp mã vé + số điện thoại |
+| `/api/booking/lookup` | POST | agent | Tra vé bằng mã vé + số điện thoại, phục vụ agent thoại |
+| `/api/booking/verify` | POST | công khai | Endpoint công khai duy nhất chạm dữ liệu vé. Giới hạn body 2KB, ép `content-type`, bốn tầng rate-limit (IP/mã/số ĐT/cặp mã+số). Sai mã và sai số điện thoại trả cùng một 404 để không lộ vé tồn tại |
+| `/api/booking/webhook/drain` | GET | cron | Drain outbox webhook: reconcile attempt treo, gửi tối đa 3 event tới hạn, đếm event đã bị bỏ. Bọc trong Sentry monitor `booking-webhook-drain` |
+| `/api/call/events` | POST | agent | Nhận `call.started`, `transcript.final`, `booking.updated`, `call.ended` và ghi vào call audit |
+| `/api/dashboard/calls` | GET | dashboard | Liệt kê cuộc gọi gần đây; chưa có DB thì trả 200 với `configured:false` thay vì lỗi |
+| `/api/dashboard/calls/[callId]` | GET | dashboard | Chi tiết một cuộc gọi kèm transcript và booking |
+| `/api/dashboard/bookings/[bookingId]/pay` | POST | dashboard | Nhân viên đánh dấu booking đã thanh toán; 409 nếu không ở trạng thái thu được |
+| `/api/dashboard/bookings/[bookingId]/cancel` | POST | dashboard | Nhân viên huỷ booking đang chờ; 409 nếu không huỷ được |
+| `/api/livekit/token` | POST | công khai, 8/10 phút theo IP | Cấp token cho khách gọi web. Server tự sinh `conversationId`, identity, room và role — browser không được chọn |
+| `/api/livekit/observer-token` | POST | dashboard | Token vai trò `observer` để dashboard nghe ké cuộc gọi đang diễn ra |
+| `/api/livekit/redispatch` | POST | session token đã ký, 3/2 phút | Dispatch lại agent khi lần dispatch một-lần của token thất bại; 410 nếu cuộc gọi đã đóng |
+| `/api/health` | GET | công khai | Readiness: DB (gồm migration và còn chuyến bán được), LiveKit, agent webhook, booking verification. **503 khi bất kỳ mục nào chưa sẵn sàng** |
+| `/api/newsletter` | POST | công khai, 5/giờ theo IP | Đăng ký bản tin từ footer; 201 khi thêm mới, 200 khi email đã có |
+
+Tất cả chạy `runtime = 'nodejs'`.
+
+### Trang
+
+| URL | Kiểu | Gate | Mục đích |
+|---|---|---|---|
+| `/` | dynamic | không | Trang chủ marketing, hiển thị chuyến sắp chạy đọc từ DB |
+| `/console` | static | không | Web Call console để khách đặt vé bằng giọng nói |
+| `/verify?code=…` | dynamic | không | Cổng xác minh vé công khai; `noindex`, luôn đòi số điện thoại khớp |
+| `/dashboard` | dynamic | có | Màn vận hành nhà xe: KPI, phễu, tuyến top, ghế giữ sắp hết hạn, bảng cuộc gọi |
+| `/dashboard/calls/<callId>` | dynamic | có | Chi tiết cuộc gọi: transcript, tóm tắt booking, monitor nghe trực tiếp |
+| `/ban-to-chuc` | static | không | Lối vào chấm thi, `noindex`; liệt kê từng góc nhìn kèm mức truy cập |
+| `/what-we-built` | static | không | Hồ sơ sản phẩm: từ giọng nói tới vé và vận hành |
+| `/checklist` | static | không | 36 tiêu chí VALSEA kèm kết quả production và nguồn kiểm chứng |
+| `/evidence` | static | không | Kết quả VALSEA vs Whisper trên cùng đầu vào, dữ liệu tổng hợp không PII |
+| `/design-system` | static | không | Showcase màu, typography và component |
+| `/tinh-nang`, `/cach-hoat-dong`, `/danh-cho-nha-xe`, `/ho-tro`, `/bao-mat`, `/dieu-khoan` | static | không | Sáu trang marketing sinh từ `generateStaticParams`; slug ngoài danh sách trả 404 |
+
 ## Biến môi trường
 
 ### Web/Vercel
@@ -206,6 +256,11 @@ Trên production, ban tổ chức bắt đầu tại
 | `BOOKING_WEBHOOK_ALLOWED_HOSTS` | Khi có URL | Allowlist hostname chính xác, phân tách bằng dấu phẩy |
 | `CRON_SECRET` | Có trên Vercel | Bảo vệ cron phục hồi outbox hằng ngày; tối thiểu 32 byte và tách khỏi secret khác |
 | `DASHBOARD_ACCESS_KEY` | Có nếu dùng dashboard | Khóa pilot tối thiểu 32 ký tự |
+| `SENTRY_DSN` | Không | Bật error tracking phía server; để trống thì mọi capture là no-op |
+| `NEXT_PUBLIC_SENTRY_DSN` | Không | Cùng một DSN, dành cho code chạy trong browser; DSN chỉ nhận ghi nên public được |
+| `SENTRY_ORG` | Không | Chỉ dùng lúc build, để upload source map |
+| `SENTRY_PROJECT` | Không | Chỉ dùng lúc build, để upload source map |
+| `SENTRY_AUTH_TOKEN` | Không | Thiếu thì build vẫn qua nhưng stack trace production giữ nguyên dạng minified |
 
 ### Python agent
 
@@ -268,6 +323,60 @@ cd agent && uv run python -m unittest discover -s tests
   LiveKit Cloud.
 - Migration phải chạy trước khi đưa web/agent dùng schema mới. Không sửa migration
   đã áp dụng; luôn thêm migration mới.
+- `.vercelignore` **thay thế** `.gitignore` chứ không cộng dồn. Thêm mục mới vào đó
+  phải giữ nguyên các dòng sẵn có, nếu không Vercel sẽ upload cả `node_modules`.
+
+## Monitoring
+
+Thiết lập một lần: tạo project Sentry, rồi đặt cùng một DSN vào `SENTRY_DSN` và
+`NEXT_PUBLIC_SENTRY_DSN`. Không có DSN thì mọi capture là no-op — local và preview
+im lặng mặc định, không cần cờ riêng để tắt.
+
+### Cái gì được báo
+
+| Nguồn | Cấp | Nghĩa là gì |
+|---|---|---|
+| Lỗi server và route handler (`instrumentation.ts`) | error | `digest` hiện cho khách tra được thành một event cụ thể |
+| Lỗi render phía client (`error.tsx`, `global-error.tsx`) | error | Màn hình vỡ trên máy khách thật |
+| Giao webhook hết retry budget | error | **Một ghế đã trả tiền mà nhà xe không biết.** Phải gọi tay cho nhà xe |
+| Hạ tầng giao webhook lỗi tạm thời | warning | Retry còn cứu được, chưa cần can thiệp |
+| Outbox còn event không còn đường retry | error | Đếm mỗi ngày bởi cron, cũng trả về ở field `abandoned` |
+| Cron drain không chạy | error | Monitor `booking-webhook-drain`, check-in tường minh trong route |
+
+Cron dùng `Sentry.withMonitor` chứ không dùng `automaticVercelMonitors`: tuỳ chọn
+kia chỉ chạy trên webpack, mà `next build` ở đây là Turbopack, nên nó sẽ đăng ký
+một monitor rỗng trong im lặng. Lịch của monitor bị khoá vào `vercel.json` bằng
+`vercel-config.test.ts` — lệch nhau thì monitor chờ một giờ không cron nào bắn.
+
+### Dữ liệu cá nhân
+
+`sendDefaultPii` tắt, nên cookie, header và địa chỉ IP không bao giờ được đính kèm.
+Số điện thoại khách bị che ngay trong `beforeSend`, trước khi event rời tiến trình —
+không dựa vào data-scrubbing rule phía Sentry, thứ có thể bị tắt mà không ai hay.
+
+`src/lib/observability.test.ts` kiểm tra hàm che; `src/lib/sentry-wiring.test.ts`
+kiểm tra nó thật sự nằm trên đường event đi ra, dùng SDK thật không mock. Một
+`beforeSend` viết đúng nhưng chưa được cài sẽ pass mọi test khác mà vẫn gửi số
+điện thoại đi.
+
+### Kiểm tra bằng tay
+
+```bash
+curl -i https://vedi-one.vercel.app/api/health
+curl -s -H "Authorization: Bearer $CRON_SECRET" \
+  https://vedi-one.vercel.app/api/booking/webhook/drain
+```
+
+Health trả 503 là chặn release, không phải trạng thái để bỏ qua. Drain trả field
+`abandoned`; khác 0 nghĩa là có vé không bao giờ tới được nhà xe.
+
+### Chưa được phủ
+
+- Không có gì tự động gọi `/api/health`. Cần uptime monitor bên ngoài poll nó và
+  coi 503 là page; thiếu thứ đó thì một dependency có thể chết hàng giờ không ai biết.
+- Python agent chưa nối Sentry; lỗi phía nó chỉ nằm trong log LiveKit Cloud.
+- `latency.turn` vẫn là event data-channel, không persist, nên chưa có p50/p95 lịch sử.
+- Call-audit delivery chưa có durable queue, khác với webhook vé.
 
 ## Tài liệu
 
