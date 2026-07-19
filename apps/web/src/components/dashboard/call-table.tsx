@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ChevronRight, Globe, Phone } from 'lucide-react'
 
+import { BookingStatusAction } from '@/components/dashboard/booking-status-action'
 import { BookingStatusBadge, CallStatusBadge } from '@/components/dashboard/status-badge'
 import { formatVnd } from '@/lib/dashboard-format'
 import type { CallSummary } from '@/lib/db/dashboard-store'
@@ -12,7 +13,7 @@ export function CallTable({ rows }: { rows: CallSummary[] }) {
     // absolute) trong bảng lấy containing block là viewport nên thoát khỏi vùng
     // cuộn và kéo cả trang trượt ngang gần 800px trên mobile.
     <div className="relative w-full overflow-x-auto">
-      <table className="w-full min-w-[980px] border-collapse text-ui">
+      <table className="w-full min-w-[1160px] border-collapse text-ui">
         <thead>
           <tr className="border-b border-[var(--divider)] text-left text-metric font-medium text-[var(--muted)]">
             <th scope="col" className="px-4 py-2 font-medium">Mã cuộc gọi</th>
@@ -20,9 +21,10 @@ export function CallTable({ rows }: { rows: CallSummary[] }) {
             <th scope="col" className="px-4 py-2 font-medium">Khách</th>
             <th scope="col" className="px-4 py-2 font-medium">Bắt đầu</th>
             <th scope="col" className="px-4 py-2 font-medium">Trạng thái</th>
-            <th scope="col" className="px-4 py-2 font-medium">Booking</th>
+            <th scope="col" className="px-4 py-2 font-medium">Kết quả hội thoại</th>
             <th scope="col" className="px-4 py-2 font-medium">Mã vé</th>
             <th scope="col" className="px-4 py-2 text-right font-medium">Tiền vé</th>
+            <th scope="col" className="px-4 py-2 font-medium">Tình trạng vé</th>
             <th scope="col" className="w-9 px-4 py-2">
               <span className="sr-only">Mở chi tiết</span>
             </th>
@@ -41,7 +43,7 @@ export function CallTable({ rows }: { rows: CallSummary[] }) {
 function CallRow({ row }: { row: CallSummary }) {
   const startedAt = new Date(row.startedAt)
   const isPhone = row.channel === 'phone'
-  const fare = row.latestBooking?.totalFareVnd ?? null
+  const fare = row.bookingRecord?.totalFareVnd ?? row.latestBooking?.totalFareVnd ?? null
 
   return (
     <tr className="group border-b border-[var(--divider)] transition-colors last:border-0 hover:bg-[var(--pearl)] focus-within:bg-[var(--pearl)]">
@@ -99,10 +101,22 @@ function CallRow({ row }: { row: CallSummary }) {
         )}
       </td>
       <td className="whitespace-nowrap px-4 py-3 font-mono text-[var(--ink)]">
-        {row.latestBooking?.bookingCode ?? <Dash />}
+        {row.bookingRecord?.code ?? row.latestBooking?.bookingCode ?? <Dash />}
       </td>
       <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums tracking-[-0.01em] text-[var(--ink)]">
         {fare === null ? <Dash /> : formatVnd(fare)}
+      </td>
+      <td className="px-4 py-3">
+        {row.bookingRecord ? (
+          <BookingStatusAction
+            key={`${row.bookingRecord.id}-${row.bookingRecord.status}`}
+            bookingId={row.bookingRecord.id}
+            callId={row.id}
+            status={row.bookingRecord.status}
+          />
+        ) : (
+          <Dash />
+        )}
       </td>
       <td className="px-4 py-3 text-right">
         <ChevronRight

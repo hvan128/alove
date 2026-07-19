@@ -24,6 +24,7 @@ import type {
 // ---------------------------------------------------------------------------
 
 export function SectionCard({
+  id,
   title,
   hint,
   action,
@@ -31,6 +32,7 @@ export function SectionCard({
   className,
   bodyClassName,
 }: {
+  id?: string
   title: string
   hint?: ReactNode
   action?: ReactNode
@@ -42,15 +44,16 @@ export function SectionCard({
 }) {
   return (
     <section
+      id={id}
       className={cn(
-        'flex min-w-0 flex-col rounded-[16px] border border-[var(--hairline)] bg-[var(--surface)]',
+        'flex min-w-0 flex-col overflow-hidden rounded-xl border border-white/80 bg-[var(--surface)] shadow-[var(--elevation-card)] ring-1 ring-black/[0.05]',
         className,
       )}
     >
-      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-b border-[var(--divider)] px-4 py-3">
+      <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1.5 px-4 pb-3 pt-4">
         <div className="min-w-0">
-          <h2 className="text-ui font-semibold tracking-[-0.015em] text-[var(--ink)]">{title}</h2>
-          {hint ? <p className="mt-0.5 text-metric text-[var(--muted)]">{hint}</p> : null}
+          <h2 className="text-base font-medium leading-snug tracking-tight text-[var(--ink)]">{title}</h2>
+          {hint ? <p className="mt-0.5 text-ui text-[var(--muted)]">{hint}</p> : null}
         </div>
         {action}
       </header>

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowRight, FileCheck2, Lock, Monitor, PhoneCall, ShieldCheck } from 'lucide-react'
+import { ArrowRight, FileCheck2, Layers3, Lock, Monitor, PhoneCall, ShieldCheck } from 'lucide-react'
 
 import { BrandMark } from '@/components/ui/brand-mark'
 
@@ -11,6 +11,16 @@ export const metadata: Metadata = {
 }
 
 const reviewRoutes = [
+  {
+    step: '00',
+    audience: 'Toàn cảnh sản phẩm',
+    title: 'Xem những gì Alove đã làm',
+    description: 'Đi qua toàn bộ hành trình từ giọng nói tiếng Việt đến tìm chuyến, giữ ghế, tạo vé, xác minh và vận hành.',
+    href: '/what-we-built',
+    cta: 'Xem tổng quan',
+    access: 'Công khai',
+    icon: Layers3,
+  },
   {
     step: '01',
     audience: 'Góc nhìn hành khách',
@@ -69,11 +79,11 @@ export default function OrganizerPage() {
             Một lối vào riêng cho ban tổ chức và giám khảo.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--muted)] sm:text-lg">
-            Ba góc nhìn được tách rõ để chấm sản phẩm mà không làm lẫn trải nghiệm đặt vé của khách với công việc vận hành nhà xe.
+            Bắt đầu bằng toàn cảnh những gì đã xây dựng, sau đó đi vào từng góc nhìn mà không làm lẫn trải nghiệm đặt vé của khách với công việc vận hành nhà xe.
           </p>
         </div>
 
-        <ol className="mt-10 grid gap-4 lg:grid-cols-3">
+        <ol className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {reviewRoutes.map(({ step, audience, title, description, href, cta, access, icon: Icon }) => (
             <li key={href}>
               <article className="flex h-full flex-col rounded-3xl border border-[var(--hairline)] bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] sm:p-6">

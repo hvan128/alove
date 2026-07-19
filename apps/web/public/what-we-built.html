@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Hồ sơ sản phẩm Alove — voice booking tiếng Việt từ cuộc gọi đến vé xe và vận hành nhà xe.">
+<title>Alove — What we built</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Fragment+Mono:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font-body: 'Bricolage Grotesque', ui-sans-serif, sans-serif;
+  --font-mono: 'Fragment Mono', ui-monospace, monospace;
+  --bg: #f5f1e8;
+  --surface: #fffdf8;
+  --surface-2: #ebe5d8;
+  --surface-elevated: #ffffff;
+  --ink: #132238;
+  --muted: #687283;
+  --line: rgba(30,58,95,.13);
+  --line-strong: rgba(30,58,95,.26);
+  --navy: #1e3a5f;
+  --navy-deep: #10243e;
+  --gold: #b58318;
+  --gold-bright: #d4a73a;
+  --gold-soft: rgba(212,167,58,.13);
+  --blue-soft: rgba(30,58,95,.08);
+  --green: #16715f;
+  --green-soft: rgba(22,113,95,.10);
+  --rose: #9d2947;
+  --rose-soft: rgba(157,41,71,.09);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1524;
+    --surface: #111f33;
+    --surface-2: #182942;
+    --surface-elevated: #172943;
+    --ink: #f4eddf;
+    --muted: #aab4c2;
+    --line: rgba(222,207,174,.12);
+    --line-strong: rgba(222,207,174,.24);
+    --navy: #86add8;
+    --navy-deep: #07111f;
+    --gold: #e3b84f;
+    --gold-bright: #f0c85e;
+    --gold-soft: rgba(227,184,79,.13);
+    --blue-soft: rgba(134,173,216,.10);
+    --green: #6fd1b6;
+    --green-soft: rgba(111,209,182,.10);
+    --rose: #f19ab1;
+    --rose-soft: rgba(241,154,177,.10);
+    color-scheme: dark;
+  }
+}
+[data-theme="dark"] {
+  --bg: #0b1524;
+  --surface: #111f33;
+  --surface-2: #182942;
+  --surface-elevated: #172943;
+  --ink: #f4eddf;
+  --muted: #aab4c2;
+  --line: rgba(222,207,174,.12);
+  --line-strong: rgba(222,207,174,.24);
+  --navy: #86add8;
+  --navy-deep: #07111f;
+  --gold: #e3b84f;
+  --gold-bright: #f0c85e;
+  --gold-soft: rgba(227,184,79,.13);
+  --blue-soft: rgba(134,173,216,.10);
+  --green: #6fd1b6;
+  --green-soft: rgba(111,209,182,.10);
+  --rose: #f19ab1;
+  --rose-soft: rgba(241,154,177,.10);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow-wrap: break-word;
+  background-color: var(--bg);
+  background-image: radial-gradient(circle at 82% 4%, var(--gold-soft), transparent 28rem);
+  color: var(--ink);
+  font: 16px/1.6 var(--font-body);
+}
+button, a { font: inherit; }
+a { color: var(--navy); }
+.theme-toggle {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 300;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: 0 2px 10px rgba(9,21,36,.08);
+  cursor: pointer;
+}
+.theme-toggle:hover { color: var(--gold); border-color: var(--gold); }
+.wrap {
+  display: grid;
+  grid-template-columns: 190px minmax(0,1fr);
+  gap: 0 44px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 30px 42px 90px;
+}
+.main { min-width: 0; }
+.toc {
+  position: sticky;
+  top: 24px;
+  grid-row: 1 / -1;
+  align-self: start;
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  padding: 14px 0;
+}
+.toc-title {
+  margin-bottom: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font: 700 11px/1.3 var(--font-mono);
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+.toc a {
+  display: block;
+  margin: 2px 0;
+  padding: 7px 10px;
+  border-left: 2px solid transparent;
+  border-radius: 0 6px 6px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  text-decoration: none;
+  transition: .16s ease;
+}
+.toc a:hover { background: var(--blue-soft); color: var(--ink); }
+.toc a.active { border-left-color: var(--gold); background: var(--gold-soft); color: var(--ink); }
+.hero {
+  position: relative;
+  min-height: 620px;
+  overflow: hidden;
+  padding: clamp(44px,7vw,94px) clamp(24px,5vw,72px);
+  border: 1px solid rgba(212,167,58,.28);
+  background: var(--navy-deep);
+  color: #f8f2e6;
+  box-shadow: 0 20px 70px rgba(9,21,36,.22);
+}
+.hero::after {
+  position: absolute;
+  inset: 0 0 auto auto;
+  width: 44%;
+  height: 100%;
+  background-image: linear-gradient(rgba(212,167,58,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(212,167,58,.12) 1px,transparent 1px);
+  background-size: 30px 30px;
+  content: '';
+  mask-image: linear-gradient(90deg,transparent,#000);
+}
+.hero > * { position: relative; z-index: 1; }
+.eyebrow, .section-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--gold-bright);
+  font: 700 12px/1.4 var(--font-mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.eyebrow::before, .section-label::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+}
+h1 {
+  max-width: 880px;
+  margin: 32px 0 24px;
+  font-size: clamp(48px,7.4vw,104px);
+  font-weight: 700;
+  letter-spacing: -.065em;
+  line-height: .93;
+  text-wrap: balance;
+}
+.hero-lead {
+  max-width: 720px;
+  margin: 0;
+  color: #c9d5e4;
+  font-size: clamp(18px,2vw,23px);
+  line-height: 1.55;
+}
+.hero-actions, .cta-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 34px; }
+.button {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 19px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform .16s ease,background .16s ease;
+}
+.button:hover { transform: translateY(-1px); background: rgba(255,255,255,.08); }
+.button.primary { border-color: var(--gold-bright); background: var(--gold-bright); color: #17243a; }
+.hero-strip {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  margin-top: 70px;
+  border-top: 1px solid rgba(255,255,255,.14);
+}
+.hero-proof { padding: 22px 18px 4px 0; }
+.hero-proof strong { display: block; color: #fff; font-size: 18px; }
+.hero-proof span { display: block; margin-top: 4px; color: #91a4ba; font: 12px/1.5 var(--font-mono); }
+.doc-section { padding: 88px 4px 12px; scroll-margin-top: 28px; }
+.section-label { color: var(--gold); }
+.section-title {
+  max-width: 930px;
+  margin: 16px 0 18px;
+  font-size: clamp(34px,5vw,65px);
+  letter-spacing: -.055em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+.section-lead { max-width: 760px; margin: 0; color: var(--muted); font-size: 19px; line-height: 1.7; }
+.problem-grid {
+  display: grid;
+  grid-template-columns: 1.25fr .75fr;
+  gap: 18px;
+  margin-top: 38px;
+}
+.statement {
+  min-width: 0;
+  padding: 36px;
+  border: 1px solid var(--line);
+  background: var(--surface-elevated);
+  box-shadow: 0 10px 40px rgba(16,36,62,.07);
+}
+.statement.big { background: var(--navy-deep); color: #f4eddf; }
+.statement-number { color: var(--gold-bright); font: 700 12px/1 var(--font-mono); letter-spacing: .12em; }
+.statement h3 { margin: 40px 0 14px; font-size: 29px; line-height: 1.12; letter-spacing: -.04em; }
+.statement p { margin: 0; color: var(--muted); }
+.statement.big p { color: #9fb0c4; }
+.journey {
+  display: grid;
+  grid-template-columns: repeat(5,minmax(190px,1fr));
+  gap: 0;
+  margin-top: 42px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+.journey-step {
+  position: relative;
+  min-width: 190px;
+  padding: 28px 24px 30px;
+  border-block: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  background: var(--surface);
+}
+.journey-step:last-child { border-right: 1px solid var(--line); }
+.journey-step::after { position: absolute; top: 37px; right: -8px; z-index: 2; color: var(--gold); content: '→'; }
+.journey-step:last-child::after { display: none; }
+.step-no { color: var(--gold); font: 700 12px var(--font-mono); }
+.journey-step h3 { margin: 34px 0 10px; font-size: 18px; line-height: 1.2; }
+.journey-step p { margin: 0; color: var(--muted); font-size: 14px; }
+.feature-asym {
+  display: grid;
+  grid-template-columns: .8fr 1.2fr;
+  gap: 18px;
+  margin-top: 40px;
+}
+.metrics-panel {
+  padding: 34px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.metric {
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+.metric:last-child { border: 0; }
+.metric-value { color: var(--navy); font-size: clamp(38px,5vw,66px); font-weight: 800; letter-spacing: -.06em; line-height: 1; }
+.metric-label { margin-top: 8px; font-size: 15px; font-weight: 700; }
+.metric-compare { color: var(--muted); font: 12px var(--font-mono); }
+.capability-panel {
+  padding: 38px;
+  border: 1px solid rgba(212,167,58,.28);
+  background: var(--navy-deep);
+  color: #f4eddf;
+}
+.capability-panel h3 { max-width: 620px; margin: 0 0 28px; font-size: 32px; letter-spacing: -.04em; }
+.capability-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.capability {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.04);
+}
+.capability strong { display: block; color: var(--gold-bright); }
+.capability span { display: block; margin-top: 5px; color: #9fb0c4; font-size: 14px; }
+.architecture {
+  display: grid;
+  grid-template-columns: repeat(5,minmax(150px,1fr));
+  gap: 10px;
+  margin-top: 40px;
+  padding: 26px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.layer {
+  position: relative;
+  min-width: 0;
+  padding: 24px 18px;
+  border-top: 3px solid var(--navy);
+  background: var(--surface);
+}
+.layer:nth-child(2) { border-color: var(--gold); }
+.layer:nth-child(3) { border-color: var(--green); }
+.layer:nth-child(4) { border-color: var(--rose); }
+.layer:nth-child(5) { border-color: var(--gold); }
+.layer:not(:last-child)::after { position: absolute; top: 50%; right: -10px; z-index: 2; color: var(--gold); content: '›'; transform: translateY(-50%); }
+.layer small { color: var(--muted); font: 11px var(--font-mono); text-transform: uppercase; }
+.layer h3 { margin: 24px 0 7px; font-size: 18px; }
+.layer p { margin: 0; color: var(--muted); font-size: 13px; }
+.principle {
+  margin-top: 16px;
+  padding: 26px 30px;
+  border-left: 4px solid var(--gold);
+  background: var(--gold-soft);
+  font-size: 20px;
+  font-weight: 600;
+}
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 14px;
+  margin-top: 40px;
+}
+.workflow-card {
+  min-width: 0;
+  min-height: 230px;
+  padding: 26px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.workflow-card:nth-child(2), .workflow-card:nth-child(5) { background: var(--blue-soft); }
+.workflow-card small { color: var(--gold); font: 11px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
+.workflow-card h3 { margin: 48px 0 10px; font-size: 21px; line-height: 1.2; }
+.workflow-card p { margin: 0; color: var(--muted); font-size: 14px; }
+.production-band {
+  display: grid;
+  grid-template-columns: .9fr 1.1fr;
+  gap: 0;
+  margin-top: 40px;
+  border: 1px solid var(--line);
+}
+.production-copy { padding: 42px; background: var(--navy-deep); color: #fff; }
+.production-copy h3 { margin: 0 0 16px; font-size: 35px; letter-spacing: -.04em; }
+.production-copy p { color: #aebed0; }
+.production-list { padding: 28px 34px; background: var(--surface); }
+.production-item { position: relative; padding: 16px 0 16px 24px; border-bottom: 1px solid var(--line); }
+.production-item:last-child { border: 0; }
+.production-item::before { position: absolute; top: 23px; left: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--green); content: ''; }
+.production-item strong { display: block; }
+.production-item span { color: var(--muted); font-size: 14px; }
+.pilot-roadmap {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 1px;
+  margin-top: 40px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+.pilot-phase { min-width: 0; padding: 28px; background: var(--surface); }
+.pilot-phase:first-child { background: var(--gold-soft); }
+.pilot-phase small { color: var(--gold); font: 700 11px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
+.pilot-phase h3 { margin: 30px 0 10px; font-size: 21px; line-height: 1.15; }
+.pilot-phase p { margin: 0; color: var(--muted); font-size: 14px; }
+.roadmap-bridge {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 18px 0;
+  color: var(--muted);
+  font: 12px var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .09em;
+}
+.roadmap-bridge::before, .roadmap-bridge::after { height: 1px; flex: 1; background: var(--line); content: ''; }
+.expansion-tracks { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.expansion-track { min-width: 0; overflow: hidden; border: 1px solid var(--line); background: var(--surface); }
+.track-head { padding: 30px; border-bottom: 1px solid var(--line); background: var(--navy-deep); color: #fff; }
+.track-head.language { background: color-mix(in srgb,var(--navy-deep) 86%,var(--green) 14%); }
+.track-kicker { color: var(--gold-bright); font: 700 11px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
+.track-head h3 { margin: 16px 0 8px; font-size: 28px; letter-spacing: -.04em; }
+.track-head p { margin: 0; color: #aebed0; font-size: 14px; }
+.track-steps { padding: 12px 30px 24px; }
+.track-step { position: relative; padding: 20px 0 20px 56px; border-bottom: 1px solid var(--line); }
+.track-step:last-child { border: 0; }
+.track-step::before {
+  position: absolute;
+  top: 22px;
+  left: 0;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--gold);
+  font: 700 11px var(--font-mono);
+  content: attr(data-step);
+}
+.track-step h4 { margin: 0 0 5px; font-size: 17px; }
+.track-step p { margin: 0; color: var(--muted); font-size: 13px; }
+.shared-core {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 24px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 26px 30px;
+  border: 1px solid rgba(212,167,58,.3);
+  background: var(--gold-soft);
+}
+.shared-core strong { color: var(--gold); font: 700 12px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
+.shared-core p { margin: 0; font-size: 17px; font-weight: 600; }
+.closing {
+  margin-top: 72px;
+  padding: clamp(36px,6vw,70px);
+  background: var(--navy-deep);
+  color: #fff;
+}
+.closing h2 { max-width: 800px; margin: 0; font-size: clamp(38px,6vw,70px); letter-spacing: -.06em; line-height: 1; }
+.closing p { max-width: 680px; margin: 22px 0 0; color: #aebed0; font-size: 18px; }
+.closing .button { color: #fff; }
+.foot { margin-top: 28px; color: var(--muted); font: 12px var(--font-mono); text-align: right; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.hero, .doc-section { animation: rise .42s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+@media (max-width: 1000px) {
+  .wrap { grid-template-columns: 1fr; padding: 0 24px 70px; }
+  .toc {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    grid-row: auto;
+    max-height: none;
+    margin: 0 -24px;
+    padding: 10px 58px 10px 24px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .toc-title { display: none; }
+  .toc a { flex: none; white-space: nowrap; border-left: 0; border-bottom: 2px solid transparent; border-radius: 4px 4px 0 0; }
+  .toc a.active { border-left: 0; border-bottom-color: var(--gold); }
+  .main { padding-top: 24px; }
+  .doc-section { scroll-margin-top: 60px; }
+  .problem-grid, .feature-asym, .production-band, .expansion-tracks { grid-template-columns: 1fr; }
+  .architecture { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .architecture .layer:last-child { grid-column: 1 / -1; }
+}
+@media (max-width: 700px) {
+  .wrap { padding-inline: 14px; }
+  .toc { margin-inline: -14px; padding-left: 14px; padding-right: 54px; }
+  .hero { min-height: auto; padding: 40px 22px; }
+  .hero-strip { grid-template-columns: repeat(2,minmax(0,1fr)); margin-top: 48px; }
+  .hero-proof { padding-right: 8px; }
+  .doc-section { padding-top: 66px; }
+  .problem-grid, .capability-list, .workflow-grid, .architecture, .pilot-roadmap { grid-template-columns: 1fr; }
+  .architecture .layer:last-child { grid-column: auto; }
+  .statement, .metrics-panel, .capability-panel, .production-copy, .production-list { padding: 25px; }
+  .journey-step { min-width: 78vw; }
+  .shared-core { grid-template-columns: 1fr; gap: 8px; padding: 24px; }
+  .track-head, .track-steps { padding-inline: 24px; }
+  .closing { margin-inline: -14px; }
+}
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" title="Đổi giao diện" aria-label="Đổi giao diện sáng hoặc tối"></button>
+<div class="wrap">
+  <nav class="toc" id="toc" aria-label="Mục lục">
+    <div class="toc-title">What we built</div>
+    <a href="#vision">01 · Bài toán</a>
+    <a href="#journey">02 · Sản phẩm</a>
+    <a href="#valsea">03 · VALSEA</a>
+    <a href="#architecture">04 · Kiến trúc</a>
+    <a href="#workflow">05 · Workflow</a>
+    <a href="#production">06 · Production</a>
+    <a href="#scale">07 · Mở rộng</a>
+  </nav>
+
+  <main class="main">
+    <section class="hero" id="top">
+      <div class="eyebrow">Alove · Voice booking for Vietnam</div>
+      <h1>Một cuộc gọi. Một hành trình đặt vé hoàn chỉnh.</h1>
+      <p class="hero-lead">Alove biến lời nói tự nhiên của hành khách thành booking có ghế, có mã vé, có QR xác minh và có dữ liệu vận hành — tất cả trong một trải nghiệm tiếng Việt liền mạch.</p>
+      <div class="hero-actions">
+        <a class="button primary" href="/console" target="_top">Trải nghiệm Web Call →</a>
+        <a class="button" href="/evidence" target="_top">Nghe bằng chứng nhận dạng</a>
+      </div>
+      <div class="hero-strip">
+        <div class="hero-proof"><strong>Live product</strong><span>Web · Agent · Booking · Database</span></div>
+        <div class="hero-proof"><strong>Vietnamese-first</strong><span>Thanh điệu · Code-switch · Văn hoá</span></div>
+        <div class="hero-proof"><strong>AI-native</strong><span>LLM điều phối · API quyết định</span></div>
+        <div class="hero-proof"><strong>Workflow-ready</strong><span>Search · Hold · Confirm · Verify</span></div>
+      </div>
+    </section>
+
+    <section class="doc-section" id="vision">
+      <div class="section-label">01 · Bài toán được giải quyết</div>
+      <h2 class="section-title">Đặt vé xe không còn bắt đầu bằng một biểu mẫu.</h2>
+      <p class="section-lead">Alove đưa hành vi tự nhiên nhất của người Việt — gọi và nói — trở thành giao diện cho toàn bộ hệ thống bán vé. Hành khách chỉ cần kể nhu cầu; phần phức tạp được hệ thống xử lý phía sau.</p>
+      <div class="problem-grid">
+        <article class="statement big">
+          <div class="statement-number">01 / HÀNH KHÁCH</div>
+          <h3>Nói như đang gọi cho một nhân viên quen thuộc.</h3>
+          <p>Điểm đi, điểm đến, ngày đi, số ghế và số điện thoại được thu thập qua hội thoại tiếng Việt lịch sự, có xác nhận trước khi chốt.</p>
+        </article>
+        <article class="statement">
+          <div class="statement-number">02 / NHÀ XE</div>
+          <h3>Nhận booking có cấu trúc ngay sau cuộc gọi.</h3>
+          <p>Lịch, giá, ghế, trạng thái vé và dấu vết thao tác đi thẳng vào hệ thống vận hành thay vì nằm trong ghi chú rời rạc.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="doc-section" id="journey">
+      <div class="section-label">02 · Sản phẩm end-to-end</div>
+      <h2 class="section-title">Từ “Alo” đến vé xe trong một mạch hội thoại.</h2>
+      <p class="section-lead">Không phải chatbot trả lời chung chung. Alove dùng cuộc hội thoại để điều khiển một lifecycle booking thật, nơi mỗi bước đều tạo ra thay đổi có thể kiểm tra.</p>
+      <div class="journey" aria-label="Hành trình đặt vé">
+        <article class="journey-step"><div class="step-no">STEP 01</div><h3>Hiểu nhu cầu</h3><p>Nhận hành trình, ngày đi, số khách và thông tin liên hệ.</p></article>
+        <article class="journey-step"><div class="step-no">STEP 02</div><h3>Tìm chuyến</h3><p>Đọc lịch chạy, giờ khởi hành, giá vé và lựa chọn phù hợp.</p></article>
+        <article class="journey-step"><div class="step-no">STEP 03</div><h3>Giữ ghế</h3><p>Khoá ghế có thời hạn để bảo toàn lựa chọn trong lúc xác nhận.</p></article>
+        <article class="journey-step"><div class="step-no">STEP 04</div><h3>Chốt booking</h3><p>Tạo mã vé sau khi hành khách xác nhận toàn bộ thông tin.</p></article>
+        <article class="journey-step"><div class="step-no">STEP 05</div><h3>Nhận &amp; kiểm vé</h3><p>QR và trang verify kết nối hành khách với dữ liệu vé tối thiểu.</p></article>
+      </div>
+    </section>
+
+    <section class="doc-section" id="valsea">
+      <div class="section-label">03 · Vietnamese speech intelligence</div>
+      <h2 class="section-title">VALSEA là đôi tai của Alove — được đặt đúng nơi tạo ra giá trị.</h2>
+      <p class="section-lead">VALSEA không đứng ngoài luồng để trang trí một transcript. Realtime transcription đưa lời nói vào agent; batch transcription phục vụ phân tích; semantic annotation bổ sung tín hiệu để hệ thống hiểu sâu hơn về cuộc gọi.</p>
+      <div class="feature-asym">
+        <div class="metrics-panel">
+          <div class="metric"><div class="metric-value">0,1579</div><div class="metric-label">WER ở câu giàu thanh điệu</div><div class="metric-compare">Whisper baseline · 0,3158</div></div>
+          <div class="metric"><div class="metric-value">0,04</div><div class="metric-label">WER ở câu Việt–Anh đan xen</div><div class="metric-compare">Whisper baseline · 0,28</div></div>
+          <div class="metric"><div class="metric-value">0,1364</div><div class="metric-label">WER trên âm thanh điện thoại 8 kHz</div><div class="metric-compare">Whisper baseline · 0,1818</div></div>
+        </div>
+        <div class="capability-panel">
+          <h3>Một lớp nhận dạng được thiết kế quanh cách người Việt thực sự giao tiếp.</h3>
+          <div class="capability-list">
+            <div class="capability"><strong>Thanh điệu</strong><span>Giữ những dấu thanh có thể thay đổi hoàn toàn tên riêng và ý nghĩa câu.</span></div>
+            <div class="capability"><strong>Code-switch</strong><span>Bảo toàn thuật ngữ tiếng Anh khi xuất hiện tự nhiên giữa câu tiếng Việt.</span></div>
+            <div class="capability"><strong>Realtime + batch</strong><span>Một surface phục vụ hội thoại trực tiếp, một surface phục vụ phân tích sâu.</span></div>
+            <div class="capability"><strong>Semantic annotation</strong><span>Biến transcript thành tín hiệu giàu ngữ nghĩa cho workflow phía sau.</span></div>
+            <div class="capability"><strong>Auto language</strong><span>Chủ động nhận biết ngôn ngữ trong phiên thay vì ép người dùng cấu hình.</span></div>
+            <div class="capability"><strong>Benchmark tái lập</strong><span>Audio, ground truth, transcript và diff được mở thành một màn bằng chứng trực quan.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section" id="architecture">
+      <div class="section-label">04 · Kiến trúc AI-native</div>
+      <h2 class="section-title">AI điều phối cuộc nói chuyện. Hệ thống nghiệp vụ bảo vệ sự thật.</h2>
+      <p class="section-lead">Alove tách rõ năng lực suy luận khỏi nguồn dữ liệu có thẩm quyền. Agent chọn đúng công cụ; API và Neon sở hữu lịch chạy, giá vé, tồn ghế, mã vé và lifecycle booking.</p>
+      <div class="architecture" aria-label="Kiến trúc Alove">
+        <article class="layer"><small>01 · Channel</small><h3>LiveKit</h3><p>Đưa âm thanh hai chiều vào một phiên hội thoại realtime.</p></article>
+        <article class="layer"><small>02 · Speech</small><h3>VALSEA</h3><p>Chuyển tiếng Việt thành transcript và tín hiệu ngữ nghĩa.</p></article>
+        <article class="layer"><small>03 · Reasoning</small><h3>Voice agent</h3><p>Giữ ngữ cảnh, hỏi bổ sung và chọn booking tools.</p></article>
+        <article class="layer"><small>04 · Authority</small><h3>Authenticated API</h3><p>Thực thi search, hold, confirm, verify và cancel.</p></article>
+        <article class="layer"><small>05 · Record</small><h3>Neon</h3><p>Lưu trạng thái ghế, booking, audit và dữ liệu vận hành.</p></article>
+      </div>
+      <div class="principle">Kết quả: một kiến trúc có thể giải thích, kiểm soát và mở rộng — không đánh đổi sự linh hoạt của AI lấy độ tin cậy nghiệp vụ.</div>
+    </section>
+
+    <section class="doc-section" id="workflow">
+      <div class="section-label">05 · Workflow sẵn sàng cho nhà xe</div>
+      <h2 class="section-title">Cuộc gọi kết thúc. Công việc vận hành bắt đầu với dữ liệu đã có cấu trúc.</h2>
+      <p class="section-lead">Mọi output quan trọng đều được đóng thành contract rõ ràng để hành khách, nhân viên nhà xe và hệ thống tích hợp có thể dùng ngay.</p>
+      <div class="workflow-grid">
+        <article class="workflow-card"><small>Booking lifecycle</small><h3>Search → Hold → Confirm</h3><p>Luồng atomic bảo vệ ghế khỏi bán trùng và chỉ tạo vé sau khi khách xác nhận.</p></article>
+        <article class="workflow-card"><small>Passenger output</small><h3>Mã vé và QR</h3><p>Một đầu ra gọn, dễ lưu và đưa hành khách thẳng đến trải nghiệm kiểm vé.</p></article>
+        <article class="workflow-card"><small>Privacy by design</small><h3>Verify tối thiểu PII</h3><p>Thông tin vé chỉ xuất hiện khi dữ liệu xác minh khớp, với payload công khai được tối giản.</p></article>
+        <article class="workflow-card"><small>Operations</small><h3>Dashboard nhà xe</h3><p>Cuộc gọi, booking, độ trễ và trạng thái dịch vụ cùng xuất hiện trong một màn vận hành.</p></article>
+        <article class="workflow-card"><small>Integration</small><h3>Webhook có chữ ký</h3><p>Contract delivery, signature và idempotency tạo nền tảng kết nối CRM hoặc hệ thống điều hành.</p></article>
+        <article class="workflow-card"><small>Observability</small><h3>Latency theo từng chặng</h3><p>Speech, LLM, tool và phản hồi được tách riêng để nhìn thấy chính xác nơi trải nghiệm tiêu tốn thời gian.</p></article>
+      </div>
+    </section>
+
+    <section class="doc-section" id="production">
+      <div class="section-label">06 · Production, không phải slideshow</div>
+      <h2 class="section-title">Một hệ thống đã được nối từ trình duyệt đến database.</h2>
+      <p class="section-lead">Web công khai, voice agent, booking API và schema production vận hành như một sản phẩm thống nhất. Đội ngũ có release path, rollback path và health surface để đưa demo vượt ra khỏi sân khấu.</p>
+      <div class="production-band">
+        <div class="production-copy">
+          <h3>Live across the stack.</h3>
+          <p>Vercel phục vụ trải nghiệm web; LiveKit vận hành voice agent; API thực thi nghiệp vụ; Neon giữ dữ liệu booking; health checks quan sát toàn bộ dependency chain.</p>
+          <div class="cta-actions"><a class="button primary" href="https://vedi-one.vercel.app/" target="_top">Mở sản phẩm live →</a></div>
+        </div>
+        <div class="production-list">
+          <div class="production-item"><strong>Public product surface</strong><span>Landing, Web Call, evidence, verify và khu vực ban tổ chức.</span></div>
+          <div class="production-item"><strong>Production voice worker</strong><span>Agent tham gia room, phát lời chào tiếng Việt và xuất runtime metrics.</span></div>
+          <div class="production-item"><strong>Database integrity</strong><span>Booking lifecycle và seat release được kiểm tra trọn luồng.</span></div>
+          <div class="production-item"><strong>Operational readiness</strong><span>Deployment, rollback, SIP và release runbook được chuẩn hoá.</span></div>
+          <div class="production-item"><strong>Provider portability</strong><span>Boundary speech và TTS cho phép chủ động lựa chọn provider theo mục tiêu vận hành.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section" id="scale">
+      <div class="section-label">07 · Roadmap đa ngành, đa ngôn ngữ</div>
+      <h2 class="section-title">Từ một nhà xe Việt Nam đến nền tảng voice workflow cho nhiều thị trường.</h2>
+      <p class="section-lead">Alove bắt đầu từ vận tải hành khách — nơi cuộc gọi, tồn ghế và dữ liệu địa phương tạo ra bài toán đủ khó. Từ lõi đã xây dựng, sản phẩm có hai đường tăng trưởng song song: mở rộng business workflow theo ngành và mở rộng speech experience theo ngôn ngữ.</p>
+
+      <div class="pilot-roadmap" aria-label="Lộ trình pilot 90 ngày">
+        <article class="pilot-phase"><small>Ngày 0–30</small><h3>Pilot có giám sát</h3><p>Đưa khách thử nghiệm, QR, webhook và runbook vào một vòng vận hành có kiểm soát.</p></article>
+        <article class="pilot-phase"><small>Ngày 31–60</small><h3>Đo chất lượng thực tế</h3><p>Đo completion, latency, correction rate và mức can thiệp của nhân viên nhà xe.</p></article>
+        <article class="pilot-phase"><small>Ngày 61–90</small><h3>Mở rộng có kiểm soát</h3><p>Mở thêm tuyến, ca vận hành và channel khi scorecard đạt cổng go-to-scale.</p></article>
+      </div>
+
+      <div class="roadmap-bridge">Hai đường tăng trưởng từ một shared core</div>
+
+      <div class="expansion-tracks">
+        <article class="expansion-track">
+          <div class="track-head">
+            <div class="track-kicker">Industry expansion</div>
+            <h3>Mở rộng theo ngành nghề</h3>
+            <p>Giữ nguyên voice platform, thay business tools và domain contract cho từng ngành.</p>
+          </div>
+          <div class="track-steps">
+            <div class="track-step" data-step="01"><h4>Mobility &amp; passenger transport</h4><p>Nhà xe, shuttle, limousine và vận tải theo tuyến — mở rộng operator, inventory và channel.</p></div>
+            <div class="track-step" data-step="02"><h4>Appointment-based services</h4><p>Phòng khám, salon, gara và dịch vụ tại nhà — chuyển seat lifecycle thành slot lifecycle.</p></div>
+            <div class="track-step" data-step="03"><h4>Hospitality &amp; commerce</h4><p>Nhà hàng, khách sạn và bán lẻ — tiếp nhận reservation, order và yêu cầu chăm sóc qua thoại.</p></div>
+            <div class="track-step" data-step="04"><h4>Enterprise voice operations</h4><p>Một nền tảng cho intake, qualification, routing và structured handoff vào hệ thống doanh nghiệp.</p></div>
+          </div>
+        </article>
+
+        <article class="expansion-track">
+          <div class="track-head language">
+            <div class="track-kicker">Language expansion</div>
+            <h3>Mở rộng theo ngôn ngữ</h3>
+            <p>Mỗi thị trường có speech stack, cách xưng hô và locale contract riêng thay vì chỉ dịch câu chữ.</p>
+          </div>
+          <div class="track-steps">
+            <div class="track-step" data-step="01"><h4>Vietnamese depth</h4><p>Nâng độ phủ giọng vùng miền, địa danh, tên riêng và code-switch trong ngữ cảnh bản địa.</p></div>
+            <div class="track-step" data-step="02"><h4>Vietnamese + English</h4><p>Hội thoại song ngữ cho khách quốc tế, operator du lịch và thuật ngữ nghiệp vụ xuyên biên giới.</p></div>
+            <div class="track-step" data-step="03"><h4>Southeast Asia language packs</h4><p>Thái, Indonesia và các thị trường lân cận với STT/TTS, format dữ liệu và prompt được địa phương hoá.</p></div>
+            <div class="track-step" data-step="04"><h4>Global multilingual orchestration</h4><p>Language routing theo phiên, locale-aware workflow và bộ đánh giá riêng cho từng thị trường.</p></div>
+          </div>
+        </article>
+      </div>
+
+      <div class="shared-core">
+        <strong>Shared Alove Core</strong>
+        <p>Realtime voice · Agent orchestration · Authenticated tools · Authoritative data · Verification · Audit · Observability</p>
+      </div>
+      <div class="closing">
+        <h2>Alove không chỉ nghe được tiếng Việt. Alove biến tiếng Việt thành một booking có giá trị.</h2>
+        <p>Trải nghiệm hành khách, bằng chứng speech AI và màn vận hành nhà xe đã sẵn sàng để được xem trong ba góc nhìn riêng.</p>
+        <div class="cta-actions">
+          <a class="button primary" href="/console" target="_top">Thử đặt vé</a>
+          <a class="button" href="/evidence" target="_top">Xem speech evidence</a>
+          <a class="button" href="/dashboard" target="_top">Mở dashboard</a>
+          <a class="button" href="https://github.com/hvan128/alove" target="_blank" rel="noreferrer">GitHub public ↗</a>
+        </div>
+      </div>
+      <p class="foot">Alove · Vietnam AI Innovation Challenge · 2026</p>
+    </section>
+  </main>
+</div>
+<script>
+(function() {
+  var toggle = document.getElementById('themeToggle');
+  var saved = localStorage.getItem('theme');
+  var initial = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  if (saved) document.documentElement.setAttribute('data-theme', initial);
+  toggle.textContent = initial === 'dark' ? '\u2600' : '\u263E';
+  toggle.addEventListener('click', function() {
+    var current = document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = current === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    toggle.textContent = next === 'dark' ? '\u2600' : '\u263E';
+  });
+
+  var toc = document.getElementById('toc');
+  var links = toc.querySelectorAll('a');
+  var sections = [];
+  links.forEach(function(link) {
+    var id = link.getAttribute('href').slice(1);
+    var element = document.getElementById(id);
+    if (element) sections.push({ element: element, link: link });
+  });
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (!entry.isIntersecting) return;
+      links.forEach(function(link) { link.classList.remove('active'); });
+      var match = sections.find(function(section) { return section.element === entry.target; });
+      if (match) {
+        match.link.classList.add('active');
+        if (window.innerWidth <= 1000) match.link.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    });
+  }, { rootMargin: '-10% 0px -78% 0px' });
+  sections.forEach(function(section) { observer.observe(section.element); });
+  links.forEach(function(link) {
+    link.addEventListener('click', function(event) {
+      event.preventDefault();
+      var element = document.getElementById(link.getAttribute('href').slice(1));
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.replaceState(null, '', link.getAttribute('href'));
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

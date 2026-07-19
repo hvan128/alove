@@ -4,7 +4,7 @@ import { and, eq, gte, lte, sql } from 'drizzle-orm'
 import { bookingSnapshotSchema, type BookingSnapshot } from '@/lib/call-contract'
 
 import { requireDb } from './client'
-import { bookingWebhookOutbox, bookings, routes, seats, trips } from './schema'
+import { bookingWebhookOutbox, bookings, payments, routes, seats, trips } from './schema'
 
 /**
  * Real inventory operations. The LLM decides *what the caller meant*; everything
@@ -469,20 +469,32 @@ export async function findBookingSnapshotForVerification(input: {
  */
 export async function cancelBooking(input: {
   callId: string
+  /** Dashboard targets the exact booking row shown in the table. */
+  bookingId?: number
   code?: string | null
   phone?: string | null
+  /** Dashboard operator cancellation stops before paid bookings: refunds are a separate workflow. */
+  pendingOnly?: boolean
 }): Promise<{ cancelled: boolean; code?: string; seatCodes?: string[] }> {
   const hasCode = Boolean(input.code)
   const hasPhone = Boolean(input.phone)
   if (hasCode !== hasPhone) {
     throw new Error('Previous-call cancellation requires both booking code and phone')
   }
+  if (input.bookingId !== undefined && (hasCode || hasPhone)) {
+    throw new Error('Booking ID cancellation cannot be combined with code and phone')
+  }
 
   const db = requireDb()
-  const authorizedBooking = hasCode
-    ? sql`b.code = ${input.code!} AND b.phone = ${input.phone!}`
-    : sql`b.call_id = ${input.callId}`
-  const releaseCurrentHolds = hasCode ? sql`FALSE` : sql`TRUE`
+  const authorizedBooking = input.bookingId !== undefined
+    ? sql`b.id = ${input.bookingId} AND b.call_id = ${input.callId}`
+    : hasCode
+      ? sql`b.code = ${input.code!} AND b.phone = ${input.phone!}`
+      : sql`b.call_id = ${input.callId}`
+  const releaseCurrentHolds = hasCode || input.bookingId !== undefined ? sql`FALSE` : sql`TRUE`
+  const cancellableBooking = input.pendingOnly
+    ? sql`b.status = 'pending_payment'`
+    : sql`b.status <> 'cancelled'`
 
   // Cancellation and inventory release succeed or roll back together. A caller
   // can also change their mind after hold but before confirm; current-call holds
@@ -495,7 +507,7 @@ export async function cancelBooking(input: {
       SELECT b.id, b.code, b.seat_codes, b.idempotency_key
       FROM ${bookings} AS b
       CROSS JOIN call_lock
-      WHERE ${authorizedBooking} AND b.status <> 'cancelled'
+      WHERE ${authorizedBooking} AND ${cancellableBooking}
       ORDER BY b.id DESC
       LIMIT 1
       FOR UPDATE
@@ -544,6 +556,37 @@ export async function cancelBooking(input: {
     ...(row.code ? { code: row.code } : {}),
     seatCodes: row.seatCodes,
   }
+}
+
+/**
+ * Operator confirms that a pending booking has been paid. The booking state and
+ * its payment audit row are written in one statement so they cannot diverge.
+ */
+export async function markBookingPaidByOperator(input: {
+  bookingId: number
+  callId: string
+}): Promise<{ paid: boolean }> {
+  const db = requireDb()
+  const result = await db.execute(sql`
+    WITH paid_booking AS (
+      UPDATE ${bookings} AS b
+      SET status = 'paid'
+      WHERE b.id = ${input.bookingId}
+        AND b.call_id = ${input.callId}
+        AND b.status = 'pending_payment'
+      RETURNING b.id, b.total_fare_vnd
+    ), recorded_payment AS (
+      INSERT INTO ${payments} (booking_id, provider, amount_vnd, status, reference)
+      SELECT p.id, 'operator', p.total_fare_vnd, 'succeeded', concat('dashboard:', p.id::text)
+      FROM paid_booking p
+      RETURNING booking_id
+    )
+    SELECT p.id
+    FROM paid_booking p
+    JOIN recorded_payment r ON r.booking_id = p.id
+  `)
+
+  return { paid: result.rows.length > 0 }
 }
 
 function normalizeConfirmationText(value: string): string {

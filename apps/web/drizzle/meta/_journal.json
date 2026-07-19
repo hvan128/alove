@@ -64,6 +64,13 @@
       "when": 1784421008305,
       "tag": "0008_lyrical_korvac",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784429168941,
+      "tag": "0009_booking_dashboard_indexes",
+      "breakpoints": true
     }
   ]
 }

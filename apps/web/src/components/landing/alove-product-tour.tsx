@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'framer-motion'
 import { Check, CheckCircle2, Clock3, MapPin, Pause, Play, Search, Sparkles } from 'lucide-react'
 
@@ -13,6 +13,12 @@ import { VehicleSeatVisual } from '@/components/bus-call/vehicle-seat-visual'
 import type { BookingSnapshot, CallMessage, SemanticAnnotation } from '@/lib/call-contract'
 
 const STAGE_DURATION_MS = 4800
+/** Mỗi bước chia thành 4 nhịp: state thật tiến triển thay vì đứng yên suốt 4,8 giây. */
+const STAGE_BEATS = 4
+
+function beatAt(progress: number): number {
+  return Math.min(STAGE_BEATS - 1, Math.floor(progress * STAGE_BEATS))
+}
 const EASE = [0.22, 1, 0.36, 1] as const
 const TOUR_CONVERSATION_ID = 'landing-product-tour'
 const NOOP = () => undefined
@@ -107,16 +113,33 @@ const UTTERANCE_LEGEND: { kind: UtteranceKind; label: string }[] = [
   { kind: 'dialect', label: 'Giọng vùng miền' },
 ]
 
-function HighlightedUtterance({ tokens }: { tokens: UtteranceToken[] }) {
+/**
+ * Các token lạ sáng lên lần lượt thay vì có sẵn: đó chính là thứ đang diễn ra —
+ * máy đọc hết câu rồi mới nhận ra chỗ nào là tiếng Anh, chỗ nào là từ địa phương.
+ */
+function HighlightedUtterance({ tokens, revealed, reducedMotion }: {
+  tokens: UtteranceToken[]
+  revealed: boolean
+  reducedMotion: boolean
+}) {
+  let markIndex = -1
   return (
     <>
-      {tokens.map((token, index) => (token.kind ? (
-        <mark key={index} className={`rounded-md border px-1 py-0.5 ${UTTERANCE_STYLE[token.kind]}`}>
-          {token.text}
-        </mark>
-      ) : (
-        <span key={index}>{token.text}</span>
-      )))}
+      {tokens.map((token, index) => {
+        if (!token.kind) return <span key={index}>{token.text}</span>
+        markIndex += 1
+        return (
+          <mark
+            key={index}
+            className={`rounded-md border px-1 py-0.5 transition-colors duration-300 ${
+              revealed ? UTTERANCE_STYLE[token.kind] : 'border-transparent bg-transparent text-inherit'
+            }`}
+            style={reducedMotion ? undefined : { transitionDelay: `${markIndex * 110}ms` }}
+          >
+            {token.text}
+          </mark>
+        )
+      })}
     </>
   )
 }
@@ -227,8 +250,18 @@ function ProductWorkspaceStage({ state, showVehicle = false }: { state: TourStat
   )
 }
 
-function SearchingProductPreview({ trip, reducedMotion }: { trip: AloveTourTrip; reducedMotion: boolean }) {
+function SearchingProductPreview({ trip, beat, reducedMotion }: {
+  trip: AloveTourTrip
+  beat: number
+  reducedMotion: boolean
+}) {
   const tokens = spokenTokens(trip)
+  // Câu thô hiện trước, rồi mới nhận ra token lạ, chuẩn hoá, cuối cùng mới rút ra được trường dữ liệu.
+  const marksRevealed = beat >= 1
+  const correctionRevealed = beat >= 2
+  const tagsRevealed = beat >= 3
+  const tenths = (beat + 1) * 6
+  const elapsedLabel = `00:0${Math.floor(tenths / 10)}.${tenths % 10}`
   const options = [
     {
       departure: trip.departure,
@@ -266,16 +299,19 @@ function SearchingProductPreview({ trip, reducedMotion }: { trip: AloveTourTrip;
               <span className="inline-flex items-center gap-2 rounded-full border border-blue-300/20 bg-blue-400/10 px-3 py-1.5 text-xs font-semibold text-blue-200">
                 <Search size={14} aria-hidden /> Đang xử lý…
               </span>
-              <span className="font-mono text-[11px] text-white/35">00:02.4</span>
+              <span className="font-mono text-[11px] tabular-nums text-white/35">{elapsedLabel}</span>
             </div>
 
             <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35 lg:mt-6">Câu nói vừa nhận</p>
             <blockquote className="mt-2 text-base font-medium leading-8 text-white sm:text-lg sm:leading-9">
-              “<HighlightedUtterance tokens={tokens} />”
+              “<HighlightedUtterance tokens={tokens} revealed={marksRevealed} reducedMotion={reducedMotion} />”
             </blockquote>
-            <UtteranceLegend tokens={tokens} />
+            {/* Luôn gắn vào cây, chỉ đổi độ mờ: bước đã đo chiều cao theo trạng thái đầy đủ nên không được xô layout giữa các nhịp. */}
+            <div className={`transition-opacity duration-300 ${marksRevealed ? 'opacity-100' : 'opacity-0'}`}>
+              <UtteranceLegend tokens={tokens} />
+            </div>
 
-            <div className="mt-4 rounded-xl border border-white/10 bg-white/6 p-3 sm:mt-6 sm:p-4">
+            <div className={`mt-4 rounded-xl border border-white/10 bg-white/6 p-3 transition-opacity duration-300 sm:mt-6 sm:p-4 ${correctionRevealed ? 'opacity-100' : 'opacity-0'}`}>
               <div className="flex items-center gap-2 text-xs font-semibold text-cyan-300">
                 <Sparkles size={14} aria-hidden /> VALSEA semantic
               </div>
@@ -292,9 +328,9 @@ function SearchingProductPreview({ trip, reducedMotion }: { trip: AloveTourTrip;
                 ].map(([key, value], index) => (
                   <motion.span
                     key={key}
-                    initial={reducedMotion ? false : { opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: reducedMotion ? 0 : 0.18 + index * 0.1, duration: 0.25 }}
+                    initial={false}
+                    animate={tagsRevealed ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
+                    transition={{ delay: reducedMotion || !tagsRevealed ? 0 : index * 0.09, duration: 0.25 }}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/8 px-2.5 py-1.5 font-mono text-[10px] text-white/65"
                   >
                     <span className="text-blue-300">{key}</span>
@@ -361,9 +397,9 @@ function SearchingProductPreview({ trip, reducedMotion }: { trip: AloveTourTrip;
             {options.map((option, index) => (
               <motion.article
                 key={`${option.departure}-${index}`}
-                initial={reducedMotion ? false : { opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: reducedMotion ? 0 : 0.16 + index * 0.12, duration: 0.3, ease: EASE }}
+                initial={false}
+                animate={beat >= index + 1 ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+                transition={{ duration: reducedMotion ? 0 : 0.3, ease: EASE }}
                 className={`relative rounded-xl border p-4 ${option.recommended ? 'border-blue-400 bg-blue-50/70 sm:col-span-2' : 'border-slate-200 bg-white'}`}
               >
                 {option.recommended ? (
@@ -412,23 +448,22 @@ function SearchingProductPreview({ trip, reducedMotion }: { trip: AloveTourTrip;
 }
 
 /**
- * Khung cuộn nằm ngoài, `inert` nằm trong: bản minh hoạ vẫn không bắt focus và
- * không vào cây a11y, nhưng chạm vào vẫn cuộn được nên nội dung tràn ở màn hẹp
- * chỉ là phải cuộn thêm, không biến mất. `min-h-full` canh giữa khi nội dung
- * ngắn mà vẫn với tới được đỉnh khi nội dung dài.
+ * Không cuộn bên trong khung: khung được đo theo bước cao nhất của từng
+ * breakpoint nên mọi bước đều hiện trọn. `stretch` dành cho bước tự giãn đầy
+ * khung, còn lại canh giữa.
  */
 function StagePane({ children, stretch = false }: { children: React.ReactNode; stretch?: boolean }) {
   return (
-    <div className="h-full overflow-y-auto overscroll-contain">
-      <div inert aria-hidden="true" className={`flex min-h-full ${stretch ? 'items-stretch' : 'items-center'}`}>
-        <div className="w-full">{children}</div>
-      </div>
+    <div inert aria-hidden="true" className={`flex h-full ${stretch ? 'items-stretch' : 'items-center'}`}>
+      <div className="w-full">{children}</div>
     </div>
   )
 }
 
-function StageFrame({ stageIndex, trip, reducedMotion }: {
+/** memo: thanh tiến độ chạy lại mỗi khung hình, khối sản phẩm chỉ cần dựng lại khi sang nhịp mới. */
+const StageFrame = memo(function StageFrame({ stageIndex, beat, trip, reducedMotion }: {
   stageIndex: number
+  beat: number
   trip: AloveTourTrip
   reducedMotion: boolean
 }) {
@@ -436,9 +471,10 @@ function StageFrame({ stageIndex, trip, reducedMotion }: {
 
   return (
     <div className="overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--canvas)] shadow-[var(--shadow-panel)]">
-      {/* Khung cố định theo bước cao nhất ở mỗi breakpoint: pane có inert nên phần
-          tràn ra ngoài không thể cuộn tới được, cắt là mất hẳn nội dung. */}
-      <div className="relative h-[1360px] lg:h-[820px]">
+      {/* Không cuộn bên trong, nên khung phải cao bằng bước cao nhất của từng dải
+          bề rộng: dưới 360px chữ xuống dòng nhiều hơn nên cần thêm chỗ, từ 1024px
+          bố cục chuyển sang ba cột nên thấp hẳn xuống. */}
+      <div className="relative h-[1456px] min-[360px]:h-[1360px] lg:h-[820px]">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={stageIndex}
@@ -450,33 +486,42 @@ function StageFrame({ stageIndex, trip, reducedMotion }: {
           >
             {stageIndex === 0 ? (
               <StagePane>
-                <ProductWorkspaceStage state={states.listening} />
+                <ProductWorkspaceStage state={listeningStateAt(states.listening, beat)} />
               </StagePane>
             ) : null}
             {stageIndex === 1 ? (
               <StagePane stretch>
-                <SearchingProductPreview trip={trip} reducedMotion={reducedMotion} />
+                <SearchingProductPreview trip={trip} beat={beat} reducedMotion={reducedMotion} />
               </StagePane>
             ) : null}
             {stageIndex === 2 ? (
               <StagePane>
-                <ProductWorkspaceStage state={states.confirming} showVehicle />
+                <ProductWorkspaceStage state={confirmingStateAt(states.confirming, beat)} showVehicle />
               </StagePane>
             ) : null}
+            {/* Giữ items-stretch mặc định: TicketResult phải giãn theo khung, thả tự do
+                thì nó bung về chiều cao tự nhiên và tràn ra ngoài. */}
             {stageIndex === 3 ? (
               <div
                 data-testid="alove-product-tour-scroll"
                 role="region"
                 aria-label="Màn vé và mã QR"
-                tabIndex={0}
-                className="flex h-full overflow-y-auto overscroll-contain px-3 pb-24 sm:px-5 sm:pb-0"
+                className="flex h-full px-3 pb-24 sm:px-5 sm:pb-0"
               >
-                <TicketResult
-                  booking={states.confirmed.booking}
-                  onNewCall={NOOP}
-                  onClose={NOOP}
-                  interactive={false}
-                />
+                {/* Vé là kết quả đã chốt, không diễn tiến thêm — chỉ đưa nó vào như tờ vé vừa in ra. */}
+                <motion.div
+                  className="flex w-full"
+                  initial={reducedMotion ? false : { opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: reducedMotion ? 0 : 0.14, duration: reducedMotion ? 0 : 0.42, ease: EASE }}
+                >
+                  <TicketResult
+                    booking={states.confirmed.booking}
+                    onNewCall={NOOP}
+                    onClose={NOOP}
+                    interactive={false}
+                  />
+                </motion.div>
               </div>
             ) : null}
           </motion.div>
@@ -484,7 +529,7 @@ function StageFrame({ stageIndex, trip, reducedMotion }: {
       </div>
     </div>
   )
-}
+})
 
 /** Hero dùng thẳng sân khấu cuộc gọi của sản phẩm, không dựng một dashboard marketing riêng. */
 export function AloveHeroProductPreview({ trip = fallbackTrip }: { trip?: AloveTourTrip }) {
@@ -509,6 +554,7 @@ export function AloveProductTour({ trip = fallbackTrip }: { trip?: AloveTourTrip
   const [paused, setPaused] = useState(false)
   const [visible, setVisible] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [beat, setBeat] = useState(0)
   const progressRef = useRef(0)
   const frameRef = useRef<HTMLDivElement>(null)
 
@@ -533,9 +579,11 @@ export function AloveProductTour({ trip = fallbackTrip }: { trip?: AloveTourTrip
       const nextProgress = Math.min(1, (now - startedAt) / STAGE_DURATION_MS)
       progressRef.current = nextProgress
       setProgress(nextProgress)
+      setBeat((current) => (current === beatAt(nextProgress) ? current : beatAt(nextProgress)))
       if (nextProgress >= 1) {
         progressRef.current = 0
         setProgress(0)
+        setBeat(0)
         setStageIndex((current) => (current + 1) % stages.length)
         return
       }
@@ -549,9 +597,14 @@ export function AloveProductTour({ trip = fallbackTrip }: { trip?: AloveTourTrip
   const selectStage = (index: number) => {
     progressRef.current = 0
     setProgress(0)
+    setBeat(0)
     setStageIndex(index)
     setPaused(true)
   }
+
+  // Khi dừng — người xem tự bấm bước, bấm tạm dừng, hoặc thiết bị tắt chuyển động —
+  // luôn hiện nhịp cuối để không ai phải nhìn một bước đang dở dang.
+  const activeBeat = isPlaying ? beat : STAGE_BEATS - 1
 
   return (
     <MotionConfig reducedMotion="user">
@@ -564,7 +617,7 @@ export function AloveProductTour({ trip = fallbackTrip }: { trip?: AloveTourTrip
           ghế được giữ để khách xác nhận, rồi màn vé có mã QR sau khi hoàn tất.
         </p>
         <div data-testid="alove-product-tour-stage">
-          <StageFrame stageIndex={stageIndex} trip={trip} reducedMotion={reducedMotion} />
+          <StageFrame stageIndex={stageIndex} beat={activeBeat} trip={trip} reducedMotion={reducedMotion} />
         </div>
 
         <div className="mx-auto mt-4 w-full max-w-3xl px-1">
@@ -723,6 +776,53 @@ function createTourStates(trip: AloveTourTrip): {
       messages: [customerRequest, heldReply, passengerDetails, confirmationPrompt, confirmation],
       semanticAnnotations: [requestAnnotation],
     },
+  }
+}
+
+/** Cắt câu theo ranh giới từ để dựng lại transcript tạm lúc còn đang nghe. */
+function partialText(text: string, beat: number): string {
+  if (beat >= STAGE_BEATS - 1) return text
+  const words = text.split(' ')
+  const taken = Math.max(1, Math.round((words.length * (beat + 1)) / STAGE_BEATS))
+  return words.slice(0, taken).join(' ')
+}
+
+/**
+ * Bước "Nói nhu cầu": nhận dạng chạy dần như thật — transcript tạm (`final: false`)
+ * dài ra theo nhịp rồi mới chốt. CallStage tự lo hiệu ứng caption.
+ */
+function listeningStateAt(base: TourState, beat: number): TourState {
+  const source = base.messages[0]
+  if (!source) return base
+  const settled = beat >= STAGE_BEATS - 1
+  return {
+    ...base,
+    messages: [{ ...source, text: partialText(source.text, beat), final: settled }],
+    agentListening: !settled,
+    agentThinking: settled,
+  }
+}
+
+/**
+ * Bước "Giữ ghế & xác nhận": phát lại hội thoại từng câu và điền booking theo đúng
+ * thứ tự lúc gọi thật — giữ ghế trước, rồi mới tới tên và số điện thoại.
+ */
+function confirmingStateAt(base: TourState, beat: number): TourState {
+  const booking = base.booking
+  const seatsHeld = beat >= 1
+  const identified = beat >= 2
+  return {
+    ...base,
+    messages: base.messages.slice(0, beat + 2),
+    booking: {
+      ...booking,
+      seats: seatsHeld ? booking.seats : [],
+      totalFareVnd: seatsHeld ? booking.totalFareVnd : null,
+      passengerName: identified ? 'Nguyễn Minh Anh' : null,
+      phone: identified ? '0909123456' : null,
+    },
+    agentListening: beat < STAGE_BEATS - 1,
+    agentSpeaking: beat === STAGE_BEATS - 1,
   }
 }
 

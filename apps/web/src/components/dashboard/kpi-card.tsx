@@ -34,15 +34,17 @@ export function KpiCard({
   sparkAriaLabel,
 }: KpiCardProps) {
   return (
-    <article className="flex flex-col rounded-[16px] border border-[var(--hairline)] bg-[var(--surface)] p-4">
+    <article className="flex min-h-32 flex-col rounded-xl border border-white/80 bg-[var(--surface)] p-4 shadow-[var(--elevation-card)] ring-1 ring-black/[0.05] transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[var(--elevation-panel)] motion-reduce:transform-none sm:p-5">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-metric font-medium text-[var(--muted)]">{label}</p>
-        <Icon size={15} className="shrink-0 text-[var(--muted)]" aria-hidden />
+        <p className="text-ui font-medium text-[var(--muted)]">{label}</p>
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--action-soft)] text-[var(--action)] ring-1 ring-[color-mix(in_srgb,var(--action)_10%,transparent)]">
+          <Icon size={18} aria-hidden />
+        </span>
       </div>
 
       {/* aria-label bị bỏ qua trên <p> (role=paragraph), nên bản đọc đầy đủ phải
           là chữ thật trong DOM: số rút gọn cho mắt, số đầy đủ cho screen reader. */}
-      <p className="mt-2 text-display font-semibold tabular-nums tracking-[-0.035em] text-[var(--ink)]">
+      <p className="mt-2 text-3xl font-semibold leading-none tabular-nums tracking-tight text-[var(--ink)]">
         {valueLabel ? (
           <>
             <span aria-hidden>{value}</span>
@@ -57,7 +59,7 @@ export function KpiCard({
         <DeltaLine delta={delta} suffix={deltaSuffix} />
       </div>
 
-      <div className="mt-4 flex items-end gap-3 pt-1">
+      <div className="mt-auto flex items-end gap-3 pt-4">
         <div className="h-9 min-w-0 flex-1 [&_svg]:h-full [&_svg]:w-full">
           {spark.length > 1 ? (
             <Sparkline points={spark} tone={sparkTone} ariaLabel={sparkAriaLabel} />

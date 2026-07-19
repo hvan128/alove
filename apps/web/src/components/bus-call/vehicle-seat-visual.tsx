@@ -46,7 +46,9 @@ const VEHICLES: Record<'sleeper34' | 'sleeper38' | 'limousine21', VehiclePreset>
     description: 'Phòng riêng · hai lối đi',
     hotspots: makeHotspots(
       ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'D1', 'D2', 'E1', 'E2'],
-      [[31, 20], [25, 30], [42, 29], [35, 40], [53, 38], [47, 49], [66, 47], [59, 58], [79, 56], [72, 67]],
+      // Tọa độ là tâm đệm nằm của hai phòng đầu mỗi dãy trên chính ảnh PNG,
+      // không phải tâm của vách phòng. Chấm neo bên dưới nhãn sẽ trỏ vào đây.
+      [[31.5, 14], [27.5, 22.5], [45.5, 22], [41.5, 30.5], [59.5, 30], [55.5, 38.5], [73.5, 38], [69.5, 46.5], [87, 46], [83, 54.5]],
     ),
   },
 }
@@ -66,20 +68,20 @@ export function VehicleSeatVisual({ booking }: { booking: BookingSnapshot }) {
   }))
 
   return (
-    <aside aria-label={`Ghế đang giữ trên ${trip.vehicleType}`} className="vehicle-seat-stage relative h-full min-h-[420px]">
+    <aside aria-label={`Ghế đang giữ trên ${trip.vehicleType}`} className="vehicle-seat-stage relative h-full min-h-[470px]">
       <header className="relative z-20 flex items-start justify-between gap-4 px-2 pt-2 sm:px-4">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Vị trí trên xe</p>
           <h2 className="mt-1 text-xl font-bold tracking-[-0.025em]">{preset.shortName}</h2>
           <p className="mt-1 text-xs text-[var(--muted)]">{preset.description}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-2 pt-0.5 text-xs font-semibold text-[var(--action)]">
+        <div className="flex max-w-[45%] shrink-0 items-center justify-end gap-2 pt-0.5 text-right text-xs font-semibold leading-5 text-[var(--action)]">
           <span aria-hidden className="size-2.5 rounded-full bg-[var(--action)] shadow-[0_0_0_4px_color-mix(in_srgb,var(--action)_14%,transparent)]" />
           {booking.seats.length > 0 ? `${booking.seats.length} ghế đang giữ` : 'Đang chọn ghế'}
         </div>
       </header>
 
-      <div className="vehicle-model-wrap relative mt-3 aspect-[3/2] w-full">
+      <div className="vehicle-model-wrap relative mt-4 aspect-[3/2] w-full">
         <span aria-hidden className="vehicle-ground-shadow absolute bottom-[9%] left-[12%] h-[18%] w-[76%] rounded-[50%] bg-black/30 blur-2xl" />
         <Image
           src={preset.image}
@@ -105,7 +107,7 @@ export function VehicleSeatVisual({ booking }: { booking: BookingSnapshot }) {
         </div>
       </div>
 
-      <div className="relative z-20 -mt-3 flex flex-wrap items-center justify-between gap-3 px-2 sm:px-4">
+      <div className="vehicle-seat-summary relative z-20 mt-8 flex flex-wrap items-center justify-between gap-x-5 gap-y-2 border-t border-[var(--hairline)] px-2 pt-4 sm:px-4">
         <div className="flex items-center gap-4 text-[11px] text-[var(--muted)]">
           <Legend tone="suggested" label="Ghế đang giữ" />
         </div>

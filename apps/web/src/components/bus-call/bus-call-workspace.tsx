@@ -279,10 +279,10 @@ export function BusCallWorkspace({ variant = 'page', controlRef, onEnded }: BusC
           >
             <div
               className={cn(
-                'min-w-0 overflow-hidden transition-[opacity,transform] duration-500 ease-out',
+                'min-w-0 transition-[opacity,transform] duration-500 ease-out',
                 workspace.booking.selectedTrip && workspace.booking.status !== 'confirmed'
-                  ? 'translate-x-0 opacity-100'
-                  : 'pointer-events-none -translate-x-5 opacity-0',
+                  ? 'translate-x-0 overflow-visible opacity-100'
+                  : 'pointer-events-none -translate-x-5 overflow-hidden opacity-0',
               )}
             >
               <VehicleSeatVisual booking={workspace.booking} />

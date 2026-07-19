@@ -1,7 +1,18 @@
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { Banknote, LogOut, PhoneCall, RefreshCw, Target, TicketCheck } from 'lucide-react'
+import {
+  Activity,
+  Banknote,
+  CalendarClock,
+  LayoutDashboard,
+  LogOut,
+  PhoneCall,
+  RefreshCw,
+  Route,
+  Target,
+  TicketCheck,
+} from 'lucide-react'
 
 import { AutoRefresh } from '@/components/dashboard/auto-refresh'
 import { CallTable } from '@/components/dashboard/call-table'
@@ -137,10 +148,19 @@ export default async function DashboardPage({
   // getDb() nên chỉ cần một trạng thái "chưa cấu hình", không lặp lại ở dưới.
   if (metrics === null) {
     return (
-      <div className="min-h-dvh bg-[var(--canvas)]">
-        <main className="mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6">
-          <StorageNotConfigured />
-        </main>
+      <div className="dashboard-crm-theme h-svh overflow-hidden bg-[var(--sidebar-shell)] lg:grid lg:grid-cols-[min-content_minmax(0,1fr)] lg:grid-rows-1">
+        <DashboardSidebar logout={logout} />
+        <div className="flex h-full min-w-0 flex-col lg:py-2 lg:pr-2">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[var(--background)] lg:rounded-xl lg:border lg:border-white/80 lg:shadow-[var(--elevation-panel)] lg:ring-1 lg:ring-black/[0.05]">
+            <header className="flex h-14 shrink-0 items-center gap-2 border-b border-[var(--border)] px-3 lg:hidden">
+              <BrandMark className="size-8 shrink-0" />
+              <span className="text-ui font-semibold">Tổng quan vận hành</span>
+            </header>
+            <main className="mx-auto flex w-full max-w-[1440px] flex-1 items-center px-4 py-6 sm:px-6 lg:px-8">
+              <StorageNotConfigured className="w-full shadow-[var(--elevation-card)]" />
+            </main>
+          </div>
+        </div>
       </div>
     )
   }
@@ -149,63 +169,62 @@ export default async function DashboardPage({
   const conversionSpark = metrics.hourly.map((point) => (point.calls > 0 ? point.confirmed / point.calls : 0))
 
   return (
-    <div className="min-h-dvh bg-[var(--canvas)]">
+    <div className="dashboard-crm-theme h-svh overflow-hidden bg-[var(--sidebar-shell)] lg:grid lg:grid-cols-[min-content_minmax(0,1fr)] lg:grid-rows-1">
       {/* Cuộc gọi kéo dài hàng phút — làm mới mỗi 15 giây giữ số liệu đủ gần thời
           gian thực mà không nhân số lần quét Neon cho mỗi tab đang mở. */}
       <AutoRefresh seconds={15} />
+      <a
+        href="#main-content"
+        className="fixed left-3 top-3 z-50 -translate-y-20 rounded-lg bg-[var(--primary)] px-3 py-2 text-ui font-medium text-[var(--primary-foreground)] shadow-lg transition-transform focus:translate-y-0"
+      >
+        Bỏ qua điều hướng
+      </a>
 
-      <header className="sticky top-0 z-20 border-b border-[var(--hairline)] bg-[color-mix(in_srgb,var(--canvas)_82%,transparent)] backdrop-blur-xl">
-        <div className="mx-auto flex min-h-14 w-full max-w-[1280px] flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5 sm:px-6">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <BrandMark className="size-7 shrink-0" />
-            <h1 className="truncate text-ui font-semibold tracking-[-0.015em] text-[var(--ink)]">Giám sát cuộc gọi</h1>
-            <span className="hidden text-metric text-[var(--muted)] sm:inline">Alove · đặt vé xe khách</span>
-          </div>
+      <DashboardSidebar logout={logout} />
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-2.5 py-1 text-metric font-medium text-[var(--ink)]">
-              {activeCalls > 0 ? (
-                <>
-                  <span className="size-1.5 animate-pulse rounded-full bg-[var(--success)]" aria-hidden />
-                  <span className="tabular-nums">{activeCalls}</span> cuộc đang diễn ra
-                </>
-              ) : (
-                <>
-                  <span className="size-1.5 rounded-full bg-[var(--muted)]" aria-hidden />
-                  Không có cuộc đang diễn ra
-                </>
-              )}
-            </span>
-            {/* Mốc cập nhật thật thay cho lời hứa "mỗi 5 giây": nếu refresh hỏng
-                thì con số này đứng im và người trực nhìn ra ngay. */}
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-2.5 py-1 text-metric text-[var(--muted)]">
-              <RefreshCw size={12} aria-hidden />
-              <span className="hidden sm:inline">Cập nhật lúc</span>{' '}
-              <span className="tabular-nums">{formatVnTime(now)}</span>
-            </span>
-            <form action={logout}>
-              <button
-                type="submit"
-                className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-2.5 text-metric font-medium text-[var(--muted)] transition hover:bg-[var(--pearl)] hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action-focus)]"
-              >
-                <LogOut size={12} aria-hidden /> Đăng xuất
+      <div className="flex h-full min-w-0 flex-col lg:py-2 lg:pr-2">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[var(--background)] lg:rounded-xl lg:border lg:border-white/80 lg:shadow-[var(--elevation-panel)] lg:ring-1 lg:ring-black/[0.05]">
+          <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_90%,transparent)] px-3 backdrop-blur-md lg:hidden">
+            <BrandMark className="size-8 shrink-0" />
+            <span className="truncate text-ui font-semibold">Tổng quan vận hành</span>
+            <form action={logout} className="ml-auto">
+              <button type="submit" aria-label="Đăng xuất" className="flex size-10 items-center justify-center rounded-lg text-[var(--muted)] transition-colors hover:bg-[var(--pearl)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[color-mix(in_srgb,var(--ring)_35%,transparent)]">
+                <LogOut size={17} aria-hidden />
               </button>
             </form>
-          </div>
-        </div>
-      </header>
+          </header>
 
-      <main className="mx-auto flex w-full max-w-[1280px] flex-col gap-4 px-4 py-5 sm:px-6 sm:py-6">
+          <main id="main-content" tabIndex={-1} className="flex-1 px-4 py-5 focus:outline-none sm:px-6 sm:py-6 lg:px-8 lg:py-7">
+            <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <h1 className="text-xl font-semibold tracking-tight text-[var(--ink)]">Tổng quan vận hành</h1>
+                  <p className="text-ui text-[var(--muted)]">Nhà xe Mai Anh · cuộc gọi và đặt vé</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-metric font-medium text-[var(--ink)] shadow-sm">
+                    {activeCalls > 0 ? (
+                      <><span className="size-1.5 animate-pulse rounded-full bg-[var(--success)]" aria-hidden /><span className="tabular-nums">{activeCalls}</span> cuộc đang diễn ra</>
+                    ) : (
+                      <><span className="size-1.5 rounded-full bg-[var(--muted)]" aria-hidden />Không có cuộc đang diễn ra</>
+                    )}
+                  </span>
+                  <span className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-metric text-[var(--muted)] shadow-sm">
+                    <RefreshCw size={13} aria-hidden /> Cập nhật <span className="tabular-nums text-[var(--ink)]">{formatVnTime(now)}</span>
+                  </span>
+                </div>
+              </div>
+
         {/* Cửa sổ 24 giờ là mốc trượt tính từ lúc render, không phải "từ 0h" —
             ghi mốc tuyệt đối ra để không ai phải đoán. */}
-        <p className="text-metric text-[var(--muted)]">
+        <p className="-mt-4 text-metric text-[var(--muted)]">
           Số liệu 24 giờ:{' '}
           <span className="tabular-nums text-[var(--ink)]">{formatVnStamp(new Date(bounds.curFrom))}</span>
           {' → '}
           <span className="tabular-nums text-[var(--ink)]">{formatVnStamp(new Date(bounds.curTo))}</span> (giờ Việt Nam)
         </p>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Chỉ số tổng quan">
           <KpiCard
             label="Cuộc gọi 24 giờ"
             value={String(metrics.calls.current)}
@@ -255,12 +274,12 @@ export default async function DashboardPage({
           />
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div id="trips" className="grid scroll-mt-6 gap-4 lg:grid-cols-3">
           <UpcomingTripsSection className="lg:col-span-2" trips={upcoming ?? []} />
           <ExpiringHoldsSection holds={holds ?? []} now={now} />
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div id="analytics" className="grid scroll-mt-6 gap-4 lg:grid-cols-3">
           <TrendSection
             className="lg:col-span-2"
             points={metrics.hourly}
@@ -269,12 +288,14 @@ export default async function DashboardPage({
           <ChannelSection channels={metrics.channels} />
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div className="grid gap-4 lg:grid-cols-3">
           <FunnelSection className="lg:col-span-2" steps={metrics.funnel} />
           <TopRoutesSection routes={metrics.topRoutes} />
         </div>
 
         <SectionCard
+          id="calls"
+          className="scroll-mt-6 shadow-[var(--elevation-panel)]"
           title="Cuộc gọi gần đây"
           hint={callList && callList.length > 0 ? `${callList.length} cuộc mới nhất` : 'Tối đa 50 cuộc mới nhất'}
           bodyClassName="p-0"
@@ -289,8 +310,62 @@ export default async function DashboardPage({
             <CallTable rows={callList} />
           )}
         </SectionCard>
-      </main>
+            </div>
+          </main>
+        </div>
+      </div>
     </div>
+  )
+}
+
+function DashboardSidebar({ logout }: { logout: (formData: FormData) => Promise<void> }) {
+  const nav = [
+    { href: '#main-content', label: 'Tổng quan', icon: LayoutDashboard, active: true },
+    { href: '#calls', label: 'Cuộc gọi gần đây', icon: PhoneCall },
+    { href: '#trips', label: 'Chuyến & giữ ghế', icon: CalendarClock },
+    { href: '#analytics', label: 'Phân tích', icon: Activity },
+  ]
+
+  return (
+    <aside className="hidden h-full lg:flex" aria-label="Điều hướng dashboard">
+      <div className="flex w-14 flex-col items-center justify-between py-3">
+        <a href="#main-content" aria-label="Về tổng quan" className="flex size-9 items-center justify-center rounded-lg bg-[var(--primary)] shadow-sm transition-transform hover:scale-105 motion-reduce:transform-none">
+          <BrandMark className="size-7" />
+        </a>
+        <form action={logout}>
+          <button type="submit" aria-label="Đăng xuất" title="Đăng xuất" className="flex size-9 items-center justify-center rounded-lg text-[var(--sidebar-foreground-token)] transition-colors hover:bg-black/[0.06] active:bg-black/[0.1] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[color-mix(in_srgb,var(--ring)_40%,transparent)]">
+            <LogOut size={17} aria-hidden />
+          </button>
+        </form>
+      </div>
+
+      <div className="py-2 pr-2">
+        <div className="flex h-full w-56 flex-col rounded-xl border border-white/70 bg-[var(--sidebar-accent-token)] shadow-[var(--elevation-panel)] ring-1 ring-black/[0.04]">
+          <div className="px-5 pb-3 pt-4">
+            <p className="text-lg font-semibold tracking-tight text-[var(--ink)]">Alove</p>
+            <p className="text-metric text-[var(--muted)]">Điều hành nhà xe</p>
+          </div>
+          <nav className="flex flex-1 flex-col gap-0.5 p-3 pt-1">
+            {nav.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                aria-current={item.active ? 'page' : undefined}
+                className={item.active
+                  ? 'relative flex h-10 items-center gap-2.5 rounded-lg bg-blue-100/60 px-2.5 text-ui font-medium leading-none text-blue-700 transition-colors before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-blue-600 hover:bg-blue-100/90 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[color-mix(in_srgb,var(--ring)_35%,transparent)]'
+                  : 'flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-ui leading-none text-[var(--sidebar-foreground-token)] transition-colors hover:bg-black/[0.04] active:bg-black/[0.08] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[color-mix(in_srgb,var(--ring)_35%,transparent)]'}
+              >
+                <item.icon size={16} aria-hidden /> {item.label}
+              </a>
+            ))}
+          </nav>
+          <div className="m-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
+            <div className="flex items-center gap-2 text-metric font-medium text-[var(--ink)]"><Route size={14} className="text-[var(--info)]" aria-hidden /> Nhà xe Mai Anh</div>
+            <p className="mt-1 text-metric text-[var(--muted)]">Khu vực nội bộ</p>
+          </div>
+        </div>
+      </div>
+    </aside>
   )
 }
 

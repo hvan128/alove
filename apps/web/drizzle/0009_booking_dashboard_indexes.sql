@@ -1,0 +1,2 @@
+CREATE INDEX "bookings_created_at_idx" ON "bookings" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX "bookings_call_created_id_idx" ON "bookings" USING btree ("call_id","created_at" DESC NULLS LAST,"id" DESC NULLS LAST);

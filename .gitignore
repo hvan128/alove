@@ -16,3 +16,8 @@ test-results/
 tmp/
 *.tsbuildinfo
 .vercel
+
+# Bằng chứng sử dụng AI: transcript phiên làm việc và bản zip đóng gói, tổng
+# gần 1GB. Là sản phẩm nộp kèm, không phải source, và transcript có thể chứa
+# giá trị credential đã đọc trong lúc làm.
+artifacts/

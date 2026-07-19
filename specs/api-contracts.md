@@ -34,6 +34,29 @@ POST /api/livekit/observer-token
 { conversationId }
 ```
 
+Dashboard đọc chi tiết và cho nhân viên nhà xe cập nhật trạng thái nghiệp vụ của
+booking bằng cùng access-key header hoặc session cookie:
+
+```text
+GET /api/dashboard/calls/:callId
+
+POST /api/dashboard/bookings/:bookingId/pay
+Content-Type: application/json
+{ "callId": "..." }
+
+POST /api/dashboard/bookings/:bookingId/cancel
+Content-Type: application/json
+{ "callId": "..." }
+```
+
+Hai payload là strict object và booking ID phải là số nguyên dương. `pay` chỉ
+nhận booking `pending_payment`, đổi sang `paid` và ghi payment provider
+`operator`/`succeeded` trong cùng SQL statement. `cancel` chỉ nhận booking
+`pending_payment`, đổi sang `cancelled` và trả ghế atomic; không có thao tác
+`uncancel`. Booking đã thanh toán cần quy trình hoàn tiền ngoài contract này.
+Request thiếu dashboard authentication trả `401`, payload sai trả `400`, trạng
+thái không cho phép chuyển trả `409`.
+
 ## Agent booking API
 
 Mọi endpoint yêu cầu `Authorization: Bearer <AGENT_WEBHOOK_SECRET>`.

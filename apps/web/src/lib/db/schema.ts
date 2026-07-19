@@ -70,6 +70,8 @@ export const bookings = pgTable('bookings', {
 }, (table) => [
   uniqueIndex('bookings_code_unique').on(table.code),
   uniqueIndex('bookings_idempotency_unique').on(table.idempotencyKey),
+  index('bookings_created_at_idx').on(table.createdAt),
+  index('bookings_call_created_id_idx').on(table.callId, table.createdAt.desc(), table.id.desc()),
   check('bookings_status_check', sql`${table.status} in ('pending_payment', 'paid', 'cancelled')`),
   check('bookings_total_fare_nonnegative_check', sql`${table.totalFareVnd} >= 0`),
   check(

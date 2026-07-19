@@ -9,6 +9,7 @@ import {
   routes,
   seats,
   trips,
+  type BookingRow,
   type BookingSnapshotRow,
   type CallRow,
   type CallTurnRow,
@@ -16,6 +17,7 @@ import {
 
 export type CallSummary = CallRow & {
   latestBooking: Pick<BookingSnapshotRow, 'status' | 'bookingCode' | 'totalFareVnd'> | null
+  bookingRecord: Pick<BookingRow, 'id' | 'code' | 'status' | 'totalFareVnd'> | null
   /** Khách đã có vé — với web call thì đây là cách duy nhất để gọi lại. */
   passenger: { name: string; phone: string } | null
 }
@@ -44,14 +46,18 @@ export async function listRecentCalls(limit = 50): Promise<CallSummary[] | null>
       .orderBy(desc(bookingSnapshots.sequence), desc(bookingSnapshots.id)),
     db
       .select({
+        id: bookings.id,
         callId: bookings.callId,
+        code: bookings.code,
+        status: bookings.status,
+        totalFareVnd: bookings.totalFareVnd,
         passengerName: bookings.passengerName,
         phone: bookings.phone,
         createdAt: bookings.createdAt,
       })
       .from(bookings)
       .where(inArray(bookings.callId, ids))
-      .orderBy(desc(bookings.createdAt)),
+      .orderBy(desc(bookings.createdAt), desc(bookings.id)),
   ])
 
   const latestByCall = new Map<string, BookingSnapshotRow>()
@@ -60,8 +66,15 @@ export async function listRecentCalls(limit = 50): Promise<CallSummary[] | null>
   }
 
   const passengerByCall = new Map<string, { name: string; phone: string }>()
+  const bookingByCall = new Map<string, Pick<BookingRow, 'id' | 'code' | 'status' | 'totalFareVnd'>>()
   for (const row of bookingRows) {
-    if (!row.callId || passengerByCall.has(row.callId)) continue
+    if (!row.callId || bookingByCall.has(row.callId)) continue
+    bookingByCall.set(row.callId, {
+      id: row.id,
+      code: row.code,
+      status: row.status,
+      totalFareVnd: row.totalFareVnd,
+    })
     passengerByCall.set(row.callId, { name: row.passengerName, phone: row.phone })
   }
 
@@ -72,6 +85,7 @@ export async function listRecentCalls(limit = 50): Promise<CallSummary[] | null>
       latestBooking: latest
         ? { status: latest.status, bookingCode: latest.bookingCode, totalFareVnd: latest.totalFareVnd }
         : null,
+      bookingRecord: bookingByCall.get(row.id) ?? null,
       passenger: passengerByCall.get(row.id) ?? null,
     }
   })
@@ -146,6 +160,12 @@ export type MetricSnapshot = {
   origin: string | null
   destination: string | null
   ticketCount: number
+}
+
+export type MetricBookingStatus = {
+  id: number
+  callId: string | null
+  status: 'pending_payment' | 'paid' | 'cancelled'
 }
 
 export const HOUR_MS = 3_600_000
@@ -253,6 +273,23 @@ export function latestSnapshotPerCall(snapshots: MetricSnapshot[]): Map<string, 
  */
 export function latestConfirmedPerCall(snapshots: MetricSnapshot[]): Map<string, MetricSnapshot> {
   return latestSnapshotPerCall(snapshots.filter((snapshot) => snapshot.status === 'confirmed'))
+}
+
+/** Cancelled bookings no longer count as held tickets, revenue or conversion. */
+export function withoutCancelledBookings(
+  snapshots: Map<string, MetricSnapshot>,
+  bookingRows: MetricBookingStatus[],
+): Map<string, MetricSnapshot> {
+  const latestStatus = new Map<string, MetricBookingStatus>()
+  for (const row of bookingRows) {
+    if (!row.callId) continue
+    const current = latestStatus.get(row.callId)
+    if (!current || row.id > current.id) latestStatus.set(row.callId, row)
+  }
+
+  return new Map(
+    [...snapshots].filter(([callId]) => latestStatus.get(callId)?.status !== 'cancelled'),
+  )
 }
 
 /** Hai kỳ so sánh: 24h gần nhất và 24h liền trước đó. */
@@ -442,7 +479,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics | null> {
   const now = new Date()
   const windowStart = new Date(floorToVnDay(now.getTime()) - (DAILY_POINTS - 1) * DAY_MS)
 
-  const [callRows, snapshotRows, activeRows] = await Promise.all([
+  const [callRows, snapshotRows, activeRows, bookingStatusRows] = await Promise.all([
     db
       .select({
         id: calls.id,
@@ -471,12 +508,16 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics | null> {
       .select({ value: count() })
       .from(calls)
       .where(and(eq(calls.status, 'active'), gte(calls.startedAt, new Date(now.getTime() - ACTIVE_MAX_MS)))),
+    db
+      .select({ id: bookings.id, callId: bookings.callId, status: bookings.status })
+      .from(bookings)
+      .where(gte(bookings.createdAt, windowStart)),
   ])
 
   const source: MetricCall[] = callRows
   const snapshots = snapshotRows.map(toMetricSnapshot)
-  const latest = latestSnapshotPerCall(snapshots)
-  const confirmed = latestConfirmedPerCall(snapshots)
+  const latest = withoutCancelledBookings(latestSnapshotPerCall(snapshots), bookingStatusRows)
+  const confirmed = withoutCancelledBookings(latestConfirmedPerCall(snapshots), bookingStatusRows)
   const confirmedCallIds = new Set(confirmed.keys())
 
   const callsDelta = computeCallsDelta(source, now)

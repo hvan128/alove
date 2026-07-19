@@ -34,7 +34,11 @@ chưa có durable queue; booking webhook dùng outbox Neon riêng.
 ## F-07: Operations dashboard
 
 Dashboard có authentication, danh sách/detail call, persisted transcript, booking
-projection và observer token subscribe-only cho call đang active.
+projection và observer token subscribe-only cho call đang active. Trong bảng gần
+đây, nhân viên nhà xe có thể chuyển booking `pending_payment` sang `paid` hoặc
+`cancelled`. Xác nhận thanh toán ghi payment audit cùng transaction; huỷ trả ghế
+atomic và là thao tác một chiều. Vé đã thanh toán cần workflow hoàn tiền riêng,
+không được huỷ trực tiếp từ bảng.
 
 ## F-08: Readiness
 

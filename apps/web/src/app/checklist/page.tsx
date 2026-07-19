@@ -5,8 +5,9 @@ import { ArrowLeft } from 'lucide-react'
 import { BrandMark } from '@/components/ui/brand-mark'
 
 export const metadata: Metadata = {
-  title: 'Checklist tiêu chí & bằng chứng | Alove',
-  description: 'Checklist đối chiếu tiêu chí VALSEA với bằng chứng sản phẩm Alove.',
+  title: 'Bản đồ tiêu chí & bằng chứng | Alove',
+  description:
+    'Bản đồ 36 tiêu chí VALSEA với kết quả production, benchmark định lượng và nguồn kiểm chứng của Alove.',
 }
 
 export default function ChecklistPage() {
@@ -25,10 +26,10 @@ export default function ChecklistPage() {
 
           <div className="min-w-0 text-center">
             <p className="hidden text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-700 sm:block">
-              VALSEA evidence audit
+              Judge-ready evidence map
             </p>
             <h1 className="truncate text-sm font-semibold tracking-[-0.02em] sm:text-base">
-              Checklist tiêu chí &amp; bằng chứng
+              Bản đồ tiêu chí &amp; bằng chứng
             </h1>
           </div>
 
@@ -45,7 +46,7 @@ export default function ChecklistPage() {
 
       <main className="min-h-0 flex-1">
         <iframe
-          title="Checklist tiêu chí và bằng chứng VALSEA"
+          title="Bản đồ tiêu chí và bằng chứng VALSEA"
           src="/rubric-checklist.html"
           referrerPolicy="no-referrer"
           className="block h-full w-full border-0 bg-[#f7f4ee]"

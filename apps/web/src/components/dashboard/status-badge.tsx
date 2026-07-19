@@ -37,3 +37,27 @@ export function BookingStatusBadge({ status }: { status: string }) {
     </span>
   )
 }
+
+const BOOKING_RECORD_BADGE = {
+  pending_payment: {
+    label: 'Còn hiệu lực · chờ thanh toán',
+    className: 'bg-[color-mix(in_srgb,var(--warning)_14%,var(--surface))] text-[var(--warning)]',
+  },
+  paid: {
+    label: 'Còn hiệu lực · đã thanh toán',
+    className: 'bg-[color-mix(in_srgb,var(--success)_12%,var(--surface))] text-[var(--success)]',
+  },
+  cancelled: {
+    label: 'Đã huỷ',
+    className: 'bg-[color-mix(in_srgb,var(--danger)_10%,var(--surface))] text-[var(--danger)]',
+  },
+} as const
+
+export function BookingRecordStatusBadge({ status }: { status: keyof typeof BOOKING_RECORD_BADGE }) {
+  const badge = BOOKING_RECORD_BADGE[status]
+  return (
+    <span className={cn('inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-metric font-medium', badge.className)}>
+      {badge.label}
+    </span>
+  )
+}

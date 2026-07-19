@@ -14,6 +14,7 @@ import {
   latestConfirmedPerCall,
   latestSnapshotPerCall,
   toMetricSnapshot,
+  withoutCancelledBookings,
   type MetricCall,
   type MetricSnapshot,
 } from './db/dashboard-store'
@@ -118,6 +119,23 @@ describe('doanh thu không cộng trùng', () => {
       call({ id: 'b', startedAt: new Date(NOW.getTime() - HOUR) }),
     ]
     expect(computeRevenueDelta(source, confirmed, NOW)).toEqual({ current: 0, previous: 0 })
+  })
+
+  it('loại booking đã huỷ khỏi vé chốt, doanh thu và phễu', () => {
+    const latest = latestSnapshotPerCall([
+      snapshot({ callId: 'cancelled', origin: 'Huế', destination: 'Đà Nẵng', totalFareVnd: 500_000 }),
+      snapshot({ callId: 'active', origin: 'Huế', destination: 'Đà Nẵng', totalFareVnd: 250_000 }),
+      snapshot({ callId: 'legacy', origin: 'Huế', destination: 'Đà Nẵng', totalFareVnd: 100_000 }),
+    ])
+    const filtered = withoutCancelledBookings(latest, [
+      { id: 1, callId: 'cancelled', status: 'pending_payment' },
+      { id: 2, callId: 'cancelled', status: 'cancelled' },
+      { id: 3, callId: 'active', status: 'paid' },
+    ])
+
+    expect([...filtered.keys()]).toEqual(['active', 'legacy'])
+    expect(buildTopRoutes(filtered).reduce((sum, route) => sum + route.revenueVnd, 0)).toBe(350_000)
+    expect(buildFunnel(filtered).find((step) => step.status === 'confirmed')?.count).toBe(2)
   })
 })
 

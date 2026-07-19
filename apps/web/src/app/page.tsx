@@ -84,6 +84,9 @@ const organizerCards = [
     cta: 'Mở Web Call',
     access: 'Công khai',
     icon: PhoneCall,
+    tone: 'cyan',
+    signal: 'Cuộc gọi mô phỏng',
+    metric: 'Live',
   },
   {
     number: '02',
@@ -94,6 +97,9 @@ const organizerCards = [
     cta: 'Xem bằng chứng',
     access: 'Công khai',
     icon: FileCheck2,
+    tone: 'violet',
+    signal: 'Audio · transcript · WER',
+    metric: '4 lớp',
   },
   {
     number: '03',
@@ -104,6 +110,9 @@ const organizerCards = [
     cta: 'Mở màn vận hành',
     access: 'Yêu cầu khóa',
     icon: Monitor,
+    tone: 'amber',
+    signal: 'Call · booking · trạng thái',
+    metric: 'Realtime',
   },
 ] as const
 
@@ -147,16 +156,16 @@ export default async function HomePage() {
               Cách hoạt động
             </a>
             <a
-              className="inline-flex min-h-11 items-center rounded-full px-4 transition hover:bg-white/70 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+              className="hidden min-h-11 items-center rounded-full px-4 transition hover:bg-white/70 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:inline-flex"
               href="#khu-vuc-ban-to-chuc"
             >
               Khu vực chấm thi
             </a>
             <Link
               className="inline-flex min-h-11 items-center rounded-full border border-slate-300 bg-white/75 px-4 font-medium text-slate-800 shadow-sm transition hover:border-blue-300 hover:bg-white hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-              href="/checklist"
+              href="/what-we-built"
             >
-              Checklist
+              What we built
             </Link>
           </nav>
         </div>
@@ -238,28 +247,41 @@ export default async function HomePage() {
         </section>
 
         <section id="khu-vuc-ban-to-chuc" className="organizer-landing-section scroll-mt-16 overflow-hidden">
+          <div className="organizer-landing-grid" aria-hidden />
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-            <div className="max-w-3xl">
-              <p className="text-sm font-semibold text-blue-700">Khu vực ban tổ chức &amp; giám khảo</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-[-0.045em] text-slate-950 sm:text-4xl">Ba góc nhìn. Một hành trình có thể kiểm chứng.</h2>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-                Đi từ trải nghiệm hành khách đến bằng chứng kỹ thuật và màn vận hành nhà xe, mỗi phần đều là một trang hoạt động độc lập.
-              </p>
+            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-3xl">
+                <p className="organizer-landing-kicker"><span aria-hidden /> Khu vực ban tổ chức &amp; giám khảo</p>
+                <h2 className="mt-4 text-3xl font-bold tracking-[-0.05em] text-slate-950 sm:text-5xl sm:leading-[1.04]">Ba góc nhìn.<br className="hidden sm:block" /> Một hành trình có thể kiểm chứng.</h2>
+                <p className="mt-5 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
+                  Theo dấu một booking từ trải nghiệm hành khách, qua lớp bằng chứng kỹ thuật, đến màn vận hành thực tế của nhà xe.
+                </p>
+              </div>
+              <div className="organizer-landing-legend" aria-label="Tóm tắt hành trình kiểm chứng">
+                <span><strong>01</strong> Trải nghiệm</span><i aria-hidden />
+                <span><strong>02</strong> Đối chiếu</span><i aria-hidden />
+                <span><strong>03</strong> Vận hành</span>
+              </div>
             </div>
 
-            <ol className="mt-10 grid gap-4 lg:grid-cols-3">
-              {organizerCards.map(({ number, eyebrow, title, description, href, cta, access, icon: Icon }) => (
-                <li key={href}>
-                  <article className="organizer-landing-card">
+            <ol className="organizer-landing-cards mt-10 grid gap-4 lg:grid-cols-3">
+              {organizerCards.map(({ number, eyebrow, title, description, href, cta, access, icon: Icon, tone, signal, metric }) => (
+                <li key={href} className="relative">
+                  <article className="organizer-landing-card" data-tone={tone}>
                     <div className="flex items-center justify-between gap-3">
                       <span className="organizer-landing-icon"><Icon size={21} aria-hidden /></span>
-                      <span className="font-mono text-xs font-semibold text-slate-400">{number}</span>
+                      <span className="organizer-landing-number">{number}</span>
                     </div>
-                    <p className="mt-6 text-xs font-semibold uppercase tracking-[0.09em] text-blue-700">{eyebrow}</p>
-                    <h3 className="mt-2 text-xl font-semibold tracking-[-0.035em] text-slate-950">{title}</h3>
+                    <p className="organizer-landing-eyebrow mt-6">{eyebrow}</p>
+                    <h3 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-950 sm:text-2xl">{title}</h3>
                     <p className="mt-3 flex-1 text-sm leading-6 text-slate-600">{description}</p>
-                    <div className="mt-6 flex items-center justify-between gap-3 border-t border-slate-200 pt-4">
-                      <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                    <div className="organizer-landing-signal">
+                      <span className="organizer-landing-pulse" aria-hidden />
+                      <span>{signal}</span>
+                      <strong>{metric}</strong>
+                    </div>
+                    <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-200/80 pt-4">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
                         {access === 'Yêu cầu khóa' ? <Lock size={13} aria-hidden /> : null}{access}
                       </span>
                       <Link href={href} className="organizer-landing-link">{cta} <ArrowRight size={15} aria-hidden /></Link>
@@ -269,11 +291,7 @@ export default async function HomePage() {
               ))}
             </ol>
 
-            <div className="mt-8 flex justify-end">
-              <Link href="/ban-to-chuc" className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
-                Xem hướng dẫn dành cho ban tổ chức <ArrowRight size={16} aria-hidden />
-              </Link>
-            </div>
+
           </div>
         </section>
 

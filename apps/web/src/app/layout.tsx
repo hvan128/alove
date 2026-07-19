@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { JetBrains_Mono, Lora } from 'next/font/google'
+import { IBM_Plex_Mono, IBM_Plex_Sans, JetBrains_Mono, Lora } from 'next/font/google'
 import localFont from 'next/font/local'
 import './globals.css'
 
@@ -32,11 +32,25 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 })
 
+const ibmPlexSans = IBM_Plex_Sans({
+  variable: '--font-ibm-plex-sans',
+  weight: 'variable',
+  subsets: ['latin', 'vietnamese'],
+  display: 'swap',
+})
+
+const ibmPlexMono = IBM_Plex_Mono({
+  variable: '--font-ibm-plex-mono',
+  weight: ['400', '500', '600'],
+  subsets: ['latin', 'vietnamese'],
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
   title: 'Alove | Alo là có vé',
   description: 'Đặt vé nhà xe qua cuộc gọi với nhân viên chăm sóc và Agent tự động nói tiếng Việt.',
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="vi" className={`${beVietnamPro.variable} ${lora.variable} ${jetbrainsMono.variable}`}><body className="font-sans antialiased bg-surface text-ink">{children}</body></html>
+  return <html lang="vi" className={`${beVietnamPro.variable} ${lora.variable} ${jetbrainsMono.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable}`}><body className="font-sans antialiased bg-surface text-ink">{children}</body></html>
 }

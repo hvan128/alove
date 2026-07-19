@@ -17,6 +17,7 @@ import {
   findBookingSnapshotForVerification,
   holdSeats,
   isExplicitBookingConfirmation,
+  markBookingPaidByOperator,
   searchTrips,
 } from './booking-store'
 
@@ -279,5 +280,45 @@ describe('booking-store invariants', () => {
     expect(statement).toContain('where true and s.held_by_call_id =')
     expect(statement).toContain("and s.status = 'held'")
     expect(statement).toContain('jsonb_agg(h.code order by h.code)')
+  })
+
+  it('dashboard cancellation targets one pending booking and does not release unrelated holds', async () => {
+    fakeDb.execute.mockResolvedValue({
+      rows: [{ code: 'MA-260725-0019', seatCodes: ['B03'] }],
+    })
+
+    await expect(cancelBooking({
+      callId: 'call-dashboard',
+      bookingId: 19,
+      pendingOnly: true,
+    })).resolves.toEqual({ cancelled: true, code: 'MA-260725-0019', seatCodes: ['B03'] })
+
+    const compiled = new PgDialect().sqlToQuery(fakeDb.execute.mock.calls[0]![0] as SQL)
+    const statement = compiled.sql.replace(/\s+/gu, ' ').toLowerCase()
+    expect(statement).toContain('b.id = $2 and b.call_id = $3')
+    expect(statement).toContain("b.status = 'pending_payment'")
+    expect(statement).toContain('where false and s.held_by_call_id =')
+    expect(compiled.params).toContain(19)
+    expect(compiled.params).toContain('call-dashboard')
+  })
+
+  it('marks one pending booking paid and records the payment atomically', async () => {
+    fakeDb.execute.mockResolvedValue({ rows: [{ id: 21 }] })
+
+    await expect(markBookingPaidByOperator({
+      bookingId: 21,
+      callId: 'call-paid-dashboard',
+    })).resolves.toEqual({ paid: true })
+
+    const compiled = new PgDialect().sqlToQuery(fakeDb.execute.mock.calls[0]![0] as SQL)
+    const statement = compiled.sql.replace(/\s+/gu, ' ').toLowerCase()
+    expect(statement).toContain("set status = 'paid'")
+    expect(statement).toContain("and b.status = 'pending_payment'")
+    expect(statement).toContain('insert into "payments"')
+    expect(statement).toContain("'operator'")
+    expect(statement).toContain("'succeeded'")
+    expect(statement).not.toContain('on conflict')
+    expect(compiled.params).toContain(21)
+    expect(compiled.params).toContain('call-paid-dashboard')
   })
 })

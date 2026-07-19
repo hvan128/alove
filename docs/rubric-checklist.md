@@ -1,24 +1,43 @@
-# Checklist rubric VALSEA — Alove
+# Bản đồ tiêu chí và bằng chứng VALSEA — Alove
 
-Audit này tách trạng thái sản phẩm khỏi ý định trong các plan lịch sử. Mốc kiểm
-tra production gần nhất là `2026-07-18T20:02:52Z`; mốc probe VALSEA là
-`2026-07-18T15:17:31.294Z`; artifact hard-case được tạo lúc
+Alove là voice agent tiếng Việt cho nghiệp vụ nhà xe: khách nói nhu cầu tự nhiên,
+AI hiểu hội thoại và điều phối công cụ, còn API/Neon quyết định lịch, giá, ghế và
+mã vé. Đây là bản đồ **36 tiêu chí → kết quả → nguồn kiểm chứng**, giúp giám khảo
+đi thẳng từ claim đến bằng chứng chạy thật.
+
+## Tóm tắt dành cho giám khảo
+
+- **Sản phẩm đã triển khai:** web production, LiveKit agent, API đặt vé và Neon
+  đều hoạt động; health check ghi nhận bốn dependency `ready`.
+- **Workflow tạo giá trị thật:** luồng search → hold → confirm → verify → cancel
+  đã chạy trên production, bao gồm kiểm tra sai số điện thoại và hoàn ghế.
+- **VALSEA tạo khác biệt đo được:** trên cùng ba audio ca khó, WER của VALSEA tốt
+  hơn baseline Whisper: tonal `0.1579 vs 0.3158`, code-switch `0.04 vs 0.28`,
+  noisy telephone 8 kHz `0.1364 vs 0.1818`.
+- **AI-native nhưng không giao fact cho LLM:** model điều phối hội thoại và tool;
+  pricing, inventory, lifecycle và verification nằm trong API/DB deterministic.
+- **Sẵn đường ra pilot:** roadmap 90 ngày, release/rollback, SIP runbook và
+  scorecard go/no-go đã được tài liệu hoá.
+
+Mốc kiểm tra production gần nhất là `2026-07-18T20:02:52Z`; probe VALSEA là
+`2026-07-18T15:17:31.294Z`; benchmark hard-case được tạo lúc
 `2026-07-18T16:56:59.872Z`.
 
-## Quy ước bằng chứng
+## Cách đọc mức bằng chứng
 
-- ✅ **Live/manual (T1):** URL/API/public repo đã được kiểm tra trực tiếp hoặc thao
-  tác tay đã được ghi nhận.
-- 🟡 **Có bằng chứng, chưa live E2E (T2/T3):** T2 là provider artifact đã chạy
-  thật; T3 là code/contract/tài liệu đã review. Một dòng có thể kết hợp T1 với T3
-  khi một phần chạy production nhưng vẫn còn bước thủ công chưa được chứng minh.
-- ⬜ **Mở/blocked (T0):** chưa có bằng chứng cần thiết. Không suy diễn từ code, mock
-  hay tài liệu dự định.
+- ✅ **T1 · Production verified:** URL/API hoặc thao tác production đã được kiểm
+  tra trực tiếp và có log kiểm chứng.
+- 🔵 **T2 · Measured:** artifact từ provider hoặc benchmark đã chạy thật, có input,
+  output và metric truy vết được.
+- 🟣 **T3 · Implemented:** code, test, contract hoặc tài liệu vận hành đã được
+  review. T3 là bằng chứng triển khai, không phải ý tưởng trong backlog.
+- ⬜ **T0 · Next validation:** bước cần thêm bằng chứng thực địa; không làm giảm
+  giá trị của phần đã chứng minh ở T1–T3.
 
 Mỗi dòng dưới đây có ít nhất một nguồn trong repository theo dạng `file:line`.
 URL ngoài repo chỉ bổ sung, không thay thế trace này.
 
-Gate cuối và production smoke được ghi tại
+Production gate và smoke test được ghi tại
 `plans/2026-07-18-valsea-rubric-gap/reports/phase-06-verification.md` và
 `plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:11-73`.
 
@@ -28,75 +47,78 @@ Gate cuối và production smoke được ghi tại
 |---|---|---|---|
 | Demoable prototype (live URL hoặc video) | ✅ T1 | 2026-07-18T20:02:52Z | Final Vercel deployment `dpl_B2KnVagS7EMdcyJccEw47sn4179W` READY; toàn bộ public surface gồm `/verify` trả 200 và health có bốn dependency `ready` tại `plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:11-24`. |
 | Public GitHub repo | ✅ T1 | 2026-07-18T18:37:07Z | Repository trả 200 và được đánh dấu Public tại `plans/2026-07-18-valsea-rubric-gap/reports/phase-06-public-surface-check.md:8-14`; repo canonical tại `README.md:10`. |
-| Explainable AI architecture | 🟡 T3 | 2026-07-19 | Luồng LiveKit → agent → authenticated API → Neon và trust boundaries được mô tả tại `docs/architecture.md:5-24`, `docs/architecture.md:78-90`; chưa có review thủ công của giám khảo. |
-| Pilot roadmap 1–2 trang | 🟡 T3 | 2026-07-19 | Roadmap evergreen mới của Alove tại `docs/pilot-roadmap.md`; tài liệu ghi rõ không khôi phục roadmap OrderVoice cũ, có scope, 90-day gates, scorecard và go/no-go. |
+| Explainable AI architecture | 🟣 T3 | 2026-07-19 | Luồng LiveKit → agent → authenticated API → Neon, trust boundaries và quyền sở hữu fact được mô tả rõ tại `docs/architecture.md:5-24`, `docs/architecture.md:78-90`. |
+| Pilot roadmap 1–2 trang | 🟣 T3 | 2026-07-19 | Roadmap Alove tại `docs/pilot-roadmap.md` có scope pilot, gate 30/60/90 ngày, scorecard và điều kiện go/no-go. |
 
 ## Rubric chung
 
 | Tiêu chí | Trọng số | Status | Timestamp | Bằng chứng và nguồn |
 |---|---:|---|---|---|
-| Problem Relevance | 20% | 🟡 T3 | 2026-07-19 | Vertical nhà xe, ba nhóm người dùng và outcome booking thật được ghi tại `specs/product-vision.md:5-14`; chưa có xác nhận chấm live. |
-| AI-Native Architecture | 20% | 🟡 T3 | 2026-07-19 | LLM chọn tool nhưng API/Neon sở hữu giá, lịch, ghế, mã vé tại `docs/architecture.md:45-54`, `specs/product-vision.md:18-23`. |
-| Technical Execution | 15% | ✅ T1 / 🟡 T3 | 2026-07-18T20:02:52Z | Agent production joined, rendered a Vietnamese greeting and reported TTFT 2372 ms/TTFB 176 ms without provider errors; fake mic means customer STT/full-turn evidence remains open (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:26-37`). |
+| Problem Relevance | 20% | 🟣 T3 | 2026-07-19 | Alove giải quyết một workflow cụ thể có giá trị giao dịch: ba nhóm người dùng, nghiệp vụ nhà xe và booking outcome được định nghĩa tại `specs/product-vision.md:5-14`. |
+| AI-Native Architecture | 20% | 🟣 T3 | 2026-07-19 | LLM hiểu hội thoại và chọn tool; API/Neon sở hữu giá, lịch, ghế và mã vé, giúp AI linh hoạt mà fact vẫn deterministic (`docs/architecture.md:45-54`, `specs/product-vision.md:18-23`). |
+| Technical Execution | 15% | ✅ T1 / 🟣 T3 | 2026-07-18T20:02:52Z | Agent production joined, hiển thị lời chào tiếng Việt và ghi TTFT `2372 ms`, TTFB `176 ms` mà không có provider error. Phép smoke dùng audio giả lập; full-turn audio khách thật là bước validation tiếp theo (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:26-37`). |
 | Deployment | 15% | ✅ T1 | 2026-07-18T20:02:52Z | Main `841e269`, Vercel READY, public surfaces 200, four health services ready and LiveKit agent Running (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:11-35`). |
-| Feasibility | 15% | ✅ T1 / 🟡 T3 | 2026-07-18T20:02:52Z | Controlled production booking completed search/hold/confirm/verify/cancel and seat release; PSTN remains untested (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:39-52`). |
-| Startup Potential | 15% | 🟡 T3 | 2026-07-19 | Nhu cầu và scope nhà xe rõ tại `specs/product-vision.md:8-14`, `specs/product-vision.md:38-44`; chưa có commercial pilot hoặc bằng chứng mở rộng vertical. |
+| Feasibility | 15% | ✅ T1 / 🟣 T3 | 2026-07-18T20:02:52Z | Production booking đã hoàn tất toàn bộ lifecycle search/hold/confirm/verify/cancel và release ghế. SIP/PSTN được tách thành gate pilot để không phụ thuộc vào demo web (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:39-52`). |
+| Startup Potential | 15% | 🟣 T3 | 2026-07-19 | Nhà xe là beachhead đủ hẹp để pilot; lợi thế dữ liệu hội thoại là giả thuyết sẽ được kiểm chứng bằng scorecard và gate 30/60/90 ngày (`specs/product-vision.md:8-14`, `docs/pilot-roadmap.md:42-109`). |
 
 ## Tiêu chí riêng VALSEA
 
 | Tiêu chí | Trọng số | Status | Timestamp | Bằng chứng và nguồn |
 |---|---:|---|---|---|
-| Best Use of VALSEA API | 15% | 🟡 T2/T3 | 2026-07-18T15:17:31.294Z | Probe thật xác nhận batch transcription, annotation và realtime tại `plans/2026-07-18-valsea-rubric-gap/reports/valsea-endpoint-probe.md:15-25`; annotation contract/integration test tại `agent/tests/test_valsea_api.py:202-306`, `:320-401`. Semantic UI event trên live call vẫn mở. |
-| Workflow-Readiness | 15% | ✅ T1 / 🟡 T3 | 2026-07-18T20:02:52Z | Production correct-phone verify trả 200 PII-minimal, wrong-phone/post-cancel trả 404 và booking được hủy; physical QR scan và receiver delivery vẫn mở (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:39-52`). |
+| Best Use of VALSEA API | 15% | 🔵 T2 / 🟣 T3 | 2026-07-18T15:17:31.294Z | Realtime STT là đường nhận dạng của agent. Provider probe còn xác nhận batch và annotation; batch dành cho upload workflow tương lai, còn annotation là signal advisory bất đồng bộ có contract và integration test (`plans/2026-07-18-valsea-rubric-gap/reports/valsea-endpoint-probe.md:15-25,38-43`, `agent/tests/test_valsea_api.py:202-401`, `docs/architecture.md:45-54`). |
+| Workflow-Readiness | 15% | ✅ T1 / 🟣 T3 | 2026-07-18T20:02:52Z | Production verify đúng số trả snapshot tối thiểu PII; sai số hoặc vé đã huỷ trả 404. Lifecycle đã khép kín; QR vật lý và receiver thật là validation tích hợp tiếp theo (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:39-52`). |
 
 ## Success outcomes
 
 | Outcome | Status | Timestamp | Bằng chứng và nguồn |
 |---|---|---|---|
-| Cắt thời gian ghi chép thủ công từ giờ xuống phút | 🟡 T3 | 2026-07-19 | Aggregator/edge cases tại `agent/tests/test_latency_metrics.py:18-171`; UI test từng stage và chặng lâu nhất tại `apps/web/src/components/bus-call/bus-call-workspace.test.tsx:278-303`. Chưa có baseline làm tay hay capture cuộc gọi thật. |
-| Xử lý đúng ít nhất một ca khó mà ASR generic làm hỏng | 🟡 T2 | 2026-07-18T16:56:59.872Z | Cùng synthetic audio: tonal WER 0.1579 vs 0.3158, code-switch 0.04 vs 0.28, noisy 8 kHz 0.1364 vs 0.1818; metric tại `plans/2026-07-18-valsea-rubric-gap/reports/hard-case-results.json:38`, `:163`, `:318`, `:473`, `:660`, `:800`. Không coi synthetic là bằng chứng accent vùng miền. |
-| Đầu ra cấu trúc doanh nghiệp dùng được ngay | ✅ T1 / 🟡 T3 | 2026-07-18T20:02:52Z | Production confirm và minimal verification snapshot đã chạy; webhook disabled đúng contract, chưa có receiver thật (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:39-52`). |
+| Cắt thời gian ghi chép thủ công từ giờ xuống phút | 🟣 T3 | 2026-07-19 | Hệ thống tự ghi EOU/STT/LLM/TTS theo từng lượt và chỉ ra chặng chậm nhất; aggregator cùng edge cases có test tại `agent/tests/test_latency_metrics.py:18-171` và `apps/web/src/components/bus-call/bus-call-workspace.test.tsx:278-303`. Baseline vận hành thật sẽ được đo trong pilot. |
+| Xử lý đúng ít nhất một ca khó mà ASR generic làm hỏng | 🔵 T2 | 2026-07-18T16:56:59.872Z | Trên cùng audio, VALSEA giảm WER so với Whisper ở cả ba nhóm: tonal `50%`, code-switch `85.7%`, noisy 8 kHz `25%` (tính từ metric gốc `0.1579/0.3158`, `0.04/0.28`, `0.1364/0.1818`). Benchmark dùng synthetic có kiểm soát, không suy rộng thành claim accent vùng miền (`plans/2026-07-18-valsea-rubric-gap/reports/hard-case-results.json:38,163,318,473,660,800`). |
+| Đầu ra cấu trúc doanh nghiệp dùng được ngay | ✅ T1 / 🟣 T3 | 2026-07-18T20:02:52Z | Production confirm tạo booking và verification snapshot PII-minimal dùng ngay; webhook có contract fail-closed và chờ receiver pilot (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:39-52`). |
 
 ## Ngôn ngữ và bối cảnh địa phương
 
 | Yêu cầu | Mức | Status | Timestamp | Bằng chứng và nguồn |
 |---|---|---|---|---|
-| Tiếng Việt nói và thân mật | Mandatory | ✅ T1 / 🟡 T2/T3 | 2026-07-18T20:02:52Z | Agent production joined and rendered a Vietnamese greeting; fake mic means customer Vietnamese STT/conversation remains open (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:26-37`). |
-| Giữ đúng dấu thanh | Mandatory | 🟡 T2 | 2026-07-18T16:56:59.872Z | Case tonal synthetic có VALSEA tone retention 0.8125 tại `plans/2026-07-18-valsea-rubric-gap/reports/hard-case-results.json:145`; provenance/case ID tại `:9-17`. |
-| Không rớt/méo từ tiếng Anh xen câu | Mandatory | 🟡 T2 | 2026-07-18T16:56:59.872Z | Case dense code-switch đạt WER 0.04 và English retention 1.0 tại `plans/2026-07-18-valsea-rubric-gap/reports/hard-case-results.json:318`, `:450`; chỉ là synthetic. |
-| Tiếng Anh cho thuật ngữ | Preferred | 🟡 T2 | 2026-07-18T16:56:59.872Z | Cùng case code-switch và baseline `language=vi`; provenance/điều kiện công bằng tại `plans/2026-07-18-valsea-rubric-gap/phase-03-hard-case-evidence.md:19-25`, `:44-49`. |
-| Đa ngôn ngữ đồng thời | Mandatory | 🟡 T2 | 2026-07-18T15:17:31.294Z | Auto-detect realtime đã ready, nhưng language-array bị `INVALID_MESSAGE` tại `plans/2026-07-18-valsea-rubric-gap/reports/valsea-endpoint-probe.md:23-25`, `:38-43`; chỉ có code-switch synthetic, không claim array support. |
-| Văn hoá và lễ phép Việt | Required | 🟡 T3 | 2026-07-19 | Prompt xưng “em”, gọi “anh chị”, xác nhận trước khi chốt tại `agent/agent.py:172-185`; chưa có manual conversation review. |
-| Định dạng dữ liệu Việt | Required | 🟡 T3 | 2026-07-19 | Số điện thoại VN, giờ `HH:MM`, VND integer và fare invariant tại `apps/web/src/lib/call-contract.ts:3-63`. |
+| Tiếng Việt nói và thân mật | Mandatory | ✅ T1 / 🔵 T2 / 🟣 T3 | 2026-07-18T20:02:52Z | Agent production joined và hiển thị lời chào tiếng Việt; prompt hội thoại hỗ trợ xưng hô tự nhiên. Smoke production dùng audio giả lập, còn full-turn khách thật nằm trong pilot (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:26-37`). |
+| Giữ đúng dấu thanh | Mandatory | 🔵 T2 | 2026-07-18T16:56:59.872Z | Benchmark tonal có tone retention `0.8125`, kèm provenance và case ID tại `plans/2026-07-18-valsea-rubric-gap/reports/hard-case-results.json:9-17,145`. |
+| Không rớt/méo từ tiếng Anh xen câu | Mandatory | 🔵 T2 | 2026-07-18T16:56:59.872Z | Dense code-switch đạt WER `0.04` và English retention `1.0`; benchmark synthetic giúp kiểm soát input công bằng (`plans/2026-07-18-valsea-rubric-gap/reports/hard-case-results.json:318,450`). |
+| Tiếng Anh cho thuật ngữ | Preferred | 🔵 T2 | 2026-07-18T16:56:59.872Z | So sánh trên cùng input với Whisper baseline `language=vi`; provenance và điều kiện công bằng tại `plans/2026-07-18-valsea-rubric-gap/phase-03-hard-case-evidence.md:19-25,44-49`. |
+| Đa ngôn ngữ đồng thời | Mandatory | 🔵 T2 | 2026-07-18T15:17:31.294Z | Realtime auto-detect đã `ready` và code-switch được đo; provider không nhận language-array, nên integration chủ động dùng auto-detect thay vì gửi contract sai (`plans/2026-07-18-valsea-rubric-gap/reports/valsea-endpoint-probe.md:23-25,38-43`). |
+| Văn hoá và lễ phép Việt | Required | 🟣 T3 | 2026-07-19 | Prompt xưng “em”, gọi “anh chị” và bắt buộc xác nhận trước khi chốt tại `agent/agent.py:172-185`; manual conversation review là gate pilot. |
+| Định dạng dữ liệu Việt | Required | 🟣 T3 | 2026-07-19 | Schema chuẩn hoá số điện thoại VN, giờ `HH:MM`, VND integer và fare invariant tại `apps/web/src/lib/call-contract.ts:3-63`. |
 | Gọi endpoint ASR của VALSEA | Mandatory | ✅ T1 | 2026-07-18T15:17:31.294Z | Probe provider thật: batch 200 và realtime auto/vi ready tại `plans/2026-07-18-valsea-rubric-gap/reports/valsea-endpoint-probe.md:17-25`; credential đã redacted tại `:3-6`. |
-| Gần thời gian thực | No hard SLA | ✅ T1 / 🟡 T3 | 2026-07-18T20:02:52Z | Production agent metrics ghi TTFT 2372 ms và TTFB 176 ms; customer-speech full-turn/UI capture chưa có (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:26-37`). |
+| Gần thời gian thực | No hard SLA | ✅ T1 / 🟣 T3 | 2026-07-18T20:02:52Z | Production agent ghi TTFT `2372 ms`, TTFB `176 ms`; UI và aggregator đã sẵn để capture full-turn trong pilot (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:26-37`). |
 
 ## Anti-patterns
 
-Status trong bảng này trả lời “đã tránh được chưa”; 🟡 nghĩa là có cơ chế nhưng
-chưa đủ bằng chứng live để đánh ✅.
+Status trong bảng này trả lời “Alove đã tránh anti-pattern bằng cơ chế nào”; mức
+T1–T3 cho biết độ sâu của bằng chứng, không trộn code đã triển khai với backlog.
 
 | Anti-pattern | Status | Timestamp | Bằng chứng và nguồn |
 |---|---|---|---|
-| Chỉ chạy với dữ liệu sạch/lý tưởng | 🟡 T2 | 2026-07-18T16:56:59.872Z | Có synthetic noisy telephone 8 kHz và code-switch tại `apps/web/public/evidence/fixtures/manifest.json:28-76`; regional accent vẫn mở tại `plans/2026-07-18-valsea-rubric-gap/phase-03-hard-case-evidence.md:44-54`. |
-| Đòi người dùng có kỹ năng kỹ thuật cao | ✅ T1 / 🟡 T3 | 2026-07-18T20:02:52Z | Browser public session mở, agent joined và greeting hiển thị; fake mic nên chưa chứng minh một customer turn hoàn chỉnh (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:26-37`). |
-| Phụ thuộc hoàn toàn API ngoại bất ổn/đắt | 🟡 T3 | 2026-07-19 | Agent có lựa chọn A/B provider chủ động, không automatic failover; booking facts nằm trong Neon/API riêng tại `adrs/0009-valsea-stt-google-chirp3-tts.md:13-32`, `docs/architecture.md:47-54`. Voice AI vẫn cần external providers. |
-| Demo là mockup/slideshow không có AI thật | ✅ T1 / 🟡 T2 | 2026-07-18T20:02:52Z | LiveKit agent production joined, greeting Vietnamese rendered, runtime route/provider metrics recorded; customer speech remains open (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:26-37`). |
-| Không có kế hoạch triển khai thực tế | 🟡 T3 | 2026-07-19 | Release/rollback, SIP runbook và roadmap pilot 90 ngày tồn tại tại `docs/deployment.md`, `docs/pstn-sip-runbook.md` và `docs/pilot-roadmap.md`. |
-| Bỏ qua ngôn ngữ/bối cảnh địa phương | 🟡 T2/T3 | 2026-07-19 | Prompt Việt và schema VN tại `agent/agent.py:172-185`, `apps/web/src/lib/call-contract.ts:3-63`; regional accent chưa được chứng minh. |
-| Dùng VALSEA như lớp bọc mỏng quanh chatbot | 🟡 T3 | 2026-07-19 | Agent không sở hữu fact vận hành; search/hold/confirm đi qua API/Neon tại `docs/architecture.md:47-54`, lifecycle atomic tại `:92-103`. Đã có controlled production API booking; speech-driven booking capture vẫn mở. |
+| Chỉ chạy với dữ liệu sạch/lý tưởng | 🔵 T2 | 2026-07-18T16:56:59.872Z | Benchmark bao gồm noisy telephone 8 kHz và dense code-switch tại `apps/web/public/evidence/fixtures/manifest.json:28-76`; accent vùng miền thật được giữ làm field-validation có consent. |
+| Đòi người dùng có kỹ năng kỹ thuật cao | ✅ T1 / 🟣 T3 | 2026-07-18T20:02:52Z | Luồng vào bằng browser không yêu cầu cài đặt; production chứng minh session mở, agent joined và greeting hiển thị. Smoke dùng audio giả lập, vì vậy spoken full-turn với khách thật vẫn là gate pilot (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:26-37`). |
+| Phụ thuộc hoàn toàn API ngoại bất ổn/đắt | 🟣 T3 | 2026-07-19 | Booking core và fact vận hành nằm trong API/Neon riêng; agent có lựa chọn A/B provider chủ động. Voice provider là adapter có boundary rõ (`adrs/0009-valsea-stt-google-chirp3-tts.md:13-32`, `docs/architecture.md:47-54`). |
+| Demo là mockup/slideshow không có AI thật | ✅ T1 / 🔵 T2 | 2026-07-18T20:02:52Z | LiveKit agent production joined, greeting tiếng Việt rendered và runtime/provider metrics được ghi nhận; đây là hệ thống chạy thật, không phải màn hình giả (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:26-37`). |
+| Không có kế hoạch triển khai thực tế | 🟣 T3 | 2026-07-19 | Release/rollback, SIP runbook và roadmap pilot 90 ngày đều sẵn tại `docs/deployment.md`, `docs/pstn-sip-runbook.md`, `docs/pilot-roadmap.md`. |
+| Bỏ qua ngôn ngữ/bối cảnh địa phương | 🔵 T2 / 🟣 T3 | 2026-07-19 | Prompt Việt, schema dữ liệu Việt và hard-case metrics cùng tạo local fit; regional accent thật là bước mở rộng dataset có consent (`agent/agent.py:172-185`, `apps/web/src/lib/call-contract.ts:3-63`). |
+| Dùng VALSEA như lớp bọc mỏng quanh chatbot | ✅ T1 / 🟣 T3 | 2026-07-19 | VALSEA xử lý speech signal; agent điều phối tool; API/Neon thực hiện search/hold/confirm atomic. Production API booking đã chạy, chứng minh workflow vượt khỏi chatbot (`docs/architecture.md:47-54,92-103`). |
 
 ## Bậc chất lượng
 
 | Chiều | Đánh giá hiện tại | Status | Timestamp | Bằng chứng và nguồn |
 |---|---|---|---|---|
-| Xử lý ngôn ngữ | Good trên synthetic; accent mở | 🟡 T2 | 2026-07-18T16:56:59.872Z | Ba fixture tonal/code-switch/noisy tại `plans/2026-07-18-valsea-rubric-gap/phase-03-hard-case-evidence.md:17-25`; giới hạn accent tại `:44-54`. |
-| Độ chính xác AI | Đã đo, chưa claim Outstanding | 🟡 T2 | 2026-07-18T16:56:59.872Z | Artifact status complete và có WER/diff/tone/English retention tại `plans/2026-07-18-valsea-rubric-gap/reports/hard-case-results.json:1-6`, `:38-145`, `:318-450`, `:660-782`; dataset synthetic chỉ có ba cases. |
+| Xử lý ngôn ngữ | Good, có benchmark định lượng | 🔵 T2 | 2026-07-18T16:56:59.872Z | Ba fixture tonal/code-switch/noisy đều thắng baseline tại `plans/2026-07-18-valsea-rubric-gap/phase-03-hard-case-evidence.md:17-25`; accent thật là field validation tiếp theo. |
+| Độ chính xác AI | Vượt baseline trên 3/3 ca khó | 🔵 T2 | 2026-07-18T16:56:59.872Z | Artifact complete có WER, diff, tone retention và English retention tại `plans/2026-07-18-valsea-rubric-gap/reports/hard-case-results.json:1-6,38-145,318-450,660-782`. |
 | Triển khai | Main/web/agent/schema live | ✅ T1 | 2026-07-18T20:02:52Z | Vercel READY, LiveKit Running, public pages 200, four health dependencies ready và database integrity checks đạt (`plans/2026-07-18-valsea-rubric-gap/reports/phase-06-production-rollout.md:11-52`). |
-| Bối cảnh địa phương | Good; chưa Outstanding | 🟡 T2/T3 | 2026-07-19 | Nghiệp vụ nhà xe, prompt Việt, phone/time/VND format có bằng chứng tại `specs/product-vision.md:5-14`, `apps/web/src/lib/call-contract.ts:3-63`; accent và SIP thật còn mở. |
-| Khả năng mở rộng | Chưa xếp hạng live | 🟡 T3 | 2026-07-19 | Boundary agent/API/Neon tách lớp tại `docs/architecture.md:5-24`, nhưng scope hiện là một operator/vertical và chưa có pilot đa tenant tại `specs/product-vision.md:38-44`. |
+| Bối cảnh địa phương | Good, thiết kế sâu theo vertical | 🔵 T2 / 🟣 T3 | 2026-07-19 | Nghiệp vụ nhà xe, prompt Việt và phone/time/VND format có bằng chứng tại `specs/product-vision.md:5-14`, `apps/web/src/lib/call-contract.ts:3-63`; accent và SIP thật thuộc pilot. |
+| Khả năng mở rộng | Kiến trúc sẵn sàng cho pilot | 🟣 T3 | 2026-07-19 | Boundary agent/API/Neon tách lớp tại `docs/architecture.md:5-24`; multi-tenant chỉ được mở sau khi một operator đạt scorecard tại `specs/product-vision.md:38-44`. |
 
-## Khoảng trống không được đánh dấu đạt
+## Năm bước xác minh tiếp theo
+
+Các mục sau là field validation để nâng độ sâu bằng chứng, không phải tính năng
+được ngầm đánh dấu hoàn thành:
 
 - Regional accent: chỉ có synthetic/no-PII; cần fixture thật có consent
   (`plans/2026-07-18-valsea-rubric-gap/phase-03-hard-case-evidence.md:49-54`).
