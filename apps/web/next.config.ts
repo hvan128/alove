@@ -14,8 +14,9 @@ export default withSentryConfig(nextConfig, {
   // turns every local and preview build into a wall of warnings.
   sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
   silent: !process.env.CI,
-  // Registers the vercel.json cron as a Sentry monitor, which catches the one
-  // failure the drain route cannot report on its own: not running at all.
-  automaticVercelMonitors: true,
-  disableLogger: true,
 })
+
+// `automaticVercelMonitors` and `disableLogger` are deliberately absent: both
+// are webpack-only, and `next build` here runs Turbopack, so setting them would
+// read as cron monitoring that does not exist. The drain route checks in
+// explicitly instead.

@@ -1,5 +1,7 @@
 import { timingSafeEqual } from 'node:crypto'
 
+import * as Sentry from '@sentry/nextjs'
+
 import { bookingWebhookConfigurationStatus, deliverBookingWebhook } from '@/lib/booking-webhook'
 import {
   countAbandonedBookingWebhooks,
@@ -11,6 +13,14 @@ import { reportIssue } from '@/lib/observability'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
+
+/**
+ * Must stay equal to the `crons` entry in `vercel.json` — a monitor watching a
+ * different schedule than the one Vercel runs would page on every quiet day.
+ * `vercel-config.test.ts` holds the two together.
+ */
+export const DRAIN_CRON_SCHEDULE = '17 18 * * *'
+const MONITOR_SLUG = 'booking-webhook-drain'
 
 function authorized(req: Request): boolean {
   const secret = process.env.CRON_SECRET
@@ -24,6 +34,19 @@ export async function GET(req: Request): Promise<Response> {
   if (!authorized(req)) {
     return Response.json({ error: 'unauthorized' }, { status: 401 })
   }
+  // Check in only once the caller is authenticated, so an unauthorised probe
+  // cannot forge a healthy run for a cron that never fired. The build runs on
+  // Turbopack, where Sentry's `automaticVercelMonitors` does nothing, so the
+  // check-in has to be explicit rather than injected at bundle time.
+  return Sentry.withMonitor(MONITOR_SLUG, () => drain(), {
+    schedule: { type: 'crontab', value: DRAIN_CRON_SCHEDULE },
+    checkinMargin: 10,
+    maxRuntime: 5,
+    timezone: 'Etc/UTC',
+  })
+}
+
+async function drain(): Promise<Response> {
   const configuration = bookingWebhookConfigurationStatus()
   if (configuration === 'disabled') {
     return Response.json({ status: 'disabled', processed: 0 }, {

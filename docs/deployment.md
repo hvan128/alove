@@ -158,8 +158,10 @@ Error tracking is wired but reports nowhere until a DSN is set. What it covers:
   operator never learned about — reported at `error` level.
 - Outbox events with no retry path left, counted once per day by the drain cron
   and returned as `abandoned` in its response.
-- The drain cron failing to run at all, via the Sentry monitor that
-  `automaticVercelMonitors` registers from `vercel.json`.
+- The drain cron failing to run at all, via an explicit `Sentry.withMonitor`
+  check-in in the drain route under the slug `booking-webhook-drain`. Sentry's
+  `automaticVercelMonitors` is not used: it is webpack-only and this project
+  builds with Turbopack, so it would silently register nothing.
 
 Passenger phone numbers are redacted before any event leaves the process, and
 `sendDefaultPii` is off so cookies, headers and IP addresses are never attached.
