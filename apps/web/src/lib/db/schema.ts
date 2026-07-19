@@ -159,6 +159,18 @@ export const bookingWebhookOutbox = pgTable('booking_webhook_outbox', {
 export type PublicRateLimitRow = typeof publicRateLimits.$inferSelect
 export type BookingWebhookOutboxRow = typeof bookingWebhookOutbox.$inferSelect
 
+// Explicit opt-ins from the public landing page. The email is retained only so
+// Alove can deliver the requested product updates and can be deleted on request.
+export const newsletterSubscriptions = pgTable('newsletter_subscriptions', {
+  email: text('email').primaryKey(),
+  source: text('source').notNull().default('landing_footer'),
+  consentedAt: timestamp('consented_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  check('newsletter_subscriptions_source_check', sql`${table.source} in ('landing_footer')`),
+])
+
+export type NewsletterSubscriptionRow = typeof newsletterSubscriptions.$inferSelect
+
 // ---------------------------------------------------------------------------
 // Call audit — a projection of what happened, never an input to the next turn.
 // ---------------------------------------------------------------------------

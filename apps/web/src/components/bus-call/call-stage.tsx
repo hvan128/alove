@@ -26,6 +26,17 @@ type CallStageProps = {
   liveKitSlot?: ReactNode
 }
 
+const CODE_SWITCH_TERMS = [
+  'check availability', 'drop-off', 'drop off', 'pickup', 'pick-up',
+  'vip sleeper', 'sleeper', 'upgrade', 'booking', 'book', 'check',
+] as const
+
+// Từ vựng vùng miền được nhận diện trên transcript text. Đây không phải kết
+// luận về accent của người nói — muốn đánh giá accent cần audio thật có consent.
+const REGIONAL_TERMS = [
+  'ngoải', 'trỏng', 'bển', 'hen', 'hén', 'hỉ', 'mô', 'răng', 'rứa', 'vô',
+] as const
+
 /**
  * Sân khấu cuộc gọi kiểu voice-AI: nền tối immersive, orb ánh sáng thở khi chờ
  * và đập theo giọng agent, caption phụ đề lớn ở giữa với từ khóa phát sáng.
@@ -175,6 +186,7 @@ export function CallStage({
                   >
                     {renderHighlighted(message.text, terms)}
                   </p>
+                  {latest ? <LanguageLegend text={message.text} /> : null}
                 </li>
               )
             })}
@@ -382,23 +394,69 @@ function highlightTerms(booking: BookingSnapshot): string[] {
   return [...new Set(raw.filter((term): term is string => Boolean(term && term.length >= 2)))]
 }
 
-function renderHighlighted(text: string, terms: string[]): ReactNode {
-  if (terms.length === 0) return text
-  const pattern = new RegExp(`(${terms.map(escapeRegExp).join('|')})`, 'giu')
+function renderHighlighted(text: string, bookingTerms: string[]): ReactNode {
+  const typedTerms = [
+    ...CODE_SWITCH_TERMS.map((term) => ({ term, kind: 'code-switch' as const })),
+    ...REGIONAL_TERMS.map((term) => ({ term, kind: 'regional' as const })),
+    ...bookingTerms.map((term) => ({ term, kind: 'booking' as const })),
+  ]
+    .filter(({ term }, index, terms) => terms.findIndex((candidate) => (
+      candidate.term.toLocaleLowerCase('vi-VN') === term.toLocaleLowerCase('vi-VN')
+    )) === index)
+    .sort((left, right) => right.term.length - left.term.length)
+
+  if (typedTerms.length === 0) return text
+  const pattern = new RegExp(`((?<![\\p{L}\\p{M}])(?:${typedTerms.map(({ term }) => escapeRegExp(term)).join('|')})(?![\\p{L}\\p{M}]))`, 'giu')
   const parts = text.split(pattern)
   if (parts.length === 1) return text
-  return parts.map((part, index) =>
-    terms.some((term) => term.toLocaleLowerCase('vi-VN') === part.toLocaleLowerCase('vi-VN')) ? (
+  return parts.map((part, index) => {
+    const match = typedTerms.find(({ term }) => (
+      term.toLocaleLowerCase('vi-VN') === part.toLocaleLowerCase('vi-VN')
+    ))
+    if (!match) return part
+
+    const label = match.kind === 'code-switch'
+      ? 'Code-switch'
+      : match.kind === 'regional'
+        ? 'Tiếng vùng miền'
+        : 'Thông tin vé'
+    return (
       <mark
         key={index}
-        className="rounded-md bg-[color-mix(in_srgb,var(--action)_45%,transparent)] px-1.5 py-0.5 font-semibold text-white shadow-[0_0_16px_color-mix(in_srgb,var(--action)_35%,transparent)]"
+        title={label}
+        data-highlight={match.kind}
+        className={cn(
+          'rounded-md px-1.5 py-0.5 font-semibold text-white',
+          match.kind === 'booking' && 'bg-[color-mix(in_srgb,var(--action)_45%,transparent)] shadow-[0_0_16px_color-mix(in_srgb,var(--action)_35%,transparent)]',
+          match.kind === 'code-switch' && 'bg-cyan-400/20 text-cyan-100 ring-1 ring-inset ring-cyan-300/35',
+          match.kind === 'regional' && 'bg-amber-300/20 text-amber-100 ring-1 ring-inset ring-amber-300/40',
+        )}
       >
         {part}
       </mark>
-    ) : (
-      part
-    ),
+    )
+  })
+}
+
+function LanguageLegend({ text }: { text: string }) {
+  const hasCodeSwitch = containsTerm(text, CODE_SWITCH_TERMS)
+  const hasRegional = containsTerm(text, REGIONAL_TERMS)
+  if (!hasCodeSwitch && !hasRegional) return null
+
+  return (
+    <span className="mt-3 flex flex-wrap justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.1em]" aria-label="Chú giải ngôn ngữ">
+      {hasCodeSwitch ? (
+        <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-2 py-1 text-cyan-100">EN · Code-switch</span>
+      ) : null}
+      {hasRegional ? (
+        <span className="rounded-full border border-amber-300/35 bg-amber-300/10 px-2 py-1 text-amber-100">Tiếng vùng miền</span>
+      ) : null}
+    </span>
   )
+}
+
+function containsTerm(text: string, terms: readonly string[]): boolean {
+  return terms.some((term) => new RegExp(`(^|[^\\p{L}\\p{M}])${escapeRegExp(term)}(?=$|[^\\p{L}\\p{M}])`, 'iu').test(text))
 }
 
 function escapeRegExp(value: string): string {

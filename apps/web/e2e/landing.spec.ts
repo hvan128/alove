@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('trang chủ hiện nội dung nhà xe và vùng lịch chạy thật', async ({ page }) => {
+test('trang chủ hiện nội dung nhà xe và ba lối vào dành cho ban tổ chức', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: /AloVé.*Alo là có vé/u })).toBeVisible()
   const heroPreview = page.getByTestId('alove-hero-product-preview')
@@ -9,8 +9,13 @@ test('trang chủ hiện nội dung nhà xe và vùng lịch chạy thật', asy
   await expect(heroPreview.getByText(/chuyến mô gần nhất hỉ/u)).toBeVisible()
   await expect(page.getByText('Alove đã hiểu', { exact: true })).toHaveCount(0)
   await expect(page.getByText(/chưa được xác minh/u)).toHaveCount(0)
-  await expect(page.getByText(/Hiểu giọng vùng miền/u)).toHaveCount(0)
-  await expect(page.getByRole('region', { name: 'Bảng lịch chạy' })).toBeVisible()
+  await expect(page.getByText('Hỗ trợ giọng vùng miền', { exact: true })).toBeVisible()
+  await expect(page.getByText('Hiểu thanh điệu và chuyển đổi Việt–Anh', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Ba góc nhìn/u })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Mở Web Call/u })).toHaveAttribute('href', '/console')
+  await expect(page.getByRole('link', { name: /Xem bằng chứng/u })).toHaveAttribute('href', '/evidence')
+  await expect(page.getByRole('link', { name: /Mở màn vận hành/u })).toHaveAttribute('href', '/dashboard')
+  await expect(page.getByText('Lịch đang mở bán')).toHaveCount(0)
 })
 
 test('checklist mở từ header và hiển thị đầy đủ artifact', async ({ page }) => {
@@ -84,6 +89,29 @@ test('lối vào chấm thi nằm riêng ở footer và không trỏ thẳng và
   await expect(page.getByRole('link', { name: /Mở màn vận hành/u })).toHaveAttribute('href', '/dashboard')
 })
 
+test('footer đầy đủ và mọi mục nội bộ đều trỏ tới một trang thật', async ({ page }) => {
+  await page.goto('/')
+  const footer = page.locator('footer')
+  const links = [
+    ['/tinh-nang', 'Tính năng'],
+    ['/cach-hoat-dong', 'Cách hoạt động'],
+    ['/danh-cho-nha-xe', 'Dành cho nhà xe'],
+    ['/ho-tro', 'Trung tâm hỗ trợ'],
+    ['/faq', 'Câu hỏi thường gặp'],
+    ['/verify', 'Xác minh vé'],
+    ['/bao-mat', 'Chính sách bảo mật'],
+    ['/dieu-khoan', 'Điều khoản sử dụng'],
+  ] as const
+
+  for (const [href, name] of links) {
+    await expect(footer.getByRole('link', { name })).toHaveAttribute('href', href)
+  }
+
+  await footer.getByRole('link', { name: 'Tính năng' }).click()
+  await expect(page).toHaveURL(/\/tinh-nang$/)
+  await expect(page.getByRole('heading', { name: 'Một cuộc gọi, từ nhu cầu đến mã vé' })).toBeVisible()
+})
+
 test.describe('trên điện thoại', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
 
@@ -98,10 +126,11 @@ test.describe('trên điện thoại', () => {
     expect((await productTour.boundingBox())?.height).toBe(tourHeight)
     await expect(page.getByRole('button', { name: 'Phát phần minh hoạ' })).toBeVisible()
 
+    // Màn vé phải hiện trọn trong khung: khung được đo theo bước cao nhất nên
+    // không còn bắt người xem cuộn bên trong mới thấy hết vé.
     const ticketViewport = productTour.getByRole('region', { name: 'Màn vé và mã QR' })
-    await ticketViewport.hover()
-    await page.mouse.wheel(0, 500)
-    await expect.poll(() => ticketViewport.evaluate((node) => node.scrollTop)).toBeGreaterThan(0)
+    const overflow = await ticketViewport.evaluate((node) => node.scrollHeight - node.clientHeight)
+    expect(overflow).toBe(0)
     await expect(ticketViewport.getByRole('button', { name: 'Lưu vé PNG' })).toBeDisabled()
   })
 

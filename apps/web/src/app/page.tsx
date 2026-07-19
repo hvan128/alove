@@ -1,16 +1,17 @@
 import type { Metadata } from 'next'
-import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowDownRight,
   ArrowRight,
   BadgeCheck,
   Check,
-  Clock3,
+  FileCheck2,
   Headphones,
+  Lock,
   LockKeyhole,
-  MapPin,
   Mic2,
+  Monitor,
+  PhoneCall,
   RotateCcw,
   ShieldCheck,
   Ticket,
@@ -23,6 +24,7 @@ import {
   type AloveTourTrip,
 } from '@/components/landing/alove-product-tour'
 import { MobileStickyCall } from '@/components/landing/mobile-sticky-call'
+import { SiteFooter } from '@/components/landing/site-footer'
 import { BrandMark } from '@/components/ui/brand-mark'
 import { listUpcomingTrips, type TripOffer } from '@/lib/db/booking-store'
 import { isDbConfigured } from '@/lib/db/client'
@@ -32,11 +34,7 @@ export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
   title: 'Alove × Nhà xe Mai Anh — AloVé - Alo là có vé',
   description:
-    'Đặt vé nhà xe Mai Anh bằng giọng nói. Alove luôn đọc lại thông tin trước khi đặt vé.',
-}
-
-function formatVnd(value: number): string {
-  return `${new Intl.NumberFormat('vi-VN').format(value)} ₫`
+    'Đặt vé nhà xe bằng giọng nói. Alove luôn đọc lại thông tin trước khi đặt vé.',
 }
 
 async function loadUpcomingTrips(): Promise<TripOffer[]> {
@@ -47,10 +45,6 @@ async function loadUpcomingTrips(): Promise<TripOffer[]> {
     console.error('[landing] could not load upcoming trips', error)
     return []
   }
-}
-
-function routeLabel(trip: TripOffer): string {
-  return `${trip.originCity} → ${trip.destinationCity}`
 }
 
 const flowSteps = [
@@ -77,6 +71,39 @@ const flowSteps = [
     number: '04',
     title: 'Nhận vé & mã QR',
     color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+] as const
+
+const organizerCards = [
+  {
+    number: '01',
+    eyebrow: 'Góc nhìn hành khách',
+    title: 'Thử đặt vé bằng giọng nói',
+    description: 'Đi trọn luồng gọi thật: tìm chuyến, giữ ghế, xác nhận và nhận mã vé.',
+    href: '/console',
+    cta: 'Mở Web Call',
+    access: 'Công khai',
+    icon: PhoneCall,
+  },
+  {
+    number: '02',
+    eyebrow: 'Bằng chứng kỹ thuật',
+    title: 'Kiểm tra kết quả nhận dạng',
+    description: 'Đối chiếu audio, ground truth, transcript và sai khác giữa các hệ thống nhận dạng.',
+    href: '/evidence',
+    cta: 'Xem bằng chứng',
+    access: 'Công khai',
+    icon: FileCheck2,
+  },
+  {
+    number: '03',
+    eyebrow: 'Góc nhìn nhà xe',
+    title: 'Theo dõi cuộc gọi và booking',
+    description: 'Mở màn vận hành nội bộ để xem trạng thái cuộc gọi, transcript và booking tương ứng.',
+    href: '/dashboard',
+    cta: 'Mở màn vận hành',
+    access: 'Yêu cầu khóa',
+    icon: Monitor,
   },
 ] as const
 
@@ -110,9 +137,9 @@ export default async function HomePage() {
             <BrandMark className="size-9" />
             <span className="text-base tracking-[-0.03em]">Alove</span>
             <span className="hidden h-4 w-px bg-slate-300 md:block" aria-hidden />
-            <span className="hidden font-normal text-slate-500 md:inline">Nhà xe Mai Anh</span>
+            <span className="hidden font-medium text-slate-700 md:inline">Nhà xe Mai Anh</span>
           </a>
-          <nav aria-label="Điều hướng chính" className="flex items-center gap-1 text-sm text-slate-600">
+          <nav aria-label="Điều hướng chính" className="flex items-center gap-1 text-sm font-medium text-slate-800">
             <a
               className="hidden min-h-11 items-center rounded-full px-4 transition hover:bg-white/70 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:inline-flex"
               href="#cach-hoat-dong"
@@ -121,9 +148,9 @@ export default async function HomePage() {
             </a>
             <a
               className="inline-flex min-h-11 items-center rounded-full px-4 transition hover:bg-white/70 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-              href="#lich-chay"
+              href="#khu-vuc-ban-to-chuc"
             >
-              Lịch chạy
+              Khu vực chấm thi
             </a>
             <Link
               className="inline-flex min-h-11 items-center rounded-full border border-slate-300 bg-white/75 px-4 font-medium text-slate-800 shadow-sm transition hover:border-blue-300 hover:bg-white hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
@@ -148,7 +175,7 @@ export default async function HomePage() {
                 <span className="landing-accent-text mt-1 block">Alo là có vé.</span>
               </h1>
               <p className="mt-6 max-w-lg text-base leading-7 text-slate-600 sm:text-lg">
-                Đặt vé nhà xe Mai Anh chỉ bằng một cuộc gọi. Alove lắng nghe nhu cầu, tìm chuyến phù hợp và đọc lại thông tin trước khi đặt vé.
+                Đặt vé nhà xe chỉ bằng một cuộc gọi. Alove hỗ trợ tiếng Việt, chuyển đổi Việt–Anh và giọng vùng miền để lắng nghe nhu cầu, tìm chuyến phù hợp rồi đọc lại thông tin trước khi đặt vé.
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-3">
                 <CallOverlay layoutKey="hero" className="shadow-[0_16px_50px_-16px_rgba(73,125,255,0.9)]" />
@@ -161,6 +188,8 @@ export default async function HomePage() {
               </div>
 
               <ul className="mt-8 grid gap-2.5 text-sm text-slate-600">
+                <li className="inline-flex items-center gap-2.5"><Check size={16} aria-hidden className="text-emerald-600" /> Hiểu thanh điệu và chuyển đổi Việt–Anh</li>
+                <li className="inline-flex items-center gap-2.5"><Check size={16} aria-hidden className="text-emerald-600" /> Hỗ trợ giọng vùng miền</li>
                 <li className="inline-flex items-center gap-2.5"><Check size={16} aria-hidden className="text-emerald-600" /> Luôn đọc lại thông tin trước khi đặt</li>
                 <li className="inline-flex items-center gap-2.5"><Check size={16} aria-hidden className="text-emerald-600" /> Không cần cài app, chỉ cần nói như bình thường</li>
               </ul>
@@ -208,73 +237,43 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section id="lich-chay" className="scroll-mt-16 overflow-hidden bg-[var(--surface)]">
+        <section id="khu-vuc-ban-to-chuc" className="organizer-landing-section scroll-mt-16 overflow-hidden">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-[var(--action)]">Lịch đang mở bán</p>
-                <h2 className="mt-3 text-3xl font-bold tracking-[-0.045em] sm:text-4xl">Chọn bằng mắt. Hoặc cứ gọi.</h2>
-              </div>
-              <p className="max-w-md text-sm leading-6 text-[var(--muted)]">Cùng dữ liệu Alove sử dụng khi tư vấn — không phải một bảng giá riêng.</p>
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold text-blue-700">Khu vực ban tổ chức &amp; giám khảo</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-[-0.045em] text-slate-950 sm:text-4xl">Ba góc nhìn. Một hành trình có thể kiểm chứng.</h2>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
+                Đi từ trải nghiệm hành khách đến bằng chứng kỹ thuật và màn vận hành nhà xe, mỗi phần đều là một trang hoạt động độc lập.
+              </p>
             </div>
 
-            <div
-              tabIndex={0}
-              role="region"
-              aria-label="Bảng lịch chạy"
-              className="mt-10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--action-focus)]"
-            >
-              {trips.length > 0 ? (
-                <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {trips.slice(0, 6).map((trip, index) => (
-                    <li key={trip.tripId}>
-                      <article className={`landing-route-card ${index === 0 ? 'landing-route-card-featured' : ''}`}>
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <p className="text-xs text-[var(--muted)]">{trip.departureLabel}</p>
-                            <h3 className="mt-2 text-xl font-semibold tracking-[-0.04em]">{routeLabel(trip)}</h3>
-                          </div>
-                          {index === 0 ? <span className="rounded-full bg-[var(--action)] px-2.5 py-1 text-xs font-medium text-[var(--on-action)]">Gần nhất</span> : null}
-                        </div>
+            <ol className="mt-10 grid gap-4 lg:grid-cols-3">
+              {organizerCards.map(({ number, eyebrow, title, description, href, cta, access, icon: Icon }) => (
+                <li key={href}>
+                  <article className="organizer-landing-card">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="organizer-landing-icon"><Icon size={21} aria-hidden /></span>
+                      <span className="font-mono text-xs font-semibold text-slate-400">{number}</span>
+                    </div>
+                    <p className="mt-6 text-xs font-semibold uppercase tracking-[0.09em] text-blue-700">{eyebrow}</p>
+                    <h3 className="mt-2 text-xl font-semibold tracking-[-0.035em] text-slate-950">{title}</h3>
+                    <p className="mt-3 flex-1 text-sm leading-6 text-slate-600">{description}</p>
+                    <div className="mt-6 flex items-center justify-between gap-3 border-t border-slate-200 pt-4">
+                      <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                        {access === 'Yêu cầu khóa' ? <Lock size={13} aria-hidden /> : null}{access}
+                      </span>
+                      <Link href={href} className="organizer-landing-link">{cta} <ArrowRight size={15} aria-hidden /></Link>
+                    </div>
+                  </article>
+                </li>
+              ))}
+            </ol>
 
-                        <div className="mt-8 flex items-end justify-between gap-5 border-b border-[var(--divider)] pb-6">
-                          <div>
-                            <p className="font-mono text-3xl font-semibold tracking-[-0.06em]">
-                              {trip.departureLabel.split(' ').at(-1)}
-                            </p>
-                            <p className="mt-1 text-xs text-[var(--muted)]">đến {trip.arrivalTime ?? '—'}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-lg font-semibold tracking-[-0.03em] text-[var(--action)]">{formatVnd(trip.priceVnd)}</p>
-                            <p className="mt-1 text-xs text-[var(--muted)]">còn {trip.seatsAvailable} {trip.seatNoun}</p>
-                          </div>
-                        </div>
-
-                        <div className="mt-5 grid gap-2.5 text-xs text-[var(--muted)]">
-                          <p className="inline-flex items-center gap-2"><Clock3 size={14} aria-hidden /> {trip.vehicleType}</p>
-                          <p className="inline-flex items-center gap-2"><MapPin size={14} aria-hidden /> {trip.pickupPoint}</p>
-                        </div>
-                      </article>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="landing-schedule-empty">
-                  <div className="relative z-10 max-w-lg p-6 sm:p-8">
-                    <span className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700"><Clock3 size={13} aria-hidden /> Đang chờ đồng bộ</span>
-                    <h3 className="mt-5 text-2xl font-bold tracking-[-0.035em] text-slate-950">Chưa thấy chuyến? Alove kiểm tra giúp ngay trong cuộc gọi.</h3>
-                    <p className="mt-3 text-sm leading-6 text-slate-600">Hệ thống nhà xe chưa trả về chuyến còn chỗ trên bảng công khai. Alove vẫn có thể kiểm tra trực tiếp khi bạn nói điểm đến.</p>
-                    <div className="mt-6"><CallOverlay layoutKey="schedule-empty" label="Gọi Alove kiểm tra chuyến" /></div>
-                  </div>
-                  <div className="relative flex min-h-64 items-center justify-center overflow-hidden bg-gradient-to-br from-blue-100 via-indigo-50 to-violet-100 p-6">
-                    <div className="absolute inset-0 bg-dot-pattern opacity-50" aria-hidden />
-                    <Image src="/alove-journey-3d.png" alt="" width={1254} height={1254} className="landing-generated-art relative z-10 w-56 sm:w-64" sizes="256px" />
-                  </div>
-                </div>
-              )}
+            <div className="mt-8 flex justify-end">
+              <Link href="/ban-to-chuc" className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                Xem hướng dẫn dành cho ban tổ chức <ArrowRight size={16} aria-hidden />
+              </Link>
             </div>
-
-            {trips.length > 0 ? <div className="mt-10 flex justify-center"><CallOverlay layoutKey="schedule" label="Gọi Alove chọn chuyến giúp" /></div> : null}
           </div>
         </section>
 
@@ -332,22 +331,7 @@ export default async function HomePage() {
         </section>
       </main>
 
-      <footer className="border-t border-[var(--divider)] bg-[var(--canvas)]">
-        <div className="mx-auto flex max-w-[1280px] flex-col gap-5 px-4 pb-24 pt-8 text-xs text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:pb-8">
-          <div className="inline-flex items-center gap-2 font-semibold text-[var(--ink)]">
-            <BrandMark className="size-7" /> Alove <span className="font-normal text-[var(--muted)]">cho Nhà xe Mai Anh</span>
-          </div>
-          <div className="flex flex-col items-start gap-3 sm:items-end">
-            <p className="inline-flex items-center gap-2">Lịch, giá và mã vé từ hệ thống vận hành <ArrowRight size={14} aria-hidden /></p>
-            <Link
-              href="/ban-to-chuc"
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-4 font-medium text-[var(--ink)] transition hover:border-slate-300 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action-focus)]"
-            >
-              <ShieldCheck size={15} aria-hidden /> Khu vực ban tổ chức &amp; giám khảo
-            </Link>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
 
       <MobileStickyCall />
     </div>

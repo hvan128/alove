@@ -63,6 +63,86 @@ type TourState = {
   agentSpeaking?: boolean
 }
 
+type UtteranceKind = 'code-switch' | 'dialect'
+
+type UtteranceToken = {
+  text: string
+  kind?: UtteranceKind
+  /** Dạng chuẩn hoá, hiện ở chú giải ngay dưới câu nói. */
+  gloss?: string
+}
+
+/**
+ * Câu mẫu cố ý trộn tiếng Anh lẫn từ Trung Bộ vì đó đúng là hai thứ landing đang
+ * hứa. Danh sách token là nguồn duy nhất: transcript phẳng cho CallStage được
+ * ghép lại từ đây nên bản tô sáng và bản chữ trơn không thể lệch nhau.
+ */
+function spokenTokens(trip: AloveTourTrip): UtteranceToken[] {
+  return [
+    { text: 'Cho mình ' },
+    { text: 'book', kind: 'code-switch', gloss: 'đặt' },
+    { text: ` hai vé từ ${trip.origin} ` },
+    { text: 'vô', kind: 'dialect', gloss: 'vào' },
+    { text: ` ${trip.destination}, chuyến ` },
+    { text: 'mô', kind: 'dialect', gloss: 'nào' },
+    { text: ' gần nhất ' },
+    { text: 'hỉ', kind: 'dialect', gloss: 'nhé' },
+    { text: ', thanh toán ' },
+    { text: 'online', kind: 'code-switch', gloss: 'trực tuyến' },
+    { text: ' luôn.' },
+  ]
+}
+
+function tokensToText(tokens: UtteranceToken[]): string {
+  return tokens.map((token) => token.text).join('')
+}
+
+const UTTERANCE_STYLE: Record<UtteranceKind, string> = {
+  'code-switch': 'border-cyan-300/45 bg-cyan-400/15 text-cyan-100',
+  dialect: 'border-amber-300/45 bg-amber-400/15 text-amber-100',
+}
+
+const UTTERANCE_LEGEND: { kind: UtteranceKind; label: string }[] = [
+  { kind: 'code-switch', label: 'Code-switch Việt–Anh' },
+  { kind: 'dialect', label: 'Giọng vùng miền' },
+]
+
+function HighlightedUtterance({ tokens }: { tokens: UtteranceToken[] }) {
+  return (
+    <>
+      {tokens.map((token, index) => (token.kind ? (
+        <mark key={index} className={`rounded-md border px-1 py-0.5 ${UTTERANCE_STYLE[token.kind]}`}>
+          {token.text}
+        </mark>
+      ) : (
+        <span key={index}>{token.text}</span>
+      )))}
+    </>
+  )
+}
+
+function UtteranceLegend({ tokens }: { tokens: UtteranceToken[] }) {
+  return (
+    <dl className="mt-3 grid gap-2">
+      {UTTERANCE_LEGEND.map(({ kind, label }) => {
+        const hits = tokens.filter((token) => token.kind === kind)
+        if (hits.length === 0) return null
+        return (
+          <div key={kind} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] leading-4">
+            <dt className={`rounded border px-1.5 py-0.5 font-semibold ${UTTERANCE_STYLE[kind]}`}>{label}</dt>
+            {hits.map((hit, index) => (
+              <dd key={index} className="text-white/50">
+                <strong className="font-semibold text-white/85">{hit.text}</strong>
+                {hit.gloss ? ` → ${hit.gloss}` : null}
+              </dd>
+            ))}
+          </div>
+        )
+      })}
+    </dl>
+  )
+}
+
 function ProductCallControls({ thinking = false }: { thinking?: boolean }) {
   return (
     <div className="flex flex-col items-center gap-2">
@@ -115,8 +195,9 @@ function DesktopProductPreview({ state, showVehicle }: { state: TourState; showV
   }
 
   return (
-    <div className="hidden h-[520px] overflow-hidden p-4 lg:block">
-      <div className="w-[147.0588%] origin-top-left scale-[0.68]">
+    <div className="hidden p-4 lg:block">
+      {/* zoom thu bố cục ba cột theo cả layout, nên khung cha tự cao đúng bằng nội dung đã thu. */}
+      <div style={{ zoom: 0.68 }}>
         <div className="grid grid-cols-[minmax(520px,1fr)_minmax(420px,480px)_380px] items-start gap-5">
           <TourCallStage state={state} />
           <VehicleSeatVisual booking={state.booking} />
@@ -147,6 +228,7 @@ function ProductWorkspaceStage({ state, showVehicle = false }: { state: TourStat
 }
 
 function SearchingProductPreview({ trip, reducedMotion }: { trip: AloveTourTrip; reducedMotion: boolean }) {
+  const tokens = spokenTokens(trip)
   const options = [
     {
       departure: trip.departure,
@@ -175,7 +257,7 @@ function SearchingProductPreview({ trip, reducedMotion }: { trip: AloveTourTrip;
   ]
 
   return (
-    <div className="h-full overflow-y-auto p-3 sm:p-5 lg:p-6">
+    <div className="h-full p-3 sm:p-5 lg:p-6">
       <div className="grid min-h-full gap-4 lg:grid-cols-[0.82fr_1.18fr]">
         <section className="relative flex flex-col overflow-hidden rounded-2xl bg-[#0f172a] p-4 text-white sm:p-6">
           <div className="absolute -right-16 -top-20 size-56 rounded-full bg-blue-500/20 blur-3xl" aria-hidden />
@@ -188,9 +270,10 @@ function SearchingProductPreview({ trip, reducedMotion }: { trip: AloveTourTrip;
             </div>
 
             <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35 lg:mt-6">Câu nói vừa nhận</p>
-            <blockquote className="mt-2 text-base font-medium leading-6 text-white sm:text-lg sm:leading-7">
-              “Cho mình đặt hai vé từ {trip.origin} vô {trip.destination}, chuyến mô gần nhất hỉ.”
+            <blockquote className="mt-2 text-base font-medium leading-8 text-white sm:text-lg sm:leading-9">
+              “<HighlightedUtterance tokens={tokens} />”
             </blockquote>
+            <UtteranceLegend tokens={tokens} />
 
             <div className="mt-4 rounded-xl border border-white/10 bg-white/6 p-3 sm:mt-6 sm:p-4">
               <div className="flex items-center gap-2 text-xs font-semibold text-cyan-300">
@@ -198,13 +281,14 @@ function SearchingProductPreview({ trip, reducedMotion }: { trip: AloveTourTrip;
               </div>
               <p className="mt-3 text-[11px] text-white/40">Hiệu chỉnh:</p>
               <p className="mt-1 text-sm leading-6 text-white/85">
-                “Đặt <strong className="text-white">2 vé</strong> từ {trip.origin} đi {trip.destination}, chuyến gần nhất.”
+                “Đặt <strong className="text-white">2 vé</strong> từ {trip.origin} đi {trip.destination}, chuyến gần nhất, thanh toán trực tuyến.”
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {[
                   ['quantity', '2'],
                   ['location', trip.destination],
-                  ['date', trip.travelDateLabel],
+                  ['code-switch', 'book, online'],
+                  ['dialect', 'Trung Bộ'],
                 ].map(([key, value], index) => (
                   <motion.span
                     key={key}
@@ -305,7 +389,8 @@ function SearchingProductPreview({ trip, reducedMotion }: { trip: AloveTourTrip;
             Ưu tiên chuyến {trip.departure}, còn đủ 2 {trip.seatNoun} và đón tại {trip.pickupPoint}.
           </div>
 
-          <div className="mt-8 border-t border-[var(--divider)] pt-5 lg:mt-auto">
+          {/* Trên mobile bỏ khối xếp hạng như panel trái đã làm với "Truy vấn song song": khung hẹp ưu tiên câu nói và ba lựa chọn chuyến. */}
+          <div className="mt-8 hidden border-t border-[var(--divider)] pt-5 lg:mt-auto lg:block">
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Alove xếp hạng theo</p>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {[
@@ -326,6 +411,22 @@ function SearchingProductPreview({ trip, reducedMotion }: { trip: AloveTourTrip;
   )
 }
 
+/**
+ * Khung cuộn nằm ngoài, `inert` nằm trong: bản minh hoạ vẫn không bắt focus và
+ * không vào cây a11y, nhưng chạm vào vẫn cuộn được nên nội dung tràn ở màn hẹp
+ * chỉ là phải cuộn thêm, không biến mất. `min-h-full` canh giữa khi nội dung
+ * ngắn mà vẫn với tới được đỉnh khi nội dung dài.
+ */
+function StagePane({ children, stretch = false }: { children: React.ReactNode; stretch?: boolean }) {
+  return (
+    <div className="h-full overflow-y-auto overscroll-contain">
+      <div inert aria-hidden="true" className={`flex min-h-full ${stretch ? 'items-stretch' : 'items-center'}`}>
+        <div className="w-full">{children}</div>
+      </div>
+    </div>
+  )
+}
+
 function StageFrame({ stageIndex, trip, reducedMotion }: {
   stageIndex: number
   trip: AloveTourTrip
@@ -335,7 +436,9 @@ function StageFrame({ stageIndex, trip, reducedMotion }: {
 
   return (
     <div className="overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--canvas)] shadow-[var(--shadow-panel)]">
-      <div className="relative h-[820px] sm:h-[720px]">
+      {/* Khung cố định theo bước cao nhất ở mỗi breakpoint: pane có inert nên phần
+          tràn ra ngoài không thể cuộn tới được, cắt là mất hẳn nội dung. */}
+      <div className="relative h-[1360px] lg:h-[820px]">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={stageIndex}
@@ -346,19 +449,19 @@ function StageFrame({ stageIndex, trip, reducedMotion }: {
             transition={{ duration: reducedMotion ? 0 : 0.28, ease: EASE }}
           >
             {stageIndex === 0 ? (
-              <div inert aria-hidden="true" className="h-full overflow-y-auto overscroll-contain">
+              <StagePane>
                 <ProductWorkspaceStage state={states.listening} />
-              </div>
+              </StagePane>
             ) : null}
             {stageIndex === 1 ? (
-              <div inert aria-hidden="true" className="h-full overscroll-contain">
+              <StagePane stretch>
                 <SearchingProductPreview trip={trip} reducedMotion={reducedMotion} />
-              </div>
+              </StagePane>
             ) : null}
             {stageIndex === 2 ? (
-              <div inert aria-hidden="true" className="flex h-full items-center overflow-y-auto overscroll-contain">
-                <div className="w-full"><ProductWorkspaceStage state={states.confirming} showVehicle /></div>
-              </div>
+              <StagePane>
+                <ProductWorkspaceStage state={states.confirming} showVehicle />
+              </StagePane>
             ) : null}
             {stageIndex === 3 ? (
               <div
@@ -501,9 +604,7 @@ export function AloveProductTour({ trip = fallbackTrip }: { trip?: AloveTourTrip
               </button>
             ))}
           </div>
-          <p className="mt-3 text-center text-[11px] leading-5 text-[var(--muted)]">
-            Đây là chính giao diện Web Call của Alove; lịch, chỗ và mã vé được hệ thống nhà xe xác nhận khi gọi thật.
-          </p>
+        
         </div>
       </div>
     </MotionConfig>
@@ -563,8 +664,8 @@ function createTourStates(trip: AloveTourTrip): {
     bookingCode: 'MA-260718-0001',
   }
 
-  const sourceTranscript = `Cho mình đặt hai vé từ ${trip.origin} vô ${trip.destination}, chuyến mô gần nhất hỉ.`
-  const correctedRequest = `Cho mình đặt hai vé từ ${trip.origin} đi ${trip.destination}, chuyến gần nhất nhé.`
+  const sourceTranscript = tokensToText(spokenTokens(trip))
+  const correctedRequest = `Cho mình đặt hai vé từ ${trip.origin} đi ${trip.destination}, chuyến gần nhất, thanh toán trực tuyến nhé.`
   const customerRequest = message(
     'customer-request',
     'customer',
@@ -575,8 +676,8 @@ function createTourStates(trip: AloveTourTrip): {
     timestamp: new Date(Date.UTC(2026, 6, 18, 8, 0, 1)).toISOString(),
     sourceTranscript,
     correctedText: correctedRequest,
-    tags: ['quantity', 'location'],
-    annotations: ['hai vé', trip.destination],
+    tags: ['quantity', 'location', 'code-switch', 'dialect'],
+    annotations: ['hai vé', trip.destination, 'book → đặt', 'online → trực tuyến', 'vô/mô/hỉ → Trung Bộ'],
   }
   const heldReply = message(
     'agent-held',

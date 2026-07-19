@@ -44,7 +44,10 @@ export async function GET(): Promise<Response> {
             AS "verificationSchemaReady",
           (SELECT count(*) FROM booking_webhook_outbox
             WHERE event_id IS NULL OR next_attempt_at IS NULL OR attempts > 3) = 0
-            AS "webhookOutboxSchemaReady"
+            AS "webhookOutboxSchemaReady",
+          (SELECT count(*) FROM newsletter_subscriptions
+            WHERE email IS NULL OR consented_at IS NULL) = 0
+            AS "newsletterSchemaReady"
       `)
       const [row] = result.rows as unknown as Array<{
         hasOperator: boolean
@@ -54,6 +57,7 @@ export async function GET(): Promise<Response> {
         bookingSchemaReady: boolean
         verificationSchemaReady: boolean
         webhookOutboxSchemaReady: boolean
+        newsletterSchemaReady: boolean
       }>
       if (!row || !Object.values(row).every(Boolean)) database = 'not_ready'
     } catch {

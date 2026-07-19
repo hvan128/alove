@@ -34,7 +34,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: 'Alove | Alo là có vé',
-  description: 'Đặt vé nhà xe Mai Anh qua cuộc gọi với nhân viên chăm sóc và Agent tự động nói tiếng Việt.',
+  description: 'Đặt vé nhà xe qua cuộc gọi với nhân viên chăm sóc và Agent tự động nói tiếng Việt.',
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
