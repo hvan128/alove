@@ -17,7 +17,7 @@ describe('AppShell', () => {
     render(<AppShell context="review"><main>Nội dung</main></AppShell>)
 
     expect(screen.getByRole('navigation', { name: 'Điều hướng chấm thi' })).toBeVisible()
-    expect(screen.getByRole('link', { name: 'Khu vực chấm thi' })).toHaveAttribute('href', '/ban-to-chuc')
+    expect(screen.getByRole('link', { name: 'Các vai trò & góc nhìn' })).toHaveAttribute('href', '/ban-to-chuc')
     expect(screen.getByRole('link', { name: 'Bằng chứng' })).toHaveAttribute('href', '/evidence')
     expect(screen.queryByRole('link', { name: 'Web Call' })).not.toBeInTheDocument()
   })

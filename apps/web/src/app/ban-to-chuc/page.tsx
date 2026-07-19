@@ -65,7 +65,7 @@ export default function OrganizerPage() {
             <BrandMark /> Alove
           </Link>
           <span className="inline-flex items-center gap-2 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--muted)]">
-            <ShieldCheck size={14} aria-hidden /> Khu vực chấm thi
+            <ShieldCheck size={14} aria-hidden /> Các vai trò
           </span>
         </div>
       </header>

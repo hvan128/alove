@@ -23,6 +23,7 @@ import {
   AloveProductTour,
   type AloveTourTrip,
 } from '@/components/landing/alove-product-tour'
+import { HeroCallSample } from '@/components/landing/hero-call-sample'
 import { MobileStickyCall } from '@/components/landing/mobile-sticky-call'
 import { SiteFooter } from '@/components/landing/site-footer'
 import { BrandMark } from '@/components/ui/brand-mark'
@@ -159,7 +160,7 @@ export default async function HomePage() {
               className="hidden min-h-11 items-center rounded-full px-4 transition hover:bg-white/70 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:inline-flex"
               href="#khu-vuc-ban-to-chuc"
             >
-              Khu vực chấm thi
+              Các vai trò
             </a>
             <Link
               className="inline-flex min-h-11 items-center rounded-full border border-slate-300 bg-white/75 px-4 font-medium text-slate-800 shadow-sm transition hover:border-blue-300 hover:bg-white hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
@@ -188,12 +189,7 @@ export default async function HomePage() {
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-3">
                 <CallOverlay layoutKey="hero" className="shadow-[0_16px_50px_-16px_rgba(73,125,255,0.9)]" />
-                <a
-                  className="inline-flex min-h-12 items-center gap-2 rounded-full border border-slate-300 bg-white/75 px-5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-blue-300 hover:bg-white hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                  href="#cach-hoat-dong"
-                >
-                  Xem Alove làm gì <ArrowDownRight size={17} aria-hidden />
-                </a>
+                <HeroCallSample />
               </div>
 
               <ul className="mt-8 grid gap-2.5 text-sm text-slate-600">

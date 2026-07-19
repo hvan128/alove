@@ -22,7 +22,7 @@ export function AppShell({
           </Link>
           {context === 'review' ? (
             <nav aria-label="Điều hướng chấm thi" className="flex items-center gap-1 text-sm">
-              <Link className="inline-flex min-h-11 items-center rounded-full px-3 py-2 text-[var(--muted)] transition hover:bg-[var(--action-soft)] hover:text-[var(--action)]" href="/ban-to-chuc">Khu vực chấm thi</Link>
+              <Link className="inline-flex min-h-11 items-center rounded-full px-3 py-2 text-[var(--muted)] transition hover:bg-[var(--action-soft)] hover:text-[var(--action)]" href="/ban-to-chuc">Các vai trò & góc nhìn</Link>
               <Link className="inline-flex min-h-11 items-center rounded-full px-3 py-2 text-[var(--muted)] transition hover:bg-[var(--action-soft)] hover:text-[var(--action)]" href="/evidence">Bằng chứng</Link>
             </nav>
           ) : (
