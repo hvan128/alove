@@ -28,6 +28,12 @@ of the current system.
   `BOOKING_VERIFICATION_SECRET`, plus a separate `CRON_SECRET` of at least 32
   random bytes for the static recovery job; add `DASHBOARD_ACCESS_KEY` when the
   dashboard is enabled.
+- Optional error tracking: set `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` to the
+  same project DSN. Leaving both blank is a supported state — every capture
+  becomes a no-op — but production without them has no way to see a failure that
+  the product has already absorbed. Add `SENTRY_ORG`, `SENTRY_PROJECT` and
+  `SENTRY_AUTH_TOKEN` as build-time variables to get readable stack traces;
+  without the token the build still succeeds and traces stay minified.
 - Optional booking webhook: set `BOOKING_WEBHOOK_URL`,
   `BOOKING_WEBHOOK_SECRET` and `BOOKING_WEBHOOK_ALLOWED_HOSTS` together. Leaving
   those three blank is the explicit disabled state (the independently
@@ -136,6 +142,32 @@ The health endpoint should return HTTP 200 only when the required migrations
 present, `BOOKING_VERIFICATION_SECRET` and the agent secret are valid, at least
 one future seat is sellable, and a credentialed read against LiveKit succeeds.
 A 503 is a deployment blocker, not a state to ignore.
+
+## Monitoring
+
+Nothing polls `/api/health` on its own. The endpoint is a release gate and a
+target for an external uptime monitor; point one at it and treat a 503 as a
+page, otherwise a dependency can fail hours before anyone notices.
+
+Error tracking is wired but reports nowhere until a DSN is set. What it covers:
+
+- Unhandled server errors and route-handler failures, via `instrumentation.ts`.
+  The `digest` shown to a caller resolves to an event in Sentry.
+- Client render errors, via the `error.tsx` boundaries and `global-error.tsx`.
+- Booking webhook delivery that has exhausted its retry budget — a paid seat the
+  operator never learned about — reported at `error` level.
+- Outbox events with no retry path left, counted once per day by the drain cron
+  and returned as `abandoned` in its response.
+- The drain cron failing to run at all, via the Sentry monitor that
+  `automaticVercelMonitors` registers from `vercel.json`.
+
+Passenger phone numbers are redacted before any event leaves the process, and
+`sendDefaultPii` is off so cookies, headers and IP addresses are never attached.
+`src/lib/sentry-wiring.test.ts` holds that guarantee against the real SDK.
+
+Not covered: agent-side latency (`latency.turn` is a live data-channel event and
+is still not persisted, so there is no historical p50/p95), and call-audit
+delivery, which has no durable queue.
 
 ## Rollback
 

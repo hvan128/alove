@@ -100,6 +100,27 @@ export async function recordBookingWebhookFailed(eventId: string, errorCode: str
   `)
 }
 
+/**
+ * Tickets the outbox has given up on: either the retry budget is spent or the
+ * operator answered with something no retry can fix. They are the exact inverse
+ * of `listDueBookingWebhookEventIds`, so nothing will ever pick them up again
+ * and no request path will fail because of them — a bus that never learns about
+ * a paid seat. Counting them is the only way anyone finds out.
+ */
+export async function countAbandonedBookingWebhooks(): Promise<number> {
+  const result = await requireDb().execute(sql`
+    SELECT count(*) AS "abandoned"
+    FROM ${bookingWebhookOutbox}
+    WHERE ${bookingWebhookOutbox.status} = 'failed'
+      AND (
+        ${bookingWebhookOutbox.attempts} >= 3
+        OR ${bookingWebhookOutbox.lastErrorCode} NOT IN ('network_error', 'dns_error', 'transient_http')
+      )
+  `)
+  const [row] = result.rows as unknown as Array<{ abandoned: number | string }>
+  return row ? Number(row.abandoned) : 0
+}
+
 /** Events eligible for a scheduled retry; permanent failures are excluded. */
 export async function listDueBookingWebhookEventIds(limit = 3): Promise<string[]> {
   const result = await requireDb().execute(sql`

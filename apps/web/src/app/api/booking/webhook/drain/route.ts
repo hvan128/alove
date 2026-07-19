@@ -2,9 +2,11 @@ import { timingSafeEqual } from 'node:crypto'
 
 import { bookingWebhookConfigurationStatus, deliverBookingWebhook } from '@/lib/booking-webhook'
 import {
+  countAbandonedBookingWebhooks,
   listDueBookingWebhookEventIds,
   reconcileStaleBookingWebhookAttempts,
 } from '@/lib/db/webhook-outbox-store'
+import { reportIssue } from '@/lib/observability'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -41,9 +43,11 @@ export async function GET(req: Request): Promise<Response> {
   const results = await Promise.all(eventIds.map(async (eventId) => {
     try {
       return await deliverBookingWebhook(eventId)
-    } catch {
-      console.warn('[alove] scheduled booking webhook deferred', {
-        reason: 'delivery_infrastructure_error',
+    } catch (cause) {
+      reportIssue('[alove] scheduled booking webhook deferred', {
+        level: 'warning',
+        cause,
+        context: { eventId, reason: 'delivery_infrastructure_error' },
       })
       return { status: 'pending' as const, attempts: 0 }
     }
@@ -54,7 +58,18 @@ export async function GET(req: Request): Promise<Response> {
     else counts.pending += 1
   }
 
-  return Response.json({ status: 'processed', processed: eventIds.length, counts }, {
+  // This cron is the only thing that runs on a schedule, so it doubles as the
+  // daily sweep for tickets the outbox has already abandoned. Reporting after
+  // the drain keeps the count from including events this run just recovered.
+  const abandoned = await countAbandonedBookingWebhooks()
+  if (abandoned > 0) {
+    reportIssue('[alove] booking webhook outbox has abandoned events', {
+      level: 'error',
+      context: { abandoned, reason: 'no_retry_path_remaining' },
+    })
+  }
+
+  return Response.json({ status: 'processed', processed: eventIds.length, counts, abandoned }, {
     headers: { 'Cache-Control': 'no-store' },
   })
 }

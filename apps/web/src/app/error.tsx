@@ -1,16 +1,18 @@
 'use client'
 
 import { useEffect } from 'react'
+import * as Sentry from '@sentry/nextjs'
 
 /**
  * Không có ranh giới lỗi nào thì một lỗi render lẻ ở bất kỳ đâu cũng thay cả
  * trang bằng màn "Application error" trắng của Next, khách mất luôn đường quay
- * lại. Ranh giới này giữ khách ở trong sản phẩm và in lỗi thật ra console để
- * còn lần theo được.
+ * lại. Ranh giới này giữ khách ở trong sản phẩm và báo lỗi thật đi nơi tra được
+ * — `digest` hiện dưới kia chỉ có nghĩa khi có chỗ để tra nó.
  */
 export default function AppError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     console.error('[alove] render error', error)
+    Sentry.captureException(error)
   }, [error])
 
   return (

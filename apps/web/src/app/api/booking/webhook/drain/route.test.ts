@@ -7,7 +7,9 @@ const webhook = vi.hoisted(() => ({
   deliver: vi.fn(),
   list: vi.fn(),
   reconcile: vi.fn(),
+  countAbandoned: vi.fn(),
 }))
+const reportIssue = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/booking-webhook', () => ({
   bookingWebhookConfigurationStatus: webhook.configuration,
@@ -15,9 +17,12 @@ vi.mock('@/lib/booking-webhook', () => ({
 }))
 
 vi.mock('@/lib/db/webhook-outbox-store', () => ({
+  countAbandonedBookingWebhooks: webhook.countAbandoned,
   listDueBookingWebhookEventIds: webhook.list,
   reconcileStaleBookingWebhookAttempts: webhook.reconcile,
 }))
+
+vi.mock('@/lib/observability', () => ({ reportIssue }))
 
 import { GET } from './route'
 
@@ -36,6 +41,25 @@ describe('GET /api/booking/webhook/drain', () => {
     webhook.configuration.mockReturnValue('enabled')
     webhook.list.mockResolvedValue([])
     webhook.reconcile.mockResolvedValue(0)
+    webhook.countAbandoned.mockResolvedValue(0)
+  })
+
+  it('reports abandoned events, which no retry path will ever pick up again', async () => {
+    webhook.countAbandoned.mockResolvedValue(2)
+
+    const response = await GET(request())
+
+    expect(await response.json()).toMatchObject({ abandoned: 2 })
+    expect(reportIssue).toHaveBeenCalledWith(
+      '[alove] booking webhook outbox has abandoned events',
+      expect.objectContaining({ level: 'error', context: { abandoned: 2, reason: 'no_retry_path_remaining' } }),
+    )
+  })
+
+  it('stays quiet when the outbox has nothing abandoned', async () => {
+    await GET(request())
+
+    expect(reportIssue).not.toHaveBeenCalled()
   })
 
   it('requires the dedicated cron bearer secret', async () => {
@@ -67,6 +91,7 @@ describe('GET /api/booking/webhook/drain', () => {
       status: 'processed',
       processed: 3,
       counts: { delivered: 1, failed: 1, pending: 1 },
+      abandoned: 0,
     })
     expect(webhook.list).toHaveBeenCalledWith(3)
     expect(webhook.reconcile).toHaveBeenCalledOnce()
@@ -87,6 +112,7 @@ describe('GET /api/booking/webhook/drain', () => {
       status: 'processed',
       processed: 3,
       counts: { delivered: 3, failed: 0, pending: 0 },
+      abandoned: 0,
     })
   })
 })

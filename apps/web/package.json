@@ -14,6 +14,7 @@
   "dependencies": {
     "@livekit/components-react": "^2.9.21",
     "@neondatabase/serverless": "^1.1.0",
+    "@sentry/nextjs": "^10.66.0",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "framer-motion": "^12.42.2",

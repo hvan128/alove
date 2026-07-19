@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import * as Sentry from '@sentry/nextjs'
 import { RotateCcw, TriangleAlert } from 'lucide-react'
 
 /**
@@ -10,6 +11,7 @@ import { RotateCcw, TriangleAlert } from 'lucide-react'
 export default function DashboardError({ error, reset }: { error: Error; reset: () => void }) {
   useEffect(() => {
     console.error('[dashboard] không tải được số liệu', error)
+    Sentry.captureException(error)
   }, [error])
 
   return (

@@ -5,6 +5,7 @@ import { bookingWebhookConfigurationStatus, deliverBookingWebhook } from '@/lib/
 import { vietnamesePhoneSchema } from '@/lib/call-contract'
 import { confirmBooking, isExplicitBookingConfirmation } from '@/lib/db/booking-store'
 import { isDbConfigured } from '@/lib/db/client'
+import { reportIssue } from '@/lib/observability'
 
 export const runtime = 'nodejs'
 
@@ -48,10 +49,15 @@ export async function POST(req: Request): Promise<Response> {
   if (webhookConfiguration === 'enabled') {
     try {
       webhook = await deliverBookingWebhook(ticket.webhookEventId ?? null)
-    } catch {
+    } catch (cause) {
       // Booking is already authoritative and the durable event remains queued.
-      // Delivery infrastructure must never turn that success into an HTTP 500.
-      console.warn('[alove] booking webhook deferred', { reason: 'delivery_infrastructure_error' })
+      // Delivery infrastructure must never turn that success into an HTTP 500 —
+      // but swallowing it silently is what made a broken outbox invisible.
+      reportIssue('[alove] booking webhook deferred', {
+        level: 'warning',
+        cause,
+        context: { reason: 'delivery_infrastructure_error' },
+      })
     }
   }
   return Response.json({

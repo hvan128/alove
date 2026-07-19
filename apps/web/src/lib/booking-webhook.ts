@@ -6,6 +6,7 @@ import { isIP } from 'node:net'
 import { z } from 'zod'
 
 import { vietnamesePhoneSchema } from './call-contract'
+import { reportIssue } from './observability'
 import {
   claimBookingWebhookAttempt,
   getBookingWebhookState,
@@ -332,10 +333,15 @@ export async function deliverBookingWebhook(
   }
 
   const finalState = await getBookingWebhookState(eventId)
-  console.warn('[alove] booking webhook delivery failed', {
-    eventId,
-    attempts: finalState?.attempts ?? 0,
-    reason: 'retry_budget_exhausted',
+  // Terminal: the retry budget is gone, so nothing will deliver this ticket to
+  // the operator on its own. That is a paid seat the bus does not know about.
+  reportIssue('[alove] booking webhook delivery failed', {
+    level: 'error',
+    context: {
+      eventId,
+      attempts: finalState?.attempts ?? 0,
+      reason: 'retry_budget_exhausted',
+    },
   })
   return { status: 'failed', attempts: finalState?.attempts ?? 0 }
 }
