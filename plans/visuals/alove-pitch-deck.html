@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alove — Voice into action · Pitch deck VALSEA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap&subset=vietnamese,latin,latin-ext" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────
+   Palette — Midnight Editorial (navy + gold)
+   Fonts chosen for full Vietnamese diacritic support.
+   ───────────────────────────────────────────── */
+:root {
+  --font-body: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-display: 'Lora', Georgia, 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+  --bg: #faf8f2;
+  --surface: #ffffff;
+  --surface2: #f4efe4;
+  --surface-elevated: #fffdf6;
+  --border: rgba(28, 38, 68, 0.10);
+  --border-bright: rgba(28, 38, 68, 0.20);
+  --text: #141a2a;
+  --text-dim: #6b6558;
+  --accent: #9a6a08;
+  --accent-dim: rgba(154, 106, 8, 0.09);
+  --ink: #1e3a5f;
+  --ink-dim: rgba(30, 58, 95, 0.08);
+
+  --green: #3f6212;
+  --red: #9f1239;
+  --amber: #b45309;
+  --teal: #0f766e;
+  --teal-dim: rgba(15, 118, 110, 0.09);
+  --sage: #4d7c0f;
+  --sage-dim: rgba(77, 124, 15, 0.09);
+  --plum: #86198f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1729;
+    --surface: #162040;
+    --surface2: #1d2b52;
+    --surface-elevated: #243362;
+    --border: rgba(200, 180, 140, 0.10);
+    --border-bright: rgba(200, 180, 140, 0.22);
+    --text: #e8e4d8;
+    --text-dim: #9a9484;
+    --accent: #d4a73a;
+    --accent-dim: rgba(212, 167, 58, 0.12);
+    --ink: #7ba7d9;
+    --ink-dim: rgba(123, 167, 217, 0.10);
+
+    --green: #a3e635;
+    --red: #fca5a5;
+    --amber: #fbbf24;
+    --teal: #5eead4;
+    --teal-dim: rgba(94, 234, 212, 0.10);
+    --sage: #bef264;
+    --sage-dim: rgba(190, 242, 100, 0.10);
+    --plum: #f0abfc;
+  }
+}
+
+[data-theme="dark"] {
+  --bg: #0f1729;
+  --surface: #162040;
+  --surface2: #1d2b52;
+  --surface-elevated: #243362;
+  --border: rgba(200, 180, 140, 0.10);
+  --border-bright: rgba(200, 180, 140, 0.22);
+  --text: #e8e4d8;
+  --text-dim: #9a9484;
+  --accent: #d4a73a;
+  --accent-dim: rgba(212, 167, 58, 0.12);
+  --ink: #7ba7d9;
+  --ink-dim: rgba(123, 167, 217, 0.10);
+
+  --green: #a3e635;
+  --red: #fca5a5;
+  --amber: #fbbf24;
+  --teal: #5eead4;
+  --teal-dim: rgba(94, 234, 212, 0.10);
+  --sage: #bef264;
+  --sage-dim: rgba(190, 242, 100, 0.10);
+  --plum: #f0abfc;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Theme toggle ── */
+.theme-toggle {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 300;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border-bright);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: background 0.15s, color 0.15s;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+.theme-toggle:hover { background: var(--surface2); color: var(--text); }
+
+/* ── Deck engine ── */
+.deck {
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.slide {
+  height: 100dvh;
+  scroll-snap-align: start;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(36px, 5.5vh, 72px) clamp(36px, 7vw, 112px);
+  isolation: isolate;
+}
+
+/* Background rhythm — alternating glow anchors */
+.slide:nth-child(odd)  { background-image: radial-gradient(ellipse at 15% 85%, var(--accent-dim) 0%, transparent 55%); }
+.slide:nth-child(even) { background-image: radial-gradient(ellipse at 85% 15%, var(--ink-dim) 0%, transparent 55%); }
+
+.slide--grid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--border-bright) 1px, transparent 1px);
+  background-size: 34px 34px;
+  opacity: 0.45;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.slide > * { position: relative; z-index: 1; }
+
+/* ── Typography ── */
+.slide__display {
+  font-family: var(--font-display);
+  font-size: clamp(44px, 8.5vw, 108px);
+  font-weight: 600;
+  letter-spacing: -2px;
+  line-height: 1.0;
+  text-wrap: balance;
+  margin: 0;
+}
+
+.slide__heading {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 4.2vw, 46px);
+  font-weight: 600;
+  letter-spacing: -0.8px;
+  line-height: 1.15;
+  text-wrap: balance;
+  margin: 0 0 clamp(10px, 1.8vh, 22px);
+}
+
+.slide__body {
+  font-size: clamp(15px, 1.7vw, 20px);
+  line-height: 1.65;
+  color: var(--text-dim);
+  text-wrap: pretty;
+}
+
+.slide__label {
+  font-family: var(--font-mono);
+  font-size: clamp(10px, 1.05vw, 13px);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: var(--accent);
+  margin: 0 0 clamp(8px, 1.4vh, 16px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.slide__label::before {
+  content: '';
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.slide__subtitle {
+  font-family: var(--font-mono);
+  font-size: clamp(12px, 1.5vw, 17px);
+  color: var(--text-dim);
+  letter-spacing: 0.4px;
+  margin: clamp(14px, 2.4vh, 28px) 0 0;
+}
+
+/* ── Title slide ── */
+.slide--title { justify-content: center; align-items: flex-start; }
+.slide--title .slide__display { max-width: 16ch; }
+
+.title__rule {
+  width: clamp(80px, 14vw, 180px);
+  height: 3px;
+  background: var(--accent);
+  margin: clamp(18px, 3vh, 34px) 0;
+  border-radius: 2px;
+}
+
+.title__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(10px, 1.6vw, 20px);
+  margin-top: clamp(20px, 3.4vh, 40px);
+}
+
+/* ── Chips ── */
+.chips { display: flex; flex-wrap: wrap; gap: clamp(6px, 0.9vw, 12px); }
+
+.chip {
+  font-family: var(--font-mono);
+  font-size: clamp(10px, 1.15vw, 14px);
+  font-weight: 500;
+  padding: clamp(5px, 0.9vh, 9px) clamp(9px, 1.2vw, 16px);
+  border-radius: 999px;
+  border: 1px solid var(--border-bright);
+  background: var(--surface);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.chip--accent { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: var(--accent-dim); }
+.chip--teal   { color: var(--teal);   border-color: color-mix(in srgb, var(--teal) 45%, transparent);   background: var(--teal-dim); }
+.chip--sage   { color: var(--sage);   border-color: color-mix(in srgb, var(--sage) 45%, transparent);   background: var(--sage-dim); }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: clamp(14px, 2.2vh, 26px) clamp(14px, 1.8vw, 26px);
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+.card--elevated {
+  background: var(--surface-elevated);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.card--hero {
+  background: color-mix(in srgb, var(--surface) 90%, var(--accent) 10%);
+  border-color: color-mix(in srgb, var(--border) 40%, var(--accent) 60%);
+  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.08);
+}
+.card--recessed {
+  background: color-mix(in srgb, var(--bg) 60%, var(--surface2) 40%);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.07);
+}
+
+.card__k {
+  font-family: var(--font-mono);
+  font-size: clamp(9px, 1.05vw, 12px);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.card__v {
+  font-size: clamp(15px, 1.75vw, 21px);
+  font-weight: 600;
+  line-height: 1.4;
+}
+.card__note {
+  font-size: clamp(13px, 1.4vw, 16px);
+  color: var(--text-dim);
+  line-height: 1.55;
+  margin-top: 6px;
+}
+
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(10px, 1.5vw, 20px); }
+.grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(10px, 1.5vw, 20px); }
+.grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(10px, 1.5vw, 20px); }
+
+/* ── Bullets ── */
+.bullets { list-style: none; padding: 0; margin: 0; }
+.bullets li {
+  padding: clamp(7px, 1.2vh, 13px) 0 clamp(7px, 1.2vh, 13px) 26px;
+  position: relative;
+  font-size: clamp(15px, 1.75vw, 21px);
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+.bullets li strong { color: var(--text); font-weight: 600; }
+.bullets li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: calc(clamp(7px, 1.2vh, 13px) + 0.62em);
+  width: 7px; height: 7px;
+  border-radius: 2px;
+  transform: rotate(45deg);
+  background: var(--accent);
+}
+
+/* ── Pipeline ── */
+.pipeline { display: flex; align-items: stretch; gap: 0; margin-top: clamp(10px, 1.8vh, 22px); }
+.pipeline__step {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  border-radius: 10px;
+  padding: clamp(12px, 2.2vh, 24px) clamp(8px, 1.1vw, 16px);
+  display: flex; flex-direction: column;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+.pipeline__num {
+  font-family: var(--font-mono);
+  font-size: clamp(9px, 1vw, 12px);
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 1.2px;
+}
+.pipeline__name {
+  font-size: clamp(14px, 1.6vw, 20px);
+  font-weight: 700;
+  margin: clamp(4px, 0.8vh, 9px) 0 0;
+  line-height: 1.25;
+}
+.pipeline__desc {
+  font-size: clamp(11px, 1.15vw, 14px);
+  color: var(--text-dim);
+  line-height: 1.45;
+  margin-top: 5px;
+}
+.pipeline__arrow {
+  display: flex; align-items: center;
+  padding: 0 clamp(2px, 0.35vw, 6px);
+  color: var(--accent);
+  flex-shrink: 0;
+  opacity: 0.45;
+}
+
+/* ── Flow (3-stage: cause → process → effect) ──
+   Columns stretch to a shared height so the connecting arrows line up
+   with the middle of the whole flow, not with each column's own centre. */
+.flow { display: grid; grid-template-columns: 1fr auto 1.2fr auto 1fr; gap: clamp(6px, 1vw, 14px); align-items: stretch; flex: 1; min-height: 0; max-height: 56vh; margin-top: clamp(8px, 1.4vh, 18px); }
+.flow__col { display: flex; flex-direction: column; gap: clamp(7px, 1.1vh, 13px); min-width: 0; }
+.flow__col > .card { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.flow__col .grid-2 { flex: 1; }
+.flow__col .grid-2 .card { display: flex; align-items: center; }
+.flow__arrow { color: var(--accent); opacity: 0.45; display: flex; align-items: center; }
+.flow__title {
+  font-family: var(--font-mono);
+  font-size: clamp(9px, 1.05vw, 12px);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+
+/* ── Hub & spoke (one core, many verticals) ── */
+.hub { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.35fr); gap: clamp(10px, 1.8vw, 26px); align-items: center; }
+.hub__core {
+  background: color-mix(in srgb, var(--surface) 86%, var(--accent) 14%);
+  border: 1px solid color-mix(in srgb, var(--border) 30%, var(--accent) 70%);
+  border-radius: 14px;
+  padding: clamp(18px, 3vh, 34px) clamp(16px, 2vw, 28px);
+  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.08);
+}
+.hub__spokes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(8px, 1.2vw, 16px); }
+.hub__fan { display: flex; flex-direction: column; gap: 6px; color: var(--accent); opacity: 0.5; }
+
+/* ── Table ── */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+table.data { width: 100%; border-collapse: collapse; font-size: clamp(13px, 1.6vw, 19px); }
+table.data th {
+  font-family: var(--font-mono);
+  font-size: clamp(9px, 1.15vw, 13px);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  color: var(--text-dim);
+  text-align: left;
+  padding: clamp(9px, 1.5vh, 16px) clamp(12px, 1.8vw, 24px);
+  border-bottom: 1px solid var(--border-bright);
+  background: var(--surface2);
+  white-space: nowrap;
+}
+table.data td {
+  padding: clamp(9px, 1.5vh, 16px) clamp(12px, 1.8vw, 24px);
+  border-bottom: 1px solid var(--border);
+  line-height: 1.45;
+  vertical-align: top;
+}
+table.data tr:last-child td { border-bottom: none; }
+table.data td.dim { color: var(--text-dim); }
+
+/* ── Quote ── */
+.slide--quote { justify-content: center; align-items: center; text-align: center; padding: clamp(48px, 8vh, 100px) clamp(48px, 10vw, 180px); }
+.quote__mark {
+  font-family: var(--font-display);
+  font-size: clamp(90px, 15vw, 200px);
+  line-height: 0.4;
+  opacity: 0.10;
+  color: var(--accent);
+  pointer-events: none;
+  margin-bottom: clamp(6px, 1.4vh, 18px);
+  user-select: none;
+}
+.slide--quote blockquote {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3.4vw, 44px);
+  font-weight: 400;
+  line-height: 1.35;
+  font-style: italic;
+  margin: 0;
+  max-width: 30ch;
+  text-wrap: balance;
+}
+
+/* ── Decorative ── */
+.decor { position: absolute; pointer-events: none; z-index: 0; }
+.decor--corner { top: 0; right: 0; }
+.decor--bl { bottom: 0; left: 0; }
+
+/* ── Nav chrome ── */
+.deck-progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); z-index: 200; transition: width 0.3s ease; pointer-events: none; width: 0; }
+
+.deck-dots {
+  position: fixed; right: clamp(10px, 1.6vw, 20px); top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 7px; z-index: 200;
+  background: color-mix(in srgb, var(--bg) 65%, transparent);
+  padding: 8px 6px; border-radius: 20px;
+  backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+}
+.deck-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim); opacity: 0.3; border: none; padding: 0; cursor: pointer; transition: opacity 0.2s, transform 0.2s; flex-shrink: 0; }
+.deck-dot:hover { opacity: 0.6; }
+.deck-dot.active { opacity: 1; transform: scale(1.55); background: var(--accent); }
+
+.deck-counter {
+  position: fixed; bottom: clamp(10px, 1.8vh, 22px); right: clamp(10px, 1.6vw, 22px);
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+  z-index: 200; font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.deck-hints {
+  position: fixed; bottom: clamp(10px, 1.8vh, 22px); left: 50%; transform: translateX(-50%);
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  opacity: 0.6; z-index: 200; transition: opacity 0.5s ease; white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.deck-hints.faded { opacity: 0; pointer-events: none; }
+
+/* ── Transitions (only when JS is active, so no-JS still renders) ── */
+.js-ready .slide { opacity: 0; transform: translateY(32px) scale(0.985); transition: opacity 0.55s cubic-bezier(0.16,1,0.3,1), transform 0.55s cubic-bezier(0.16,1,0.3,1); }
+.js-ready .slide.visible { opacity: 1; transform: none; }
+.js-ready .slide .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.45s cubic-bezier(0.16,1,0.3,1), transform 0.45s cubic-bezier(0.16,1,0.3,1); }
+.js-ready .slide.visible .reveal { opacity: 1; transform: none; }
+.js-ready .slide.visible .reveal:nth-child(1) { transition-delay: 0.08s; }
+.js-ready .slide.visible .reveal:nth-child(2) { transition-delay: 0.16s; }
+.js-ready .slide.visible .reveal:nth-child(3) { transition-delay: 0.24s; }
+.js-ready .slide.visible .reveal:nth-child(4) { transition-delay: 0.32s; }
+.js-ready .slide.visible .reveal:nth-child(5) { transition-delay: 0.40s; }
+.js-ready .slide.visible .reveal:nth-child(6) { transition-delay: 0.48s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .js-ready .slide, .js-ready .slide .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .deck { scroll-behavior: auto; }
+}
+
+/* ── Responsive ── */
+@media (max-height: 760px) {
+  .slide { padding: clamp(22px, 3.4vh, 40px) clamp(28px, 5vw, 72px); }
+  .slide__display { font-size: clamp(34px, 7vw, 68px); }
+}
+@media (max-height: 600px) {
+  .decor { display: none; }
+  .quote__mark { display: none; }
+  .slide--quote { padding: clamp(28px, 5vh, 56px) clamp(36px, 7vw, 100px); }
+}
+@media (max-height: 500px) {
+  .slide { padding: clamp(14px, 2.6vh, 22px) clamp(20px, 4.5vw, 44px); }
+  .deck-dots { display: none; }
+  .slide__display { font-size: clamp(26px, 6vw, 44px); }
+}
+@media (max-width: 900px) {
+  .flow { grid-template-columns: 1fr; }
+  .flow__arrow { transform: rotate(90deg); justify-content: center; }
+  .hub { grid-template-columns: 1fr; }
+  .hub__fan { flex-direction: row; justify-content: center; }
+  .pipeline { flex-direction: column; }
+  .pipeline__arrow { justify-content: center; padding: 3px 0; transform: rotate(90deg); }
+}
+@media (max-width: 768px) {
+  /* Stacked diagrams cannot fit one viewport on a phone — let those slides
+     grow and scroll instead of clipping their content. */
+  .slide { height: auto; min-height: 100dvh; overflow: visible; }
+  .flow { max-height: none; }
+  .grid-4, .grid-3, .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hub__spokes { grid-template-columns: 1fr; }
+}
+
+/* ── Print / PDF ──
+   The deck is a 100dvh scroll-snap container, which prints as a single page.
+   Unroll it into one fixed-size page per slide at 16:9 (13.333in × 7.5in),
+   drop the on-screen navigation, and force entrance states to their end
+   values so nothing exports blank. */
+@page { size: 13.333in 7.5in; margin: 0; }
+
+@media print {
+  html, body { height: auto; overflow: visible; }
+
+  .theme-toggle,
+  .deck-progress,
+  .deck-dots,
+  .deck-counter,
+  .deck-hints { display: none !important; }
+
+  .deck {
+    height: auto;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+
+  .slide {
+    height: 7.5in;
+    width: 13.333in;
+    min-height: 0;
+    overflow: hidden;
+    break-after: page;
+    page-break-after: always;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .slide:last-child { break-after: auto; page-break-after: auto; }
+
+  /* Defeat the .js-ready entrance transforms — a slide that never scrolled
+     into view on screen would otherwise print at opacity 0. */
+  .js-ready .slide,
+  .js-ready .slide .reveal,
+  .slide,
+  .slide .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  /* Keep the phone rules from leaking into print at narrow paper widths. */
+  .flow { max-height: 56vh; }
+}
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" title="Đổi giao diện sáng/tối" aria-label="Đổi giao diện sáng/tối"></button>
+
+<div class="deck">
+
+  <!-- ═══ 1 · TITLE ═══ -->
+  <section class="slide slide--title slide--grid">
+    <svg class="decor decor--corner" width="160" height="160" viewBox="0 0 160 160" aria-hidden="true">
+      <line x1="160" y1="0" x2="160" y2="60" stroke="var(--accent)" stroke-width="2" opacity="0.25"/>
+      <line x1="100" y1="0" x2="160" y2="0" stroke="var(--accent)" stroke-width="2" opacity="0.25"/>
+      <circle cx="130" cy="30" r="3" fill="var(--accent)" opacity="0.35"/>
+    </svg>
+    <p class="slide__label reveal">Pitch deck · Hackathon VALSEA</p>
+    <h1 class="slide__display reveal">Alove<br><span style="color:var(--accent)">Voice into action</span></h1>
+    <div class="title__rule reveal"></div>
+    <p class="slide__body reveal" style="max-width:44ch;font-size:clamp(16px,1.9vw,23px)">Nền tảng <strong style="color:var(--text)">Speech-to-Workflow</strong> cho doanh nghiệp Việt Nam — biến một câu nói thành một giao dịch đã hoàn tất.</p>
+    <div class="title__meta chips reveal">
+      <span class="chip chip--accent">Vertical đầu tiên: đặt vé xe</span>
+      <span class="chip">Tiếng Việt tự nhiên</span>
+      <span class="chip">Realtime</span>
+    </div>
+  </section>
+
+  <!-- ═══ 2 · SLIDE 1 — ĐIỀU VỪA XẢY RA ═══ -->
+  <section class="slide">
+    <p class="slide__label reveal">Điều vừa xảy ra không phải speech-to-text</p>
+    <h2 class="slide__heading reveal">Một cuộc gọi. Một workflow hoàn chỉnh.</h2>
+    <div class="pipeline reveal">
+      <div class="pipeline__step">
+        <div class="pipeline__num">01</div>
+        <div class="pipeline__name">Giọng nói</div>
+        <div class="pipeline__desc">Khách nói tự nhiên qua điện thoại</div>
+      </div>
+      <div class="pipeline__arrow"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="pipeline__step">
+        <div class="pipeline__num">02</div>
+        <div class="pipeline__name">Hiểu nhu cầu</div>
+        <div class="pipeline__desc">Trích xuất ý định và dữ liệu nghiệp vụ</div>
+      </div>
+      <div class="pipeline__arrow"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="pipeline__step">
+        <div class="pipeline__num">03</div>
+        <div class="pipeline__name">Tìm chuyến</div>
+        <div class="pipeline__desc">Đối chiếu tuyến, ngày và giờ khả dụng</div>
+      </div>
+      <div class="pipeline__arrow"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="pipeline__step">
+        <div class="pipeline__num">04</div>
+        <div class="pipeline__name">Giữ ghế</div>
+        <div class="pipeline__desc">Hold trong lúc hoàn tất hội thoại</div>
+      </div>
+      <div class="pipeline__arrow"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="pipeline__step">
+        <div class="pipeline__num">05</div>
+        <div class="pipeline__name">Xác nhận</div>
+        <div class="pipeline__desc">Đọc lại toàn bộ và chờ khách chốt</div>
+      </div>
+      <div class="pipeline__arrow"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="pipeline__step" style="border-top-color:var(--green)">
+        <div class="pipeline__num" style="color:var(--green)">06</div>
+        <div class="pipeline__name">Tạo vé</div>
+        <div class="pipeline__desc">Ticket có cấu trúc, dùng được ngay</div>
+      </div>
+    </div>
+    <div style="margin-top:clamp(14px,2.4vh,28px)" class="reveal">
+      <div class="card__k">Output</div>
+      <div class="chips" style="margin-top:8px">
+        <span class="chip chip--accent">hành trình</span>
+        <span class="chip chip--accent">ghế</span>
+        <span class="chip chip--accent">giá</span>
+        <span class="chip chip--accent">mã vé</span>
+        <span class="chip">transcript</span>
+        <span class="chip">trạng thái</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 3 · SLIDE 2 — BÀI TOÁN ═══ -->
+  <section class="slide">
+    <p class="slide__label reveal">Điện thoại vẫn là một workflow thủ công</p>
+    <h2 class="slide__heading reveal">Khách hàng nói. Nhân viên phải tự biến lời nói thành dữ liệu.</h2>
+    <div class="flow reveal">
+      <div class="flow__col">
+        <div class="flow__title">Đầu vào</div>
+        <div class="card card--elevated" style="border-left:3px solid var(--ink)">
+          <div class="card__v" style="font-family:var(--font-display);font-style:italic;font-weight:400">&ldquo;Cho mình đặt vé đi Đà Lạt ngày mai&rdquo;</div>
+        </div>
+      </div>
+      <div class="flow__arrow"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="flow__col">
+        <div class="flow__title">Bốn thao tác thủ công</div>
+        <div class="grid-2">
+          <div class="card"><div class="card__v" style="font-size:clamp(13px,1.5vw,18px)">Nghe</div></div>
+          <div class="card"><div class="card__v" style="font-size:clamp(13px,1.5vw,18px)">Ghi chép</div></div>
+          <div class="card"><div class="card__v" style="font-size:clamp(13px,1.5vw,18px)">Tra cứu</div></div>
+          <div class="card"><div class="card__v" style="font-size:clamp(13px,1.5vw,18px)">Nhập hệ thống</div></div>
+        </div>
+      </div>
+      <div class="flow__arrow"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="flow__col">
+        <div class="flow__title">Ba hậu quả</div>
+        <div class="card" style="border-left:3px solid var(--red)"><div class="card__v" style="font-size:clamp(13px,1.5vw,18px);color:var(--red)">Chờ lâu</div><div class="card__note">Giờ cao điểm tạo hàng chờ và cuộc gọi bỏ lỡ</div></div>
+        <div class="card" style="border-left:3px solid var(--amber)"><div class="card__v" style="font-size:clamp(13px,1.5vw,18px);color:var(--amber)">Sai sót</div><div class="card__note">Giọng vùng miền, code-switch, âm thanh nhiễu</div></div>
+        <div class="card" style="border-left:3px solid var(--plum)"><div class="card__v" style="font-size:clamp(13px,1.5vw,18px);color:var(--plum)">Khó mở rộng</div><div class="card__note">Muốn tăng quy mô phải tăng nhân sự gần như tuyến tính</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 4 · SLIDE 3 — GIẢI PHÁP ═══ -->
+  <section class="slide">
+    <p class="slide__label reveal">Alove: từ giọng nói đến hành động</p>
+    <h2 class="slide__heading reveal">Alove là nền tảng Speech-to-Workflow cho doanh nghiệp.</h2>
+    <div class="table-wrap reveal">
+      <table class="data">
+        <thead>
+          <tr><th style="width:50%">Voice bot thông thường</th><th>Alove</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="dim">Tạo transcript</td><td><strong>Hiểu ý định và dữ liệu nghiệp vụ</strong></td></tr>
+          <tr><td class="dim">Trả lời câu hỏi</td><td><strong>Thực hiện từng bước trong workflow</strong></td></tr>
+          <tr><td class="dim">Kết thúc bằng hội thoại</td><td><strong>Kết thúc bằng output có cấu trúc</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grid-3 reveal" style="margin-top:clamp(14px,2.4vh,28px)">
+      <div class="card card--hero"><div class="card__v" style="color:var(--accent)">Hiểu</div></div>
+      <div class="card card--hero"><div class="card__v" style="color:var(--accent)">Hành động</div></div>
+      <div class="card card--hero"><div class="card__v" style="color:var(--accent)">Hoàn tất</div></div>
+    </div>
+    <p class="slide__subtitle reveal"><strong style="color:var(--text)">Vertical đầu tiên:</strong> Đặt vé xe bằng tiếng Việt tự nhiên.</p>
+  </section>
+
+  <!-- ═══ 5 · SLIDE 4 — KIẾN TRÚC ═══ -->
+  <section class="slide slide--grid">
+    <p class="slide__label reveal">Công nghệ lõi</p>
+    <h2 class="slide__heading reveal">Nghe → Hiểu → Hành động → Phản hồi</h2>
+    <div class="reveal" style="display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:clamp(12px,2vw,28px);align-items:stretch">
+
+      <div class="card card--elevated" style="border-top:3px solid var(--ink);display:flex;flex-direction:column;gap:clamp(7px,1.1vh,12px)">
+        <div class="card__k" style="color:var(--ink)">Voice Agent</div>
+        <div class="card card--recessed"><div class="card__v" style="font-size:clamp(13px,1.5vw,18px)">Giọng nói khách hàng</div></div>
+        <div style="text-align:center;color:var(--accent);opacity:0.5;line-height:0.6">↓</div>
+        <div class="card" style="border-left:3px solid var(--accent)"><div class="card__v" style="font-size:clamp(13px,1.5vw,18px)">VALSEA Realtime STT</div></div>
+        <div style="text-align:center;color:var(--accent);opacity:0.5;line-height:0.6">↓</div>
+        <div class="card" style="border-left:3px solid var(--accent)"><div class="card__v" style="font-size:clamp(13px,1.5vw,18px)">LLM Voice Agent</div></div>
+        <div style="text-align:center;color:var(--accent);opacity:0.5;line-height:0.6">↓</div>
+        <div class="card" style="border-left:3px solid var(--accent)"><div class="card__v" style="font-size:clamp(13px,1.5vw,18px)">Google Chirp3-HD TTS</div></div>
+        <div style="text-align:center;color:var(--accent);opacity:0.5;line-height:0.6">↓</div>
+        <div class="card card--recessed"><div class="card__v" style="font-size:clamp(13px,1.5vw,18px)">Phản hồi tự nhiên bằng giọng nói</div></div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:clamp(10px,1.6vh,20px)">
+        <div style="display:flex;align-items:center;gap:10px;color:var(--accent);font-family:var(--font-mono);font-size:clamp(10px,1.1vw,13px);letter-spacing:1.4px">
+          <svg viewBox="0 0 40 12" width="52" height="14" aria-hidden="true"><path d="M4 6h32M8 2L4 6l4 4M32 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          HAI CHIỀU VỚI LLM
+        </div>
+        <div class="card card--hero" style="border-top:3px solid var(--green);flex:1;display:flex;flex-direction:column;justify-content:center">
+          <div class="card__k" style="color:var(--green)">AI Booking Agent</div>
+          <ul class="bullets" style="margin-top:8px">
+            <li style="font-size:clamp(13px,1.45vw,17px)">Tìm chuyến và thu thập thông tin hành khách.</li>
+            <li style="font-size:clamp(13px,1.45vw,17px)">Giữ ghế trong lúc hoàn tất hội thoại.</li>
+            <li style="font-size:clamp(13px,1.45vw,17px)">Đọc lại hành trình, giờ, ghế và giá.</li>
+            <li style="font-size:clamp(13px,1.45vw,17px)">Chỉ tạo vé sau khi khách <strong>xác nhận rõ ràng</strong>.</li>
+            <li style="font-size:clamp(13px,1.45vw,17px)">Trả ticket có cấu trúc, không dừng ở transcript.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══ 6 · SLIDE 4 (tiếp) — VOICE AGENT ═══ -->
+  <section class="slide">
+    <p class="slide__label reveal">Voice Agent chịu được tiếng Việt thực tế</p>
+    <h2 class="slide__heading reveal">Bốn năng lực của lớp nghe và nói</h2>
+    <div class="grid-4 reveal">
+      <div class="card card--elevated" style="border-top:3px solid var(--accent)">
+        <div class="card__k" style="color:var(--accent)">VALSEA Realtime STT</div>
+        <div class="card__note">Tiếng Việt Bắc–Trung–Nam, code-switch Việt–Anh, dấu thanh, âm thanh nhiễu và chất lượng điện thoại 8&nbsp;kHz.</div>
+      </div>
+      <div class="card card--elevated" style="border-top:3px solid var(--teal)">
+        <div class="card__k" style="color:var(--teal)">LLM</div>
+        <div class="card__note">Hiểu ý định, trích xuất dữ liệu, quản lý hội thoại nhiều lượt và hỏi lại khi thông tin mơ hồ.</div>
+      </div>
+      <div class="card card--elevated" style="border-top:3px solid var(--sage)">
+        <div class="card__k" style="color:var(--sage)">Hội thoại realtime</div>
+        <div class="card__note">VAD, xác định kết thúc lượt nói, hỗ trợ ngắt lời.</div>
+      </div>
+      <div class="card card--elevated" style="border-top:3px solid var(--plum)">
+        <div class="card__k" style="color:var(--plum)">Google Chirp3-HD TTS</div>
+        <div class="card__note">Phản hồi tiếng Việt tự nhiên, lịch sự, gần thời gian thực.</div>
+      </div>
+    </div>
+    <div class="chips reveal" style="margin-top:clamp(16px,2.8vh,34px)">
+      <span class="chip chip--accent">3 miền</span>
+      <span class="chip chip--accent">VN–EN</span>
+      <span class="chip chip--teal">noisy audio</span>
+      <span class="chip chip--teal">telephony 8 kHz</span>
+      <span class="chip chip--sage">realtime</span>
+    </div>
+  </section>
+
+  <!-- ═══ 7 · SLIDE 5 — MỘT LÕI, NHIỀU WORKFLOW ═══ -->
+  <section class="slide">
+    <p class="slide__label reveal">Một công nghệ lõi, nhiều workflow</p>
+    <h2 class="slide__heading reveal">Nhà xe là vertical đầu tiên, không phải giới hạn cuối cùng.</h2>
+    <div class="hub reveal">
+      <div class="hub__core">
+        <div class="card__k" style="color:var(--accent)">Giữ nguyên</div>
+        <div class="card__v" style="font-size:clamp(19px,2.4vw,30px);font-family:var(--font-display)">Voice Agent</div>
+        <div class="card__note">STT · LLM · TTS · hội thoại realtime</div>
+        <div style="margin-top:clamp(12px,2vh,22px);padding-top:clamp(10px,1.6vh,18px);border-top:1px dashed var(--border-bright)">
+          <div class="card__k">Thay đổi</div>
+          <div class="card__note" style="color:var(--text)">Agent nghiệp vụ + quy tắc từng ngành</div>
+        </div>
+      </div>
+      <div class="hub__fan" aria-hidden="true">
+        <svg viewBox="0 0 40 12" width="40" height="12"><path d="M2 6h34m-6-4l6 4-6 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 40 12" width="40" height="12"><path d="M2 6h34m-6-4l6 4-6 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 40 12" width="40" height="12"><path d="M2 6h34m-6-4l6 4-6 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 40 12" width="40" height="12"><path d="M2 6h34m-6-4l6 4-6 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="hub__spokes">
+        <div class="card card--elevated" style="border-left:3px solid var(--teal)">
+          <div class="card__k" style="color:var(--teal)">Khách sạn</div>
+          <div class="card__note">Đặt phòng, đổi lịch, yêu cầu dịch vụ</div>
+        </div>
+        <div class="card card--elevated" style="border-left:3px solid var(--sage)">
+          <div class="card__k" style="color:var(--sage)">F&amp;B</div>
+          <div class="card__note">Đơn món, xác nhận địa chỉ, chuyển bếp</div>
+        </div>
+        <div class="card card--elevated" style="border-left:3px solid var(--amber)">
+          <div class="card__k" style="color:var(--amber)">Công nghiệp</div>
+          <div class="card__note">Phiếu sự cố, yêu cầu bảo trì, biên bản ca</div>
+        </div>
+        <div class="card card--elevated" style="border-left:3px solid var(--plum)">
+          <div class="card__k" style="color:var(--plum)">Ngân hàng</div>
+          <div class="card__note">Ticket hỗ trợ, lịch hẹn, phân loại yêu cầu</div>
+        </div>
+      </div>
+    </div>
+    <p class="slide__subtitle reveal">Mỗi nhánh kết thúc bằng một <strong style="color:var(--text)">workflow-ready output</strong>, không kết thúc bằng transcript.</p>
+  </section>
+
+  <!-- ═══ 8 · SLIDE 6 — AGENT MANAGER ═══ -->
+  <section class="slide">
+    <p class="slide__label reveal">Con người trở thành Agent Manager</p>
+    <h2 class="slide__heading reveal">Alove không thay thế con người. Alove thay thế thao tác lặp lại.</h2>
+    <div class="reveal" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(14px,2.4vw,36px);align-items:center">
+      <ul class="bullets">
+        <li><strong>AI</strong> xử lý nghe, ghi nhận, nhập dữ liệu và các bước lặp lại.</li>
+        <li><strong>Nhân viên</strong> giám sát nhiều agent, kiểm tra kết quả và xử lý ngoại lệ.</li>
+        <li><strong>Doanh nghiệp</strong> tăng năng lực phục vụ mà không tăng nhân sự theo cùng tốc độ.</li>
+        <li><strong>Con người</strong> tập trung vào phán đoán, đồng cảm và quan hệ khách hàng.</li>
+      </ul>
+      <div>
+        <div class="card card--hero" style="text-align:center">
+          <div class="card__k" style="color:var(--accent)">Agent Manager</div>
+          <div class="card__v" style="font-size:clamp(17px,2.1vw,26px);font-family:var(--font-display)">1 nhân viên</div>
+        </div>
+        <div style="display:flex;justify-content:center;color:var(--accent);opacity:0.45;padding:clamp(6px,1.2vh,12px) 0" aria-hidden="true">
+          <svg viewBox="0 0 120 30" width="150" height="34"><path d="M60 0v10M60 10H10v10M60 10h50v10M60 10v10M36 10v10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M6 20l4-4 4 4M32 20l4-4 4 4M56 20l4-4 4 4M106 20l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="grid-4">
+          <div class="card" style="text-align:center;padding:clamp(9px,1.5vh,16px) 6px"><div class="card__k" style="margin:0">Agent</div></div>
+          <div class="card" style="text-align:center;padding:clamp(9px,1.5vh,16px) 6px"><div class="card__k" style="margin:0">Agent</div></div>
+          <div class="card" style="text-align:center;padding:clamp(9px,1.5vh,16px) 6px"><div class="card__k" style="margin:0">Agent</div></div>
+          <div class="card" style="text-align:center;padding:clamp(9px,1.5vh,16px) 6px"><div class="card__k" style="margin:0">Agent</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 9 · CÂU KẾT ═══ -->
+  <section class="slide slide--quote slide--grid">
+    <div class="quote__mark reveal">&ldquo;</div>
+    <blockquote class="reveal">Alove không chỉ giúp doanh nghiệp nghe khách hàng. Alove biến điều khách hàng nói thành công việc đã được hoàn thành.</blockquote>
+  </section>
+
+  <!-- ═══ 10 · CLOSING ═══ -->
+  <section class="slide slide--title slide--grid">
+    <svg class="decor decor--bl" width="200" height="200" viewBox="0 0 200 200" aria-hidden="true">
+      <line x1="0" y1="200" x2="0" y2="120" stroke="var(--accent)" stroke-width="2" opacity="0.2"/>
+      <line x1="0" y1="200" x2="80" y2="200" stroke="var(--accent)" stroke-width="2" opacity="0.2"/>
+      <rect x="24" y="164" width="16" height="16" transform="rotate(45 32 172)" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.3"/>
+    </svg>
+    <p class="slide__label reveal">Cảm ơn ban giám khảo</p>
+    <h2 class="slide__display reveal">Alove<br><span style="color:var(--accent)">Voice into action</span></h2>
+    <div class="title__rule reveal"></div>
+    <p class="slide__body reveal" style="max-width:46ch;font-size:clamp(16px,1.9vw,23px)">Biến điều khách hàng nói thành công việc đã được hoàn thành.</p>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── Theme toggle ── */
+  var toggle = document.getElementById('themeToggle');
+  var saved = localStorage.getItem('theme');
+  var initial = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  if (saved) document.documentElement.setAttribute('data-theme', initial);
+  toggle.textContent = initial === 'dark' ? '☀' : '☾';
+  toggle.addEventListener('click', function () {
+    var current = document.documentElement.getAttribute('data-theme')
+      || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = current === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    toggle.textContent = next === 'dark' ? '☀' : '☾';
+  });
+
+  /* ── Slide engine ── */
+  function SlideEngine() {
+    this.deck = document.querySelector('.deck');
+    this.slides = [].slice.call(document.querySelectorAll('.slide'));
+    this.current = 0;
+    this.total = this.slides.length;
+    this.buildChrome();
+    this.bindEvents();
+    this.observe();
+    this.update();
+  }
+
+  SlideEngine.prototype.buildChrome = function () {
+    var self = this;
+
+    var bar = document.createElement('div');
+    bar.className = 'deck-progress';
+    document.body.appendChild(bar);
+    this.bar = bar;
+
+    var dots = document.createElement('div');
+    dots.className = 'deck-dots';
+    this.slides.forEach(function (_, i) {
+      var d = document.createElement('button');
+      d.className = 'deck-dot';
+      d.title = 'Slide ' + (i + 1);
+      d.setAttribute('aria-label', 'Tới slide ' + (i + 1));
+      d.onclick = function () { self.goTo(i); };
+      dots.appendChild(d);
+    });
+    document.body.appendChild(dots);
+    this.dots = [].slice.call(dots.children);
+
+    var ctr = document.createElement('div');
+    ctr.className = 'deck-counter';
+    document.body.appendChild(ctr);
+    this.counter = ctr;
+
+    var hints = document.createElement('div');
+    hints.className = 'deck-hints';
+    hints.textContent = '← → hoặc cuộn để chuyển slide';
+    document.body.appendChild(hints);
+    this.hints = hints;
+    this.hintTimer = setTimeout(function () { hints.classList.add('faded'); }, 4000);
+  };
+
+  SlideEngine.prototype.bindEvents = function () {
+    var self = this;
+
+    document.addEventListener('keydown', function (e) {
+      if (e.target.closest('input, textarea, [contenteditable]')) return;
+      if (['ArrowDown', 'ArrowRight', ' ', 'PageDown'].indexOf(e.key) !== -1) {
+        e.preventDefault(); self.next();
+      } else if (['ArrowUp', 'ArrowLeft', 'PageUp'].indexOf(e.key) !== -1) {
+        e.preventDefault(); self.prev();
+      } else if (e.key === 'Home') {
+        e.preventDefault(); self.goTo(0);
+      } else if (e.key === 'End') {
+        e.preventDefault(); self.goTo(self.total - 1);
+      } else {
+        return;
+      }
+      self.fadeHints();
+    });
+
+    var touchY = 0;
+    this.deck.addEventListener('touchstart', function (e) {
+      touchY = e.touches[0].clientY;
+    }, { passive: true });
+    this.deck.addEventListener('touchend', function (e) {
+      var dy = touchY - e.changedTouches[0].clientY;
+      if (Math.abs(dy) > 50) { dy > 0 ? self.next() : self.prev(); }
+    });
+  };
+
+  SlideEngine.prototype.observe = function () {
+    var self = this;
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          self.current = self.slides.indexOf(entry.target);
+          self.update();
+        }
+      });
+    }, { threshold: 0.5 });
+    this.slides.forEach(function (s) { obs.observe(s); });
+  };
+
+  SlideEngine.prototype.goTo = function (i) {
+    this.slides[Math.max(0, Math.min(i, this.total - 1))].scrollIntoView({ behavior: 'smooth' });
+  };
+  SlideEngine.prototype.next = function () { if (this.current < this.total - 1) this.goTo(this.current + 1); };
+  SlideEngine.prototype.prev = function () { if (this.current > 0) this.goTo(this.current - 1); };
+
+  SlideEngine.prototype.update = function () {
+    var self = this;
+    this.bar.style.width = ((this.current + 1) / this.total * 100) + '%';
+    this.dots.forEach(function (d, i) { d.classList.toggle('active', i === self.current); });
+    this.counter.textContent = (this.current + 1) + ' / ' + this.total;
+  };
+
+  SlideEngine.prototype.fadeHints = function () {
+    clearTimeout(this.hintTimer);
+    this.hints.classList.add('faded');
+  };
+
+  /* ── Auto-fit: shrink quotes that would overflow at hero scale ── */
+  function autoFit() {
+    document.querySelectorAll('.slide--quote blockquote').forEach(function (el) {
+      var len = el.textContent.trim().length;
+      if (len > 100) {
+        var scale = Math.max(0.5, 100 / len);
+        var fs = parseFloat(getComputedStyle(el).fontSize);
+        el.style.fontSize = Math.max(18, Math.round(fs * scale)) + 'px';
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    // Enable entrance transitions only once JS is confirmed running,
+    // so the deck stays fully readable if the script never executes.
+    document.documentElement.classList.add('js-ready');
+    autoFit();
+    new SlideEngine();
+  });
+})();
+</script>
+
+</body>
+</html>
