@@ -13,6 +13,21 @@ test('trang chủ hiện nội dung nhà xe và vùng lịch chạy thật', asy
   await expect(page.getByRole('region', { name: 'Bảng lịch chạy' })).toBeVisible()
 })
 
+test('checklist mở từ header và hiển thị đầy đủ artifact', async ({ page }) => {
+  await page.goto('/')
+  const checklistEntry = page.getByRole('link', { name: 'Checklist' })
+
+  await expect(checklistEntry).toBeVisible()
+  await expect(checklistEntry).toHaveAttribute('href', '/checklist')
+  await checklistEntry.click()
+  await expect(page).toHaveURL(/\/checklist$/)
+  await expect(page.getByRole('heading', { name: 'Checklist tiêu chí & bằng chứng' })).toBeVisible()
+
+  const checklist = page.frameLocator('iframe[title="Checklist tiêu chí và bằng chứng VALSEA"]')
+  await expect(checklist.getByRole('heading', { name: 'Checklist tiêu chí ↔ bằng chứng' })).toBeVisible()
+  await expect(checklist.locator('tbody tr')).toHaveCount(36)
+})
+
 test('product tour cho phép xem trực tiếp từng bước đặt vé', async ({ page }) => {
   await page.goto('/')
   const productTour = page.getByTestId('alove-product-tour-stage')
@@ -90,5 +105,11 @@ test.describe('trên điện thoại', () => {
     await page.getByRole('link', { name: 'Gọi để đặt xe' }).last().click()
     await expect(page).toHaveURL(/\/console$/)
     await expect(page.getByRole('link', { name: 'Web Call' })).toBeVisible()
+  })
+
+  test('lối vào checklist vẫn hiển thị trên header', async ({ page }) => {
+    await page.goto('/')
+
+    await expect(page.getByRole('link', { name: 'Checklist' })).toBeVisible()
   })
 })

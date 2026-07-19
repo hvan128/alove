@@ -127,6 +127,7 @@ the repository README; secret values must never be committed.
 ```bash
 curl -I https://vedi-one.vercel.app/ban-to-chuc
 curl -I https://vedi-one.vercel.app/console
+curl -I https://vedi-one.vercel.app/checklist
 curl -i https://vedi-one.vercel.app/api/health
 ```
 

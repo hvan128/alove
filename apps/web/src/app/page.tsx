@@ -109,8 +109,8 @@ export default async function HomePage() {
           >
             <BrandMark className="size-9" />
             <span className="text-base tracking-[-0.03em]">Alove</span>
-            <span className="h-4 w-px bg-slate-300" aria-hidden />
-            <span className="font-normal text-slate-500">Nhà xe Mai Anh</span>
+            <span className="hidden h-4 w-px bg-slate-300 md:block" aria-hidden />
+            <span className="hidden font-normal text-slate-500 md:inline">Nhà xe Mai Anh</span>
           </a>
           <nav aria-label="Điều hướng chính" className="flex items-center gap-1 text-sm text-slate-600">
             <a
@@ -125,6 +125,12 @@ export default async function HomePage() {
             >
               Lịch chạy
             </a>
+            <Link
+              className="inline-flex min-h-11 items-center rounded-full border border-slate-300 bg-white/75 px-4 font-medium text-slate-800 shadow-sm transition hover:border-blue-300 hover:bg-white hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+              href="/checklist"
+            >
+              Checklist
+            </Link>
           </nav>
         </div>
       </header>
