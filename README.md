@@ -1,18 +1,115 @@
 # Alove
 
-Alove là tổng đài AI tiếng Việt giúp khách tìm chuyến và đặt vé thật cho nhà xe
-Mai Anh. Sản phẩm chỉ có một runtime: trình duyệt gọi qua LiveKit, Python agent
-điều phối hội thoại, còn API và Neon trong `apps/web` quyết định toàn bộ chuyến,
-giá, ghế và mã vé.
+Alove là nền tảng **speech-to-workflow** biến hội thoại giọng nói thành quy trình
+vận hành có trạng thái. Hệ thống không dừng ở transcript: một cuộc gọi có thể trở
+thành vé xe với hành trình, ghế, giá, mã vé và dấu vết xác nhận; hoặc mở rộng thành
+đơn hàng, lịch hẹn và ticket chăm sóc khách hàng.
+
+Đặt vé xe là vertical pilot đầu tiên. Pilot hiện dùng dữ liệu nhà xe Mai Anh cho
+tuyến Sài Gòn ⇄ Đà Lạt để chứng minh tinh thần **speech-to-meaning**: giọng nói đi
+qua lớp hiểu ngôn ngữ rồi cập nhật workflow thực tế, thay vì chỉ tạo văn bản.
+Alove không được định vị như sản phẩm chỉ dành cho một nhà xe, tuyến đường hoặc
+ngành nghề.
 
 Production duy nhất: <https://vedi-one.vercel.app/>
 
 Public repository: <https://github.com/hvan128/alove>
 
+## 1. Mô tả bài toán
+
+Khách hàng thường đặt vé xe qua điện thoại vì nhanh, thuận tiện và quen thuộc.
+Nhân viên phải đồng thời nghe yêu cầu, tìm chuyến, kiểm tra ghế, ghi thông tin
+hành khách và xác nhận đặt vé. Quy trình thủ công dễ gây bỏ sót hoặc nhập sai
+tuyến đường, ngày giờ, số lượng vé, điểm đón và số điện thoại.
+
+Khó khăn tăng khi khách nói nhanh, dùng giọng Bắc, Trung, Nam, tiếng Việt mang âm
+sắc nước ngoài, xen tiếng Anh hoặc chuyển đổi Việt–Anh liên tục trong cùng câu.
+Ví dụ: “Cho tôi book hai vé đi Đà Lạt vào Friday night.” Âm thanh nhiễu và cách
+diễn đạt tự nhiên, không theo mẫu cũng khiến hệ thống nhận diện giọng nói thông
+thường dễ hiểu sai.
+
+Vào giờ cao điểm, số lượng cuộc gọi lớn khiến khách phải chờ lâu, trong khi nhà xe
+khó duy trì chất lượng phục vụ ổn định.
+
+**Bài toán cần giải quyết:** tự động hóa quy trình đặt vé qua điện thoại nhưng vẫn
+bảo đảm thông tin chính xác, giá và ghế đúng với dữ liệu nhà xe, đồng thời cho phép
+nhân viên kiểm soát hoặc tiếp quản khi cần.
+
+## 2. Giải pháp
+
+Alove là trợ lý hội thoại giọng nói hoạt động như nhân viên tổng đài tự động 24/7.
+Khách có thể gọi trên web hoặc qua SIP — cuộc gọi điện thoại tới số tổng đài — và
+nói nhu cầu bằng ngôn ngữ tự nhiên.
+
+Trong workflow đặt vé, Alove lần lượt thu thập tuyến đi, ngày giờ, số lượng hành
+khách, loại xe, điểm đón, họ tên và số điện thoại. Hệ thống tra cứu dữ liệu nhà xe
+để tìm chuyến phù hợp, kiểm tra ghế còn trống và thông báo giá vé.
+
+Trước khi đặt vé, Alove đọc lại toàn bộ thông tin để khách xác nhận. Chỉ khi nhận
+được xác nhận rõ ràng, hệ thống mới hoàn tất đặt vé, cấp mã vé và số ghế. Dữ liệu
+chuyến, giá và tình trạng ghế được lấy trực tiếp từ hệ thống vận hành; Alove không
+tự tạo thông tin ngoài dữ liệu nhà xe.
+
+Sau cuộc gọi, hệ thống tạo phiếu đặt vé có cấu trúc gồm thông tin hành khách,
+chuyến đi, ghế, giá vé và trạng thái xác nhận. Nhân viên theo dõi hội thoại và
+phiếu đặt vé trên cùng một màn hình. Khi cần hỗ trợ, nhân viên tiếp quản cuộc gọi
+mà không mất transcript hoặc thông tin Alove đã thu thập.
+
+Đặt vé xe là workflow triển khai đầu tiên. Cùng nền tảng có thể mở rộng sang:
+
+- F&B: nhận đặt món, kiểm tra món, đọc lại đơn hàng và chuyển đơn xuống bếp.
+- Bán lẻ: tạo và xác nhận đơn hàng từ cuộc gọi.
+- Logistics: tiếp nhận yêu cầu giao nhận và tạo yêu cầu vận chuyển.
+- Chăm sóc khách hàng: đặt lịch hoặc tạo ticket xử lý.
+
+Mỗi ngành dùng bộ thông tin, dữ liệu và quy tắc riêng; lớp nhận diện giọng nói,
+hiểu ngôn ngữ và điều phối hội thoại được tái sử dụng.
+
+## 3. Đối tượng sử dụng
+
+Alove phục vụ khách hàng muốn giao dịch qua điện thoại, gồm khách Việt Nam thuộc
+nhiều vùng miền, khách nước ngoài nói tiếng Việt chưa thành thạo và khách giao
+tiếp xen Việt–Anh.
+
+Trong vertical đặt vé, người dùng phía doanh nghiệp gồm nhân viên tổng đài, chăm
+sóc khách hàng, phòng vé, điều hành và quản lý nhà xe. Hệ thống giúp tăng số lượng
+cuộc gọi có thể phục vụ, giảm sai sót nhưng vẫn giữ quyền kiểm soát toàn bộ quy
+trình đặt vé.
+
+Khi mở rộng, Alove có thể phục vụ nhà hàng, cửa hàng bán lẻ, đơn vị giao vận,
+phòng khám, trung tâm dịch vụ và doanh nghiệp có nhiều giao dịch qua điện thoại.
+
+## 4. Sự khác biệt
+
+Alove không chỉ chuyển giọng nói thành văn bản. Hệ thống biến hội thoại trực tiếp
+thành workflow hoàn chỉnh: hiểu nhu cầu, thu thập dữ liệu, gọi công cụ nghiệp vụ,
+cập nhật trạng thái và tạo kết quả có thể kiểm tra. Với đặt vé, kết quả là hành
+trình, ghế, giá, mã vé và dấu vết xác nhận — không chỉ transcript.
+
+Lớp nhận diện giọng nói VALSEA tập trung xử lý tiếng Việt thực tế, gồm giọng Bắc,
+Trung, Nam; tiếng Việt mang âm sắc nước ngoài; hội thoại code-switch Việt–Anh;
+cách nói nhanh và âm thanh nhiễu từ cuộc gọi. Alove được thiết kế để hiểu câu
+chuyển đổi liên tục giữa hai ngôn ngữ, thay vì buộc khách chỉ dùng tiếng Việt hoặc
+tiếng Anh.
+
+Khi tên khách, số điện thoại, tuyến đường hoặc thời gian chưa rõ, Alove chủ động
+hỏi lại thay vì tự suy đoán. Lõi đặt vé hoạt động theo quy tắc xác định và dữ liệu
+thực tế của nhà xe, giúp hạn chế AI tự tạo giá, chuyến hoặc ghế. Mọi vé đều cần
+khách xác nhận rõ ràng. Nhân viên có thể theo dõi và tiếp quản bất kỳ lúc nào mà
+không làm mất trạng thái cuộc gọi.
+
+Khác biệt quan trọng nằm ở khả năng mở rộng từ voice agent đặt vé thành nền tảng
+**speech-to-workflow**. Doanh nghiệp cấu hình dữ liệu, quy tắc và workflow phù hợp
+để biến hội thoại thành vé xe, đơn món ăn, đơn hàng, lịch hẹn hoặc ticket chăm sóc
+khách hàng.
+
+Kiến trúc Alove hướng tới tiếng Việt, tiếng Anh và nhiều ngôn ngữ Đông Nam Á,
+giúp doanh nghiệp mở rộng thị trường và phục vụ khách quốc tế hiệu quả hơn.
+
 ## Kiến trúc hiện hành
 
 ```text
-Khách trên web / SIP
+Khách trên web / SIP (điện thoại qua số tổng đài)
         |
         v
 LiveKit room + token ngắn hạn do server cấp
@@ -33,7 +130,7 @@ Next.js booking API có bearer auth
 - `agent`: LiveKit Python worker; hiểu hội thoại nhưng không được tự tạo dữ liệu
   vận hành.
 - `apps/web/drizzle`: migration duy nhất của hệ thống.
-- `data/mai-anh-seed`: dữ liệu vận hành để seed Neon.
+- `data/mai-anh-seed`: dữ liệu vertical pilot để seed Neon.
 
 Các gateway cũ, browser fallback và luồng demo không authoritative đã được loại bỏ.
 
