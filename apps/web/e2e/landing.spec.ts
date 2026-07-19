@@ -2,13 +2,13 @@ import { expect, test } from '@playwright/test'
 
 test('trang chủ hiện nội dung nhà xe và vùng lịch chạy thật', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: /AloVé.*Alo là có vé đi/u })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /AloVé.*Alo là có vé/u })).toBeVisible()
   const heroPreview = page.getByTestId('alove-hero-product-preview')
   await expect(heroPreview).toBeVisible()
   await expect(heroPreview.getByText('VALSEA semantic')).toHaveCount(0)
   await expect(heroPreview.getByText(/chuyến mô gần nhất hỉ/u)).toBeVisible()
   await expect(page.getByText('Alove đã hiểu', { exact: true })).toHaveCount(0)
-  await expect(page.getByText('Giọng vùng miền: chưa được xác minh', { exact: true })).toBeVisible()
+  await expect(page.getByText(/chưa được xác minh/u)).toHaveCount(0)
   await expect(page.getByText(/Hiểu giọng vùng miền/u)).toHaveCount(0)
   await expect(page.getByRole('region', { name: 'Bảng lịch chạy' })).toBeVisible()
 })

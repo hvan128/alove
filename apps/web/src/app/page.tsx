@@ -4,14 +4,15 @@ import Link from 'next/link'
 import {
   ArrowDownRight,
   ArrowRight,
+  BadgeCheck,
   Check,
   Clock3,
   Headphones,
+  LockKeyhole,
   MapPin,
   Mic2,
   RotateCcw,
   ShieldCheck,
-  Sparkles,
   Ticket,
   Wifi,
 } from 'lucide-react'
@@ -29,9 +30,9 @@ import { isDbConfigured } from '@/lib/db/client'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Alove × Nhà xe Mai Anh — AloVé, alo là có vé đi',
+  title: 'Alove × Nhà xe Mai Anh — AloVé - Alo là có vé',
   description:
-    'Đặt vé nhà xe Mai Anh bằng giọng nói. Bằng chứng tổng hợp kiểm tra thanh điệu và câu Việt–Anh; khả năng với giọng vùng miền chưa được xác minh.',
+    'Đặt vé nhà xe Mai Anh bằng giọng nói. Alove luôn đọc lại thông tin trước khi đặt vé.',
 }
 
 function formatVnd(value: number): string {
@@ -136,16 +137,12 @@ export default async function HomePage() {
 
           <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-28 sm:px-6 sm:pb-20 sm:pt-32 lg:grid-cols-[0.92fr_1.08fr] lg:gap-14 lg:py-32">
             <div className="max-w-xl">
-              <div className="inline-flex min-h-8 items-center gap-2 rounded-full border border-blue-200 bg-white/75 px-3 text-xs font-medium text-blue-800 shadow-sm backdrop-blur-md">
-                <Sparkles size={14} aria-hidden className="text-violet-600" />
-                Có bằng chứng tổng hợp: thanh điệu & Việt–Anh
-              </div>
-              <h1 className="mt-6 text-[clamp(3rem,5.2vw,4.75rem)] font-bold leading-[0.92] tracking-[-0.06em] text-slate-950">
-                AloVé.
-                <span className="landing-accent-text mt-1 block">Alo là có vé đi.</span>
+              <h1 className="text-[clamp(3rem,5.2vw,4.75rem)] font-bold leading-[0.92] tracking-[-0.06em] text-slate-950">
+                AloVé -
+                <span className="landing-accent-text mt-1 block">Alo là có vé.</span>
               </h1>
               <p className="mt-6 max-w-lg text-base leading-7 text-slate-600 sm:text-lg">
-                Alove được kiểm tra bằng giọng tổng hợp cho thanh điệu tiếng Việt và câu Việt–Anh. Khả năng với giọng Bắc, Trung, Nam chưa được xác minh; hạng mục này cần mẫu giọng thật có đồng thuận.
+                Đặt vé nhà xe Mai Anh chỉ bằng một cuộc gọi. Alove lắng nghe nhu cầu, tìm chuyến phù hợp và đọc lại thông tin trước khi đặt vé.
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-3">
                 <CallOverlay layoutKey="hero" className="shadow-[0_16px_50px_-16px_rgba(73,125,255,0.9)]" />
@@ -158,8 +155,6 @@ export default async function HomePage() {
               </div>
 
               <ul className="mt-8 grid gap-2.5 text-sm text-slate-600">
-                <li className="inline-flex items-center gap-2.5"><Check size={16} aria-hidden className="text-emerald-600" /> Kiểm thử tổng hợp: thanh điệu và câu Việt–Anh</li>
-                <li className="inline-flex items-center gap-2.5"><Check size={16} aria-hidden className="text-amber-600" /> Giọng vùng miền: chưa được xác minh</li>
                 <li className="inline-flex items-center gap-2.5"><Check size={16} aria-hidden className="text-emerald-600" /> Luôn đọc lại thông tin trước khi đặt</li>
                 <li className="inline-flex items-center gap-2.5"><Check size={16} aria-hidden className="text-emerald-600" /> Không cần cài app, chỉ cần nói như bình thường</li>
               </ul>
@@ -188,20 +183,20 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <div className="relative mx-auto mt-9 grid max-w-4xl grid-cols-2 gap-5 md:grid-cols-4">
-              <div className="absolute left-[12.5%] right-[12.5%] top-6 hidden h-px bg-gradient-to-r from-blue-400 via-violet-400 to-emerald-400 md:block" aria-hidden />
+            <div className="relative mx-auto mt-7 grid max-w-3xl grid-cols-2 gap-x-3 gap-y-5 sm:gap-x-4 md:grid-cols-4">
+              <div className="absolute left-[12.5%] right-[12.5%] top-5 hidden h-px bg-gradient-to-r from-blue-400 via-violet-400 to-emerald-400 md:block" aria-hidden />
               {flowSteps.map(({ icon: Icon, number, title, color }) => (
-                <div key={number} className="relative flex flex-col items-center text-center">
-                  <span className={`relative z-10 grid size-12 place-items-center rounded-xl border shadow-sm ${color}`}>
-                    <Icon size={20} aria-hidden />
-                    <span className="absolute -right-1.5 -top-1.5 grid size-5 place-items-center rounded-full bg-slate-900 font-mono text-[9px] font-bold text-white">{number}</span>
+                <div key={number} className="relative flex h-full flex-col items-center text-center">
+                  <span className={`relative z-10 grid size-10 place-items-center rounded-xl border shadow-sm ${color}`}>
+                    <Icon size={18} aria-hidden />
+                    <span className="absolute -right-1.5 -top-1.5 grid size-4 place-items-center rounded-full bg-slate-900 font-mono text-[8px] font-bold text-white">{number}</span>
                   </span>
-                  <p className="mt-3 text-sm font-semibold text-slate-900">{title}</p>
+                  <p className="mt-2.5 flex min-h-10 items-start justify-center text-xs font-semibold leading-5 text-slate-900 sm:text-sm">{title}</p>
                 </div>
               ))}
             </div>
 
-            <div className="mt-9">
+            <div className="mt-7">
               <AloveProductTour {...(tourTrip ? { trip: tourTrip } : {})} />
             </div>
           </div>
@@ -277,23 +272,55 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section id="doi-huy" className="relative overflow-hidden bg-[#070912] text-white">
-          <div className="landing-support-glow" aria-hidden />
-          <div className="relative z-10 mx-auto grid max-w-[1280px] gap-10 px-4 py-20 sm:px-8 sm:py-24 lg:grid-cols-[1fr_auto] lg:items-center">
-            <div className="max-w-3xl">
-              <span className="inline-flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-white/8 text-white/75">
-                <RotateCcw size={22} aria-hidden />
-              </span>
-              <h2 className="mt-7 text-4xl font-semibold leading-[1.02] tracking-[-0.055em] text-white sm:text-6xl">
-                Vé cũ cũng chỉ cần một cuộc gọi.
-              </h2>
-              <p className="mt-5 max-w-xl text-base leading-7 text-white/55">
-                Chuẩn bị mã vé và số điện thoại đã đặt. Alove sẽ xác thực trước khi tra cứu hoặc huỷ.
-              </p>
-            </div>
-            <div className="lg:justify-self-end">
-              <CallOverlay layoutKey="support" label="Tra cứu vé qua cuộc gọi" />
-              <p className="mt-3 flex items-center gap-2 text-xs text-white/40"><Headphones size={14} aria-hidden /> Hỗ trợ ngay trong trình duyệt</p>
+        <section id="doi-huy" className="landing-support-section">
+          <div className="landing-support-grid" aria-hidden />
+          <div className="landing-support-orbit" aria-hidden />
+          <div className="relative z-10 mx-auto max-w-[1280px] px-4 py-16 sm:px-8 sm:py-24">
+            <div className="landing-support-ticket">
+              <div className="landing-support-copy">
+                <div className="flex items-center gap-3 text-sm font-medium text-sky-200">
+                  <span className="landing-support-icon"><RotateCcw size={19} aria-hidden /></span>
+                  Hỗ trợ vé đã đặt
+                </div>
+                <h2 className="mt-7 max-w-3xl text-[clamp(2.5rem,5vw,4.75rem)] font-semibold leading-[0.98] tracking-[-0.06em] text-white text-balance">
+                  Vé cũ, gọi một cuộc là xong.
+                </h2>
+                <p className="mt-5 max-w-xl text-base leading-7 text-slate-300 sm:text-lg">
+                  Đọc mã vé và số điện thoại đã đặt. Alove xác thực, kiểm tra điều kiện rồi mới thực hiện yêu cầu của bạn.
+                </p>
+
+                <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-slate-300">
+                  <span className="inline-flex items-center gap-2"><BadgeCheck className="text-sky-300" size={17} aria-hidden /> Tra cứu thông tin</span>
+                  <span className="inline-flex items-center gap-2"><BadgeCheck className="text-sky-300" size={17} aria-hidden /> Đổi chuyến</span>
+                  <span className="inline-flex items-center gap-2"><BadgeCheck className="text-sky-300" size={17} aria-hidden /> Yêu cầu huỷ vé</span>
+                </div>
+              </div>
+
+              <aside className="landing-support-action" aria-label="Bắt đầu hỗ trợ vé">
+                <div className="landing-support-action-head">
+                  <div>
+                    <p className="font-mono text-[11px] tracking-[0.12em] text-slate-400">ALOVE / HỖ TRỢ VÉ</p>
+                    <p className="mt-2 text-lg font-semibold text-white">Sẵn sàng kết nối</p>
+                  </div>
+                  <span className="landing-support-live"><span aria-hidden /> Trực tuyến</span>
+                </div>
+
+                <div className="landing-support-route" aria-hidden>
+                  <span className="landing-support-route-dot" />
+                  <span className="landing-support-route-line" />
+                  <Headphones size={20} />
+                </div>
+
+                <CallOverlay
+                  layoutKey="support"
+                  label="Gọi Alove hỗ trợ vé"
+                  className="mt-7 w-full bg-white text-slate-950 shadow-[0_12px_32px_rgba(0,0,0,0.22)] hover:bg-sky-50 focus-visible:outline-sky-300"
+                />
+                <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-slate-400">
+                  <LockKeyhole className="mt-0.5 shrink-0" size={14} aria-hidden />
+                  Chỉ xử lý sau khi thông tin đặt vé được xác thực.
+                </p>
+              </aside>
             </div>
           </div>
         </section>
