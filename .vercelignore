@@ -1,0 +1,22 @@
+# Vercel dùng file này THAY CHO .gitignore khi nó tồn tại, nên mọi thứ không
+# được upload đều phải liệt kê ở đây, kể cả các mục hiển nhiên.
+
+node_modules/
+.next/
+.git/
+.worktrees/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Bằng chứng sử dụng AI: ~1.1GB transcript và zip. Không tham gia build, và
+# upload nó là lý do một lần deploy trước treo quá 10 phút chưa xong.
+artifacts/
+
+# Python voice agent: deploy riêng lên LiveKit Cloud, không nằm trong pnpm
+# workspace (chỉ có apps/web) nên next build không cần tới. Kèm .venv ~500MB.
+agent/
+
+tmp/
+project-4/
